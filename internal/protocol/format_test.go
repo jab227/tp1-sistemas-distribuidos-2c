@@ -30,24 +30,32 @@ func TestReadWritePayloadWithSingleElement(t *testing.T) {
 		t.Errorf("expected %d got %d", expectedN, n)
 	}
 
-	b := p.ReadByte()
+	element, ok := p.NextElement()
+	if !ok {
+		t.Errorf("expected ok")
+	}
+	b := element.ReadByte()
 	if b != byteToWrite {
 		t.Errorf("expected %d got %d", byteToWrite, b)
 	}
 
-	str := string(p.ReadBytes())
+	str := string(element.ReadBytes())
 	if str != bytesToWrite {
 		t.Errorf("expected %#v, got %#v", bytesToWrite, str)
 	}
 
-	u := p.ReadUint32()
+	u := element.ReadUint32()
 	if u != uint32ToWrite {
 		t.Errorf("expected %d got %d", uint32ToWrite, u)
 	}
 
-	f := p.ReadFloat32()
+	f := element.ReadFloat32()
 	if f != float32ToWrite {
 		t.Errorf("expected %f got %f", float32ToWrite, f)
+	}
+	element, ok = p.NextElement()
+	if ok {
+		t.Errorf("expected not ok")
 	}
 }
 
@@ -88,24 +96,32 @@ func TestReadWritePayloadWithMultipleElements(t *testing.T) {
 		t.Errorf("expected %d got %d", expectedN, n)
 	}
 	for i := 0; i < len(tts); i++ {
-		b := p.ReadByte()
+		element, ok := p.NextElement()
+		if !ok {
+			t.Errorf("expected ok")
+		}
+		b := element.ReadByte()
 		if b != tts[i].b {
 			t.Errorf("expected %d got %d", tts[i].b, b)
 		}
 
-		str := string(p.ReadBytes())
+		str := string(element.ReadBytes())
 		if str != string(tts[i].bs) {
 			t.Errorf("expected %#v, got %#v", string(tts[i].bs), str)
 		}
 
-		u := p.ReadUint32()
+		u := element.ReadUint32()
 		if u != tts[i].u {
 			t.Errorf("expected %d got %d", tts[i].u, u)
 		}
 
-		f := p.ReadFloat32()
+		f := element.ReadFloat32()
 		if f != tts[i].f {
 			t.Errorf("expected %f got %f", tts[i].f, f)
 		}
+	}
+	_, ok := p.NextElement()
+	if ok {
+		t.Errorf("expected not ok")
 	}
 }

@@ -76,30 +76,41 @@ func NewPayload(p []byte) (*Payload, int) {
 	return &Payload{payloads, 0}, int(cnt)
 }
 
+type PayloadElement struct {
+	element []byte
+}
 
+func (p *Payload) NextElement() (PayloadElement, bool) {
+	if p.pos == len(p.payloads) {
+		return PayloadElement{}, false
+	}
+	element := p.payloads[p.pos]
+	p.pos++
+	return PayloadElement{element}, true
+}
 
-func (p *Payload) ReadUint32() uint32 {
-	value := binary.LittleEndian.Uint32(p.payloads[0][:4])
-	p.payloads[0] = p.payloads[0][4:]
+func (p *PayloadElement) ReadUint32() uint32 {
+	value := binary.LittleEndian.Uint32(p.element[:4])
+	p.element = p.element[4:]
 	return value
 }
 
-func (p *Payload) ReadFloat32() float32 {
-	value := binary.LittleEndian.Uint32(p.payloads[0][:4])
-	p.payloads[0] = p.payloads[0][4:]
+func (p *PayloadElement) ReadFloat32() float32 {
+	value := binary.LittleEndian.Uint32(p.element[:4])
+	p.element = p.element[4:]
 	return math.Float32frombits(value)
 }
 
-func (p *Payload) ReadByte() byte {
-	b := p.payloads[0][0]
-	p.payloads[0] = p.payloads[0][1:]
+func (p *PayloadElement) ReadByte() byte {
+	b := p.element[0]
+	p.element = p.element[1:]
 	return b
 }
 
-func (p *Payload) ReadBytes() []byte {
-	length := binary.LittleEndian.Uint32(p.payloads[0][:4])
-	p.payloads[0] = p.payloads[0][4:]
-	data := p.payloads[0][:length]
-	p.payloads[0] = p.payloads[0][length:]
+func (p *PayloadElement) ReadBytes() []byte {
+	length := binary.LittleEndian.Uint32(p.element[:4])
+	p.element = p.element[4:]
+	data := p.element[:length]
+	p.element = p.element[length:]
 	return data
 }
