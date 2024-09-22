@@ -3,6 +3,7 @@ package protocol
 import (
 	"bytes"
 	"encoding/binary"
+	"iter"
 	"math"
 )
 
@@ -78,6 +79,16 @@ func NewPayload(p []byte) (*Payload, int) {
 
 type PayloadElement struct {
 	element []byte
+}
+
+func (p *Payload) Elements() iter.Seq2[int, PayloadElement] {
+	return func(yield func(int, PayloadElement) bool) {
+		for i, element := range p.payloads {
+			if !yield(i, PayloadElement{element}) {
+				return
+			}
+		}
+	}
 }
 
 func (p *Payload) NextElement() (PayloadElement, bool) {
