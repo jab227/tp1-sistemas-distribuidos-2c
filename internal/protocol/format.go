@@ -26,12 +26,15 @@ func NewPayloadBuffer(elementCount int) *PayloadBuffer {
 	}
 }
 
+func (p *PayloadBuffer) BeginPayloadElement() {
+	p.tmp.Reset()
+}
+
 func (p *PayloadBuffer) EndPayloadElement() {
 	elementBytes := p.tmp.Bytes()
 	binary.LittleEndian.PutUint32(p.fourBytesBuf[:], uint32(len(elementBytes)))
 	p.buf.Write(p.fourBytesBuf[:])
 	p.buf.Write(elementBytes)
-	p.tmp.Reset()
 }
 
 func (p *PayloadBuffer) WriteByte(b byte) {
@@ -58,12 +61,13 @@ func (p *PayloadBuffer) Bytes() []byte {
 	return p.buf.Bytes()
 }
 
-type Payload struct {
+// TODO(juan): make it a method of the message
+type PayloadElements struct {
 	payloads [][]byte
 	pos      int
 }
 
-func NewPayload(p []byte) (*Payload, int) {
+func NewPayloadElements(p []byte) (*PayloadElements, int) {
 	cnt := binary.LittleEndian.Uint32(p[:4])
 	p = p[4:]
 	payloads := make([][]byte, cnt)
@@ -74,51 +78,51 @@ func NewPayload(p []byte) (*Payload, int) {
 		p = p[l:]
 
 	}
-	return &Payload{payloads, 0}, int(cnt)
+	return &PayloadElements{payloads, 0}, int(cnt)
 }
 
-type PayloadElement struct {
+type Element struct {
 	element []byte
 }
 
-func (p *Payload) Elements() iter.Seq2[int, PayloadElement] {
-	return func(yield func(int, PayloadElement) bool) {
+func (p *PayloadElements) Iter() iter.Seq2[int, Element] {
+	return func(yield func(int, Element) bool) {
 		for i, element := range p.payloads {
-			if !yield(i, PayloadElement{element}) {
+			if !yield(i, Element{element}) {
 				return
 			}
 		}
 	}
 }
 
-func (p *Payload) NextElement() (PayloadElement, bool) {
+func (p *PayloadElements) NextElement() (Element, bool) {
 	if p.pos == len(p.payloads) {
-		return PayloadElement{}, false
+		return Element{}, false
 	}
 	element := p.payloads[p.pos]
 	p.pos++
-	return PayloadElement{element}, true
+	return Element{element}, true
 }
 
-func (p *PayloadElement) ReadUint32() uint32 {
+func (p *Element) ReadUint32() uint32 {
 	value := binary.LittleEndian.Uint32(p.element[:4])
 	p.element = p.element[4:]
 	return value
 }
 
-func (p *PayloadElement) ReadFloat32() float32 {
+func (p *Element) ReadFloat32() float32 {
 	value := binary.LittleEndian.Uint32(p.element[:4])
 	p.element = p.element[4:]
 	return math.Float32frombits(value)
 }
 
-func (p *PayloadElement) ReadByte() byte {
+func (p *Element) ReadByte() byte {
 	b := p.element[0]
 	p.element = p.element[1:]
 	return b
 }
 
-func (p *PayloadElement) ReadBytes() []byte {
+func (p *Element) ReadBytes() []byte {
 	length := binary.LittleEndian.Uint32(p.element[:4])
 	p.element = p.element[4:]
 	data := p.element[:length]

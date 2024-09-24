@@ -177,3 +177,7 @@ func (m *Message) Unmarshal(p []byte) error {
 	utils.Assertf(len(m.payload) == int(m.payloadSize), "the payload size should be equal to the len of the payload: %d != %d", len(m.payload), int(m.payloadSize))
 	return nil
 }
+func (m *Message) Elements() *PayloadElements {
+	elements, _ := NewPayloadElements(m.payload)
+	return elements
+}

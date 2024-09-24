@@ -16,14 +16,17 @@ func TestReadWritePayloadWithSingleElement(t *testing.T) {
 		expectedN      = 1
 	)
 
-	buffer.WriteByte(byteToWrite)
-	buffer.WriteBytes([]byte(bytesToWrite))
-	buffer.WriteUint32(uint32ToWrite)
-	buffer.WriteFloat32(float32ToWrite)
+	buffer.BeginPayloadElement()
+	{
+		buffer.WriteByte(byteToWrite)
+		buffer.WriteBytes([]byte(bytesToWrite))
+		buffer.WriteUint32(uint32ToWrite)
+		buffer.WriteFloat32(float32ToWrite)
+	}
 	buffer.EndPayloadElement()
 
 	payload := buffer.Bytes()
-	p, n := protocol.NewPayload(payload)
+	p, n := protocol.NewPayloadElements(payload)
 	if n != expectedN {
 		t.Errorf("expected %d got %d", expectedN, n)
 	}
@@ -81,15 +84,18 @@ func TestReadWritePayloadWithMultipleElements(t *testing.T) {
 	}
 	buffer := protocol.NewPayloadBuffer(len(tts))
 	for _, tt := range tts {
-		buffer.WriteByte(tt.b)
-		buffer.WriteBytes(tt.bs)
-		buffer.WriteUint32(tt.u)
-		buffer.WriteFloat32(tt.f)
+		buffer.BeginPayloadElement()
+		{
+			buffer.WriteByte(tt.b)
+			buffer.WriteBytes(tt.bs)
+			buffer.WriteUint32(tt.u)
+			buffer.WriteFloat32(tt.f)
+		}
 		buffer.EndPayloadElement()
 	}
 
 	payload := buffer.Bytes()
-	p, n := protocol.NewPayload(payload)
+	p, n := protocol.NewPayloadElements(payload)
 	if n != len(tts) {
 		t.Errorf("expected %d got %d", expectedN, n)
 	}
@@ -148,6 +154,7 @@ func TestReadWritePayloadWithMultipleElementsIter(t *testing.T) {
 	}
 	buffer := protocol.NewPayloadBuffer(len(tts))
 	for _, tt := range tts {
+		buffer.BeginPayloadElement()
 		buffer.WriteByte(tt.b)
 		buffer.WriteBytes(tt.bs)
 		buffer.WriteUint32(tt.u)
@@ -156,12 +163,12 @@ func TestReadWritePayloadWithMultipleElementsIter(t *testing.T) {
 	}
 
 	payload := buffer.Bytes()
-	p, n := protocol.NewPayload(payload)
+	p, n := protocol.NewPayloadElements(payload)
 	if n != len(tts) {
 		t.Errorf("expected %d got %d", expectedN, n)
 	}
 
-	for i, element := range p.Elements() {
+	for i, element := range p.Iter() {
 		b := element.ReadByte()
 		if b != tts[i].b {
 			t.Errorf("expected %d got %d", tts[i].b, b)
