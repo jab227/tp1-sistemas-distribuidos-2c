@@ -51,6 +51,70 @@ func TestCreatingADataMessage(t *testing.T) {
 			t.Error("expected reviews data")
 		}
 	})
+
+	t.Run("create data message with multiple elements and iterate over fields", func(t *testing.T) {
+		type payloadValues struct {
+			b  byte
+			bs []byte
+			u  uint32
+			f  float32
+		}
+
+		tts := []payloadValues{
+			{252, []byte("hellope"), 424, 55.5},
+			{69, []byte("elden ring"), 218, 4200.5},
+			{42, []byte("borderlands 3"), 1024, -21.5},
+		}
+		buffer := protocol.NewPayloadBuffer(len(tts))
+		for _, tt := range tts {
+			buffer.BeginPayloadElement()
+			{
+				buffer.WriteByte(tt.b)
+				buffer.WriteBytes(tt.bs)
+				buffer.WriteUint32(tt.u)
+				buffer.WriteFloat32(tt.f)
+			}
+			buffer.EndPayloadElement()
+		}
+
+		payload := buffer.Bytes()
+
+		msg := protocol.NewDataMessage(protocol.Games, payload, protocol.MessageOptions{
+			MessageID: 8,
+			ClientID:  1,
+			RequestID: 1,
+		})
+
+		if !msg.ExpectKind(protocol.Data) {
+			t.Error("expected message kind data")
+		}
+
+		if !msg.HasGameData() || msg.HasReviewData() {
+			t.Error("expected game data")
+		}
+		elements := msg.Elements()
+		for i, element := range elements.Iter() {
+			b := element.ReadByte()
+			if b != tts[i].b {
+				t.Errorf("expected %d got %d", tts[i].b, b)
+			}
+
+			str := string(element.ReadBytes())
+			if str != string(tts[i].bs) {
+				t.Errorf("expected %#v, got %#v", string(tts[i].bs), str)
+			}
+
+			u := element.ReadUint32()
+			if u != tts[i].u {
+				t.Errorf("expected %d got %d", tts[i].u, u)
+			}
+
+			f := element.ReadFloat32()
+			if f != tts[i].f {
+				t.Errorf("expected %f got %f", tts[i].f, f)
+			}
+		}
+	})
 }
 
 func TestCreatingAResultsessage(t *testing.T) {

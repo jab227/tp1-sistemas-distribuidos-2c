@@ -67,7 +67,7 @@ type PayloadElements struct {
 	pos      int
 }
 
-func NewPayloadElements(p []byte) (*PayloadElements, int) {
+func newPayloadElements(p []byte) (*PayloadElements, int) {
 	cnt := binary.LittleEndian.Uint32(p[:4])
 	p = p[4:]
 	payloads := make([][]byte, cnt)
@@ -81,14 +81,12 @@ func NewPayloadElements(p []byte) (*PayloadElements, int) {
 	return &PayloadElements{payloads, 0}, int(cnt)
 }
 
-type Element struct {
-	element []byte
-}
+type Element []byte
 
 func (p *PayloadElements) Iter() iter.Seq2[int, Element] {
 	return func(yield func(int, Element) bool) {
 		for i, element := range p.payloads {
-			if !yield(i, Element{element}) {
+			if !yield(i, Element(element)) {
 				return
 			}
 		}
@@ -101,31 +99,31 @@ func (p *PayloadElements) NextElement() (Element, bool) {
 	}
 	element := p.payloads[p.pos]
 	p.pos++
-	return Element{element}, true
+	return Element(element), true
 }
 
 func (p *Element) ReadUint32() uint32 {
-	value := binary.LittleEndian.Uint32(p.element[:4])
-	p.element = p.element[4:]
+	value := binary.LittleEndian.Uint32((*p)[:4])
+	*p = (*p)[4:]
 	return value
 }
 
 func (p *Element) ReadFloat32() float32 {
-	value := binary.LittleEndian.Uint32(p.element[:4])
-	p.element = p.element[4:]
+	value := binary.LittleEndian.Uint32((*p)[:4])
+	(*p) = (*p)[4:]
 	return math.Float32frombits(value)
 }
 
 func (p *Element) ReadByte() byte {
-	b := p.element[0]
-	p.element = p.element[1:]
+	b := (*p)[0]
+	(*p) = (*p)[1:]
 	return b
 }
 
 func (p *Element) ReadBytes() []byte {
-	length := binary.LittleEndian.Uint32(p.element[:4])
-	p.element = p.element[4:]
-	data := p.element[:length]
-	p.element = p.element[length:]
+	length := binary.LittleEndian.Uint32((*p)[:4])
+	(*p) = (*p)[4:]
+	data := (*p)[:length]
+	(*p) = (*p)[length:]
 	return data
 }
