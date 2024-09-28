@@ -28,9 +28,9 @@ func TestGameFromCSV(t *testing.T) {
 		AppID:       "1262350",
 		Name:        "SIGNALIS",
 		Genres:      "Action,Adventure,Indie",
-		ReleaseYear: 2010,
+		ReleaseYear: 2022,
 		AvgPlayTime: 0.0,
-		SupportedOS: models.WindowsMask | (^models.LinuxMask) | (^models.MacMask),
+		SupportedOS: models.WindowsMask,
 	}
 	if *got != *want {
 		t.Fatalf("got %v, want %v", got, want)
@@ -56,7 +56,7 @@ func TestReviewFromCSV(t *testing.T) {
 		Text:  "By playing this game and finally understanding it, my mind lost its virginity. 10/10 would totally lose mind virginity again",
 		Score: models.Positive,
 	}
-	
+
 	if *got != *want {
 		t.Fatalf("got %v, want %v", got, want)
 	}
