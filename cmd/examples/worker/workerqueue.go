@@ -3,10 +3,9 @@ package main
 import (
 	"fmt"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/rabbitmq"
-	"github.com/rabbitmq/amqp091-go"
 )
 
-func producer(conn *amqp091.Connection) {
+func producer(conn *rabbitmq.Connection) {
 	wq := rabbitmq.WorkerQueue{}
 	err := wq.Connect(conn,
 		rabbitmq.WorkerQueueConfig{
@@ -29,7 +28,7 @@ func producer(conn *amqp091.Connection) {
 	}
 }
 
-func consumer(conn *amqp091.Connection, id string) {
+func consumer(conn *rabbitmq.Connection, id string) {
 	wq := rabbitmq.WorkerQueue{}
 	err := wq.Connect(conn,
 		rabbitmq.WorkerQueueConfig{
@@ -50,16 +49,18 @@ func consumer(conn *amqp091.Connection, id string) {
 }
 
 func main() {
-	conn, err := amqp091.Dial("amqp://user:password@localhost:5672/")
+	conn := rabbitmq.Connection{}
+	err := conn.Connect("localhost", "5672", "user", "password")
 	if err != nil {
 		panic(err)
 	}
+	defer conn.Close()
 
 	var forever chan struct{}
 
-	go producer(conn)
-	go consumer(conn, "1")
-	go consumer(conn, "2")
+	go producer(&conn)
+	go consumer(&conn, "1")
+	go consumer(&conn, "2")
 
 	<-forever
 }

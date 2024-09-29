@@ -17,8 +17,8 @@ type Publisher struct {
 	Config PublisherConfig
 }
 
-func (p *Publisher) Connect(conn *amqp091.Connection, config PublisherConfig) error {
-	ch, err := conn.Channel()
+func (p *Publisher) Connect(conn *Connection, config PublisherConfig) error {
+	ch, err := conn.GetConnection().Channel()
 	if err != nil {
 		return fmt.Errorf("failed to open channel: %w", err)
 	}
@@ -78,8 +78,8 @@ type Subscriber struct {
 	Config   SubscriberConfig
 }
 
-func (s *Subscriber) Connect(conn *amqp091.Connection, config SubscriberConfig) error {
-	ch, err := conn.Channel()
+func (s *Subscriber) Connect(conn *Connection, config SubscriberConfig) error {
+	ch, err := conn.GetConnection().Channel()
 	if err != nil {
 		return fmt.Errorf("failed to create channel: %w", err)
 	}

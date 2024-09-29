@@ -20,8 +20,8 @@ type WorkerQueue struct {
 	Config   WorkerQueueConfig
 }
 
-func (wq *WorkerQueue) Connect(conn *amqp091.Connection, config WorkerQueueConfig) error {
-	ch, err := conn.Channel()
+func (wq *WorkerQueue) Connect(conn *Connection, config WorkerQueueConfig) error {
+	ch, err := conn.GetConnection().Channel()
 	if err != nil {
 		return fmt.Errorf("failed to create channel: %w", err)
 	}
