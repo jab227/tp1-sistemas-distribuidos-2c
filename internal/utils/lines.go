@@ -3,6 +3,7 @@ package utils
 import (
 	"bufio"
 	"io"
+	"iter"
 )
 
 type LineReader struct {
@@ -24,7 +25,7 @@ func NewLinesReader(r io.Reader, chunkSize int) *LineReader {
 }
 
 func (c *LineReader) Next() ([]string, bool, error) {
-	c.pos = 0	
+	c.pos = 0
 	more := true
 	for c.pos < c.size {
 		ok := c.scanner.Scan()
@@ -35,5 +36,19 @@ func (c *LineReader) Next() ([]string, bool, error) {
 		c.chunk[c.pos] = c.scanner.Text()
 		c.pos++
 	}
-	return c.chunk[:c.pos], more, c.scanner.Err()	
+	return c.chunk[:c.pos], more, c.scanner.Err()
+}
+
+func (l *LineReader) Lines() iter.Seq2[[]string, error] {
+	return func(yield func([]string, error) bool) {
+		for {
+			lines, more, err := l.Next()
+			if !yield(lines, err) {
+				return
+			}
+			if !more {
+				return
+			}
+		}
+	}
 }
