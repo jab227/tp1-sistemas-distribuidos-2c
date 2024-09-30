@@ -7,17 +7,17 @@ import (
 	"time"
 )
 
-type FanoutPublisherConfig struct {
+type DirectPublisherConfig struct {
 	Exchange string
 	Timeout  uint
 }
 
-type FanoutPublisher struct {
+type DirectPublisher struct {
 	ch     *amqp091.Channel
-	Config FanoutPublisherConfig
+	Config DirectPublisherConfig
 }
 
-func (p *FanoutPublisher) Connect(conn *Connection, config FanoutPublisherConfig) error {
+func (p *DirectPublisher) Connect(conn *Connection, config DirectPublisherConfig) error {
 	ch, err := conn.GetConnection().Channel()
 	if err != nil {
 		return fmt.Errorf("failed to open channel: %w", err)
@@ -25,7 +25,7 @@ func (p *FanoutPublisher) Connect(conn *Connection, config FanoutPublisherConfig
 
 	err = ch.ExchangeDeclare(
 		config.Exchange,
-		"fanout",
+		"direct",
 		true,
 		false,
 		false,
@@ -41,14 +41,14 @@ func (p *FanoutPublisher) Connect(conn *Connection, config FanoutPublisherConfig
 	return nil
 }
 
-func (p *FanoutPublisher) Publish(msg []byte) error {
+func (p *DirectPublisher) Publish(msg []byte, key string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(p.Config.Timeout))
 	defer cancel()
 
 	err := p.ch.PublishWithContext(
 		ctx,
 		p.Config.Exchange,
-		"",
+		key,
 		false,
 		false,
 		amqp091.Publishing{
@@ -62,31 +62,32 @@ func (p *FanoutPublisher) Publish(msg []byte) error {
 	return nil
 }
 
-func (p *FanoutPublisher) Close() error {
+func (p *DirectPublisher) Close() error {
 	return p.ch.Close()
 }
 
-type FanoutSubscriberConfig struct {
+type DirectSubscriberConfig struct {
 	Exchange string
 	Queue    string
+	Keys     []string
 }
 
-type FanoutSubscriber struct {
+type DirectSubscriber struct {
 	ch       *amqp091.Channel
 	q        *amqp091.Queue
 	Consumer <-chan amqp091.Delivery
-	Config   FanoutSubscriberConfig
+	Config   DirectSubscriberConfig
 }
 
-func (s *FanoutSubscriber) Connect(conn *Connection, config FanoutSubscriberConfig) error {
+func (s *DirectSubscriber) Connect(conn *Connection, config DirectSubscriberConfig) error {
 	ch, err := conn.GetConnection().Channel()
 	if err != nil {
-		return fmt.Errorf("failed to create channel: %w", err)
+		return fmt.Errorf("failed to open channel: %w", err)
 	}
 
 	err = ch.ExchangeDeclare(
 		config.Exchange,
-		"fanout",
+		"direct",
 		true,
 		false,
 		false,
@@ -109,15 +110,17 @@ func (s *FanoutSubscriber) Connect(conn *Connection, config FanoutSubscriberConf
 		return fmt.Errorf("failed to declare queue: %w", err)
 	}
 
-	err = ch.QueueBind(
-		q.Name,
-		"",
-		config.Exchange,
-		false,
-		nil,
-	)
-	if err != nil {
-		return fmt.Errorf("failed to bind queue: %w", err)
+	for _, key := range config.Keys {
+		err = ch.QueueBind(
+			q.Name,
+			key,
+			config.Exchange,
+			false,
+			nil,
+		)
+		if err != nil {
+			return fmt.Errorf("failed to bind queue: %w", err)
+		}
 	}
 
 	consumer, err := ch.Consume(
@@ -130,7 +133,7 @@ func (s *FanoutSubscriber) Connect(conn *Connection, config FanoutSubscriberConf
 		nil,
 	)
 	if err != nil {
-		return fmt.Errorf("failed to declare consumer: %w", err)
+		return fmt.Errorf("failed to register consumer: %w", err)
 	}
 
 	s.ch = ch
@@ -140,11 +143,11 @@ func (s *FanoutSubscriber) Connect(conn *Connection, config FanoutSubscriberConf
 	return nil
 }
 
-func (s *FanoutSubscriber) Read() amqp091.Delivery {
+func (s *DirectSubscriber) Read() amqp091.Delivery {
 	msg := <-s.Consumer
 	return msg
 }
 
-func (s *FanoutSubscriber) Close() error {
+func (s *DirectSubscriber) Close() error {
 	return s.ch.Close()
 }

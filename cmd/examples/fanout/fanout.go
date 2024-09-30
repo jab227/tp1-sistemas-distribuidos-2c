@@ -7,10 +7,10 @@ import (
 )
 
 func producer(conn *rabbitmq.Connection) {
-	publisher := rabbitmq.Publisher{}
+	publisher := rabbitmq.FanoutPublisher{}
 	err := publisher.Connect(
 		conn,
-		rabbitmq.PublisherConfig{
+		rabbitmq.FanoutPublisherConfig{
 			Exchange: "exchange_example",
 			Timeout:  5,
 		},
@@ -32,10 +32,10 @@ func producer(conn *rabbitmq.Connection) {
 }
 
 func consumer(conn *rabbitmq.Connection, id string) {
-	subscriber := rabbitmq.Subscriber{}
+	subscriber := rabbitmq.FanoutSubscriber{}
 	err := subscriber.Connect(
 		conn,
-		rabbitmq.SubscriberConfig{
+		rabbitmq.FanoutSubscriberConfig{
 			Exchange: "exchange_example",
 			Queue:    fmt.Sprintf("queue_example_%s", id),
 		},
