@@ -17,14 +17,18 @@ type DirectPublisher struct {
 	Config DirectPublisherConfig
 }
 
-func (p *DirectPublisher) Connect(conn *Connection, config DirectPublisherConfig) error {
+func NewDirectPublisher(config DirectPublisherConfig) *DirectPublisher {
+	return &DirectPublisher{Config: config}
+}
+
+func (p *DirectPublisher) Connect(conn *Connection) error {
 	ch, err := conn.GetConnection().Channel()
 	if err != nil {
 		return fmt.Errorf("failed to open channel: %w", err)
 	}
 
 	err = ch.ExchangeDeclare(
-		config.Exchange,
+		p.Config.Exchange,
 		"direct",
 		true,
 		false,
@@ -37,11 +41,10 @@ func (p *DirectPublisher) Connect(conn *Connection, config DirectPublisherConfig
 	}
 
 	p.ch = ch
-	p.Config = config
 	return nil
 }
 
-func (p *DirectPublisher) Publish(msg []byte, key string) error {
+func (p *DirectPublisher) Write(msg []byte, key string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(p.Config.Timeout))
 	defer cancel()
 
@@ -79,14 +82,18 @@ type DirectSubscriber struct {
 	Config   DirectSubscriberConfig
 }
 
-func (s *DirectSubscriber) Connect(conn *Connection, config DirectSubscriberConfig) error {
+func NewDirectSubscriber(config DirectSubscriberConfig) *DirectSubscriber {
+	return &DirectSubscriber{Config: config}
+}
+
+func (s *DirectSubscriber) Connect(conn *Connection) error {
 	ch, err := conn.GetConnection().Channel()
 	if err != nil {
 		return fmt.Errorf("failed to open channel: %w", err)
 	}
 
 	err = ch.ExchangeDeclare(
-		config.Exchange,
+		s.Config.Exchange,
 		"direct",
 		true,
 		false,
@@ -99,7 +106,7 @@ func (s *DirectSubscriber) Connect(conn *Connection, config DirectSubscriberConf
 	}
 
 	q, err := ch.QueueDeclare(
-		config.Queue,
+		s.Config.Queue,
 		true,
 		false,
 		true,
@@ -110,11 +117,11 @@ func (s *DirectSubscriber) Connect(conn *Connection, config DirectSubscriberConf
 		return fmt.Errorf("failed to declare queue: %w", err)
 	}
 
-	for _, key := range config.Keys {
+	for _, key := range s.Config.Keys {
 		err = ch.QueueBind(
 			q.Name,
 			key,
-			config.Exchange,
+			s.Config.Exchange,
 			false,
 			nil,
 		)
@@ -139,7 +146,6 @@ func (s *DirectSubscriber) Connect(conn *Connection, config DirectSubscriberConf
 	s.ch = ch
 	s.q = &q
 	s.Consumer = consumer
-	s.Config = config
 	return nil
 }
 

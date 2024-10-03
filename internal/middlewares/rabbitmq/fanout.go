@@ -17,14 +17,18 @@ type FanoutPublisher struct {
 	Config FanoutPublisherConfig
 }
 
-func (p *FanoutPublisher) Connect(conn *Connection, config FanoutPublisherConfig) error {
+func NewFanoutPublisher(config FanoutPublisherConfig) *FanoutPublisher {
+	return &FanoutPublisher{Config: config}
+}
+
+func (p *FanoutPublisher) Connect(conn *Connection) error {
 	ch, err := conn.GetConnection().Channel()
 	if err != nil {
 		return fmt.Errorf("failed to open channel: %w", err)
 	}
 
 	err = ch.ExchangeDeclare(
-		config.Exchange,
+		p.Config.Exchange,
 		"fanout",
 		true,
 		false,
@@ -37,11 +41,10 @@ func (p *FanoutPublisher) Connect(conn *Connection, config FanoutPublisherConfig
 	}
 
 	p.ch = ch
-	p.Config = config
 	return nil
 }
 
-func (p *FanoutPublisher) Publish(msg []byte) error {
+func (p *FanoutPublisher) Write(msg []byte, tag string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(p.Config.Timeout))
 	defer cancel()
 
@@ -78,14 +81,18 @@ type FanoutSubscriber struct {
 	Config   FanoutSubscriberConfig
 }
 
-func (s *FanoutSubscriber) Connect(conn *Connection, config FanoutSubscriberConfig) error {
+func NewFanoutSubscriber(config FanoutSubscriberConfig) *FanoutSubscriber {
+	return &FanoutSubscriber{Config: config}
+}
+
+func (s *FanoutSubscriber) Connect(conn *Connection) error {
 	ch, err := conn.GetConnection().Channel()
 	if err != nil {
 		return fmt.Errorf("failed to create channel: %w", err)
 	}
 
 	err = ch.ExchangeDeclare(
-		config.Exchange,
+		s.Config.Exchange,
 		"fanout",
 		true,
 		false,
@@ -98,7 +105,7 @@ func (s *FanoutSubscriber) Connect(conn *Connection, config FanoutSubscriberConf
 	}
 
 	q, err := ch.QueueDeclare(
-		config.Queue,
+		s.Config.Queue,
 		true,
 		false,
 		true,
@@ -112,7 +119,7 @@ func (s *FanoutSubscriber) Connect(conn *Connection, config FanoutSubscriberConf
 	err = ch.QueueBind(
 		q.Name,
 		"",
-		config.Exchange,
+		s.Config.Exchange,
 		false,
 		nil,
 	)
@@ -136,7 +143,6 @@ func (s *FanoutSubscriber) Connect(conn *Connection, config FanoutSubscriberConf
 	s.ch = ch
 	s.q = &q
 	s.Consumer = consumer
-	s.Config = config
 	return nil
 }
 

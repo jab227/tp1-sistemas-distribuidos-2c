@@ -20,18 +20,22 @@ type WorkerQueue struct {
 	Config   WorkerQueueConfig
 }
 
-func (wq *WorkerQueue) Connect(conn *Connection, config WorkerQueueConfig) error {
+func NewWorkerQueue(config WorkerQueueConfig) *WorkerQueue {
+	return &WorkerQueue{Config: config}
+}
+
+func (wq *WorkerQueue) Connect(conn *Connection) error {
 	ch, err := conn.GetConnection().Channel()
 	if err != nil {
 		return fmt.Errorf("failed to create channel: %w", err)
 	}
 
-	q, err := ch.QueueDeclare(config.Name, true, false, false, false, nil)
+	q, err := ch.QueueDeclare(wq.Config.Name, true, false, false, false, nil)
 	if err != nil {
 		return fmt.Errorf("failed to declare queue: %w", err)
 	}
 
-	err = ch.Qos(config.PrefetchCount, 0, false)
+	err = ch.Qos(wq.Config.PrefetchCount, 0, false)
 	if err != nil {
 		return fmt.Errorf("failed to set QoS: %w", err)
 	}
@@ -52,18 +56,17 @@ func (wq *WorkerQueue) Connect(conn *Connection, config WorkerQueueConfig) error
 	wq.ch = ch
 	wq.q = &q
 	wq.Consumer = consumer
-	wq.Config = config
 	return nil
 }
 
-func (wq *WorkerQueue) Write(p []byte) (n int, err error) {
+func (wq *WorkerQueue) Write(p []byte, tag string) error {
 	ct, cancel := context.WithTimeout(
 		context.Background(),
 		time.Second*time.Duration(wq.Config.Timeout),
 	)
 	defer cancel()
 
-	err = wq.ch.PublishWithContext(
+	err := wq.ch.PublishWithContext(
 		ct,
 		"",
 		wq.Config.Name,
@@ -75,10 +78,10 @@ func (wq *WorkerQueue) Write(p []byte) (n int, err error) {
 		},
 	)
 	if err != nil {
-		return 0, fmt.Errorf("failed to publish message: %w", err)
+		return fmt.Errorf("failed to publish message: %w", err)
 	}
 
-	return len(p), nil
+	return nil
 }
 
 func (wq *WorkerQueue) Read() amqp091.Delivery {
