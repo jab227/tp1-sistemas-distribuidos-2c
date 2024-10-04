@@ -12,14 +12,13 @@ type FileLinesReader struct {
 	reader *utils.LineReader
 }
 
-func NewFileLinesReader(filename string) (*FileLinesReader, func(), error) {
+func NewFileLinesReader(filename string, nlines int) (*FileLinesReader, func(), error) {
 	file, err := os.Open(filename)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	linesToRead := 1
-	reader := utils.NewLinesReader(file, linesToRead)
+	reader := utils.NewLinesReader(file, nlines)
 	fileReader := &FileLinesReader{file: file, reader: reader}
 	cleanup := func() {
 		fileReader.deleteFileLinesReader()
@@ -32,8 +31,12 @@ func (flr *FileLinesReader) deleteFileLinesReader() error {
 }
 
 func (flr *FileLinesReader) Read() (string, bool, error) {
-	separator := "\n"
 	sliceOfLines, more, err := flr.reader.Next()
+	if len(sliceOfLines) == 0 {
+		return "", more, err
+	}
+
+	separator := "\n"
 	lines := strings.Join(sliceOfLines, separator) + separator
 	return lines, more, err
 }
