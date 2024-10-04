@@ -13,8 +13,8 @@ type Optype uint8
 const (
 	Data Optype = iota
 	Result
-	Sync
-	SyncAck
+	Sync    // TODO Client
+	SyncAck // TODO: Server
 )
 
 type Header struct {
