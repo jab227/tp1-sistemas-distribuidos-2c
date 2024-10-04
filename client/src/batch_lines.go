@@ -1,4 +1,4 @@
-package utils
+package src
 
 import (
 	"strings"
@@ -6,7 +6,7 @@ import (
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/utils"
 )
 
-type Callback func(string) error
+type Callback func(string)
 
 type BatchLines struct {
 	lines              string
@@ -40,33 +40,27 @@ func (bl *BatchLines) Run(callback Callback) error {
 		if err != nil {
 			return err
 		}
-		if err := bl.processLines(sliceOfLines); err != nil {
-			return err
-		}
+
+		bl.processLines(sliceOfLines)
 
 		if !more {
-			return bl.Flush()
+			bl.Flush()
+			return nil
 		}
 	}
 }
 
-func (bl *BatchLines) Flush() error {
+func (bl *BatchLines) Flush() {
 	awaitingLines := bl.awaitingLines
 	if len(awaitingLines) > 0 {
-		if err := bl.processData(awaitingLines); err != nil {
-			return err
-		}
+		bl.processData(awaitingLines)
 		bl.resetAwaitingState()
 	}
-	return nil
 }
 
-func (bl *BatchLines) processData(data string) error {
-	if err := bl.callback(data); err != nil {
-		return err
-	}
+func (bl *BatchLines) processData(data string) {
+	bl.callback(data)
 	bl.processedBytes += len(data)
-	return nil
 }
 
 func (bl *BatchLines) resetAwaitingState() {
@@ -75,39 +69,37 @@ func (bl *BatchLines) resetAwaitingState() {
 	bl.awaitingLinesCount = 0
 }
 
-func (bl *BatchLines) processLines(sliceOfLines []string) error {
+func (bl *BatchLines) processLines(sliceOfLines []string) {
 	currentLines := bl.newLinesJoin(sliceOfLines)
 	currentBytesCount := len(currentLines)
 	currentLinesCount := len(sliceOfLines)
+
 	newCurrentBytesCount := bl.awaitingBytesCount + currentBytesCount
 	newCurrentLinesCount := bl.awaitingLinesCount + currentLinesCount
 	if newCurrentBytesCount > bl.maxBytes || newCurrentLinesCount > bl.maxLines {
-		if err := bl.Flush(); err != nil {
-			return err
-		}
+		bl.Flush()
 	}
 
 	if currentBytesCount > bl.maxBytes {
-		return bl.splitLinesProcessing(sliceOfLines, currentLines)
+		bl.splitLinesProcessing(sliceOfLines, currentLines)
+		return
 	}
 
 	bl.awaitingLines += currentLines
 	bl.awaitingBytesCount += currentBytesCount
 	bl.awaitingLinesCount += currentLinesCount
-	return nil
 }
 
-func (bl *BatchLines) splitLinesProcessing(sliceOfLines []string, currentLines string) error {
+func (bl *BatchLines) splitLinesProcessing(sliceOfLines []string, currentLines string) {
 	currentLinesCount := len(sliceOfLines)
 	if currentLinesCount == 1 {
-		return bl.processData(currentLines)
+		bl.processData(currentLines)
+		return
 	}
 
 	middle := currentLinesCount / 2
-	if err := bl.processLines(sliceOfLines[:middle]); err != nil {
-		return err
-	}
-	return bl.processLines(sliceOfLines[middle:])
+	bl.processLines(sliceOfLines[:middle])
+	bl.processLines(sliceOfLines[middle:])
 }
 
 func (bl *BatchLines) newLinesJoin(sliceOfLines []string) string {
