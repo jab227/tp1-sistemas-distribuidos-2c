@@ -6,7 +6,6 @@ import (
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/common/communication"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/common/communication/message"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/common/network"
-	"github.com/jab227/tp1-sistemas-distribuidos-2c/common/utils"
 )
 
 type ClientConfig struct {
@@ -39,64 +38,64 @@ func deleteClient(c *Client) {
 	c.deleteSocket()
 }
 
-func (c *Client) Run() error {
+func (c *Client) Execute() error {
 	if err := c.socket.Connect(); err != nil {
 		return err
 	}
 	c.protocol = communication.NewProtocol(c.socket)
 
-	// Preparing for file reading
-	nlines := 100
-	fpath := "/home/daniel/Documents/facultad/2024-2C/75.74/tps/tp1-sistemas-distribuidos-2c/datasets/reviews.csv"
-	fileReader, deleteFileLinesReader, err := NewFileLinesReader(fpath, nlines)
+	// Create common Task Queue
+	taskQueue := NewBlockingQueue[*message.DataMessageConfig](10)
+
+	// Create Producer
+	batchConfig := &BatchFileConfig{
+		DataType:       message.Reviews,
+		Path:           "/home/daniel/Documents/facultad/2024-2C/75.74/tps/tp1-sistemas-distribuidos-2c/datasets/reviews.csv",
+		NlinesFromDisk: 100,
+		BatchSize:      10,
+		MaxBytes:       4 * 1024,
+	}
+	reviewsBatch, deleteReviewsBatch, err := NewBatchFile(batchConfig, taskQueue)
 	if err != nil {
-		fmt.Println(err)
 		return err
 	}
-	defer deleteFileLinesReader()
+	defer deleteReviewsBatch()
 
-	// Sending reviews
-	lines, more, err := fileReader.Read()
-	batchSize := 10
-	maxBytes := 4 * 1024
-	batch := utils.NewBatchLines(lines, batchSize, maxBytes)
-	if len(lines) == 0 {
+	// Create Producer
+	gamesConfig := &BatchFileConfig{
+		DataType:       message.Games,
+		Path:           "/home/daniel/Documents/facultad/2024-2C/75.74/tps/tp1-sistemas-distribuidos-2c/datasets/games.csv",
+		NlinesFromDisk: 100,
+		BatchSize:      1,
+		MaxBytes:       4 * 1024,
+	}
+	gamesBatch, deleteGamesBatch, err := NewBatchFile(gamesConfig, taskQueue)
+	if err != nil {
 		return err
 	}
+	defer deleteGamesBatch()
+	// Create Consumer
+	fileSender := NewFileSender(c.protocol, taskQueue)
 
-	c.sendStart()
-	for {
-		batch.Run(c.sendData)
-		if !more {
-			break
-		}
-		lines, more, _ = fileReader.Read()
-		batch.Reset(lines)
+	// Spawn producers
+	reviewsBatchThread := NewThread(reviewsBatch)
+	gamesBatchThread := NewThread(gamesBatch)
+	gamesBatchThread.Run()
+	reviewsBatchThread.Run()
+	// Spawn consumer
+	fileSenderThread := NewThread(fileSender)
+	fileSenderThread.Run()
+
+	// Synchronize consumers and producers
+	if err := reviewsBatchThread.Join(); err != nil {
+		return err
 	}
-	c.sendEnd()
+	if err := gamesBatchThread.Join(); err != nil {
+		return err
+	}
+	taskQueue.Close()
+	if err := fileSenderThread.Join(); err != nil {
+		return err
+	}
 	return nil
-}
-
-func (c *Client) sendStart() error {
-	dataConfig := &message.DataMessageConfig{
-		Start:    true,
-		DataType: message.Reviews,
-	}
-	return c.protocol.SendDataMessage(dataConfig)
-}
-
-func (c *Client) sendData(data string) error {
-	dataConfig := &message.DataMessageConfig{
-		DataType: message.Reviews,
-		Data:     []byte(data),
-	}
-	return c.protocol.SendDataMessage(dataConfig)
-}
-
-func (c *Client) sendEnd() error {
-	dataConfig := &message.DataMessageConfig{
-		End:      true,
-		DataType: message.Reviews,
-	}
-	return c.protocol.SendDataMessage(dataConfig)
 }
