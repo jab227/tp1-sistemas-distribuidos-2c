@@ -2,7 +2,6 @@ package utils
 
 import (
 	"bytes"
-	"encoding/binary"
 	"unsafe"
 )
 
@@ -21,39 +20,34 @@ const (
 )
 
 type StreamHeader struct {
-	Optype         uint8
-	SequenceNumber uint32
-	Start          StartFlag
-	End            EndFlag
+	Type  uint8
+	Start StartFlag
+	End   EndFlag
 }
 
 func (h *StreamHeader) Sizeof() int {
-	optypeSize := int(unsafe.Sizeof(h.Optype))
-	sequenceNumberSize := int(unsafe.Sizeof(h.SequenceNumber))
+	typeSize := int(unsafe.Sizeof(h.Type))
 	startSize := int(unsafe.Sizeof(h.Start))
 	endSize := int(unsafe.Sizeof(h.End))
-	return optypeSize + sequenceNumberSize + startSize + endSize
+	return typeSize + startSize + endSize
 }
 
 func (h *StreamHeader) Marshall() []byte {
 	sizeOfHeader := h.Sizeof()
 	buff := make([]byte, 0, sizeOfHeader)
-	buff = append(buff, uint8(h.Optype))
-	buff = binary.LittleEndian.AppendUint32(buff, h.SequenceNumber)
+	buff = append(buff, uint8(h.Type))
 	buff = append(buff, uint8(h.Start))
 	buff = append(buff, uint8(h.End))
 	return buff
 }
 
 func (h *StreamHeader) Unmarshall(data []byte) {
-	optypeSize := int(unsafe.Sizeof(h.Optype))
-	sequenceNumberSize := int(unsafe.Sizeof(h.SequenceNumber))
+	typeSize := int(unsafe.Sizeof(h.Type))
 	startSize := int(unsafe.Sizeof(h.Start))
 	endSize := int(unsafe.Sizeof(h.End))
 
 	buff := bytes.NewBuffer(data)
-	h.Optype = uint8(buff.Next(optypeSize)[0])
-	h.SequenceNumber = binary.LittleEndian.Uint32(buff.Next(sequenceNumberSize))
+	h.Type = uint8(buff.Next(typeSize)[0])
 	h.Start = StartFlag(buff.Next(startSize)[0])
 	h.End = EndFlag(buff.Next(endSize)[0])
 }

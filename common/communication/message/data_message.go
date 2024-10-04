@@ -13,13 +13,12 @@ const (
 )
 
 type DataMessageConfig struct {
-	ClientId       uint32
-	RequestId      uint32
-	SequenceNumber uint32
-	Start          bool
-	End            bool
-	DataType       DataType
-	Data           []byte
+	ClientId  uint32
+	RequestId uint32
+	Start     bool
+	End       bool
+	DataType  DataType
+	Data      []byte
 }
 
 func NewDefaultDataMessage() *Message[*payload.Data] {
@@ -31,10 +30,9 @@ func NewDefaultDataMessage() *Message[*payload.Data] {
 func NewDataMessage(dataMsgConf *DataMessageConfig) *Message[*payload.Data] {
 	payload := &payload.Data{
 		Header: &utils.StreamHeader{
-			Optype:         uint8(dataMsgConf.DataType),
-			SequenceNumber: dataMsgConf.SequenceNumber,
-			Start:          utils.GetStartFlag(dataMsgConf.Start),
-			End:            utils.GetEndFlag(dataMsgConf.End),
+			Type:  uint8(dataMsgConf.DataType),
+			Start: utils.GetStartFlag(dataMsgConf.Start),
+			End:   utils.GetEndFlag(dataMsgConf.End),
 		},
 		Payload: &utils.StreamPayload{
 			Data: dataMsgConf.Data,

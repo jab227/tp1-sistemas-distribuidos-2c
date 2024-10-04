@@ -16,13 +16,12 @@ const (
 )
 
 type ResultMessageConfig struct {
-	ClientId       uint32
-	RequestId      uint32
-	SequenceNumber uint32
-	Start          bool
-	End            bool
-	ResultType     ResultType
-	Data           []byte
+	ClientId   uint32
+	RequestId  uint32
+	Start      bool
+	End        bool
+	ResultType ResultType
+	Data       []byte
 }
 
 func NewDefaultResultMessage() *Message[*payload.Result] {
@@ -34,10 +33,9 @@ func NewDefaultResultMessage() *Message[*payload.Result] {
 func NewResultMessage(resultMsgConf *ResultMessageConfig) *Message[*payload.Result] {
 	payload := &payload.Result{
 		Header: &utils.StreamHeader{
-			Optype:         uint8(resultMsgConf.ResultType),
-			SequenceNumber: resultMsgConf.SequenceNumber,
-			Start:          utils.GetStartFlag(resultMsgConf.Start),
-			End:            utils.GetEndFlag(resultMsgConf.End),
+			Type:  uint8(resultMsgConf.ResultType),
+			Start: utils.GetStartFlag(resultMsgConf.Start),
+			End:   utils.GetEndFlag(resultMsgConf.End),
 		},
 		Payload: &utils.StreamPayload{
 			Data: resultMsgConf.Data,
