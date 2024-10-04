@@ -14,7 +14,6 @@ type SocketTcp struct {
 	address        string
 	connection     net.Conn
 	listener       net.Listener
-	bufferedWriter *bufio.Writer
 	bufferedReader *bufio.Reader
 }
 
@@ -72,7 +71,6 @@ func (s *SocketTcp) Accept() (*SocketTcp, func(), error) {
 
 func (s *SocketTcp) prepareConnection(connection net.Conn) {
 	s.connection = connection
-	s.bufferedWriter = bufio.NewWriterSize(s.connection, bufferSize)
 	s.bufferedReader = bufio.NewReaderSize(s.connection, bufferSize)
 }
 
@@ -88,7 +86,7 @@ func (s *SocketTcp) Listen() error {
 func (s *SocketTcp) Send(data []byte) error {
 	remainingBytes := len(data)
 	for remainingBytes > 0 {
-		n, err := s.bufferedWriter.Write(data)
+		n, err := s.connection.Write(data)
 		if err != nil {
 			return err
 		}
@@ -96,7 +94,7 @@ func (s *SocketTcp) Send(data []byte) error {
 		remainingBytes -= n
 		data = data[n:]
 	}
-	return s.bufferedWriter.Flush()
+	return nil
 }
 
 func (s *SocketTcp) Receive(buffer []byte) error {
