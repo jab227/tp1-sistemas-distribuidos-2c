@@ -8,8 +8,8 @@ import (
 type DataType uint8
 
 const (
-	Games DataType = iota
-	Reviews
+	Reviews DataType = iota
+	Games
 )
 
 type DataMessageConfig struct {
