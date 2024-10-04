@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/common/communication"
-	"github.com/jab227/tp1-sistemas-distribuidos-2c/common/communication/utils"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/common/network"
 )
 
@@ -54,15 +53,9 @@ func (c *Server) Run() error {
 			fmt.Println(err)
 			break
 		}
-		if msgData.Payload.Header.Start == utils.StartSet {
-			fmt.Println("inicio")
-		}
 
+		fmt.Println(*msgData.Payload.Header)
 		fmt.Print(string(msgData.Payload.Payload.Data))
-
-		if msgData.Payload.Header.End == utils.EndSet {
-			fmt.Println("fin")
-		}
 	}
 	return nil
 }
