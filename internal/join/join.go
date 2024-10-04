@@ -1,10 +1,10 @@
 package join
 
-import "fmt"
 
 type HashID interface {
 	GetID() string
 }
+
 type Tuple[T, U any] struct {
 	X T
 	Y U
@@ -26,6 +26,6 @@ func Join[T, U HashID](x []T, y []U) []Tuple[T, U] {
 			output = append(output, Tuple[T, U]{X: t, Y: p})
 		}
 	}
-	fmt.Println("output:", output)
+
 	return output
 }
