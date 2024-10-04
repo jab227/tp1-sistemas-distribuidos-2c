@@ -14,7 +14,7 @@ func main() {
 	client, deleteClient := src.NewClient(clientConfig)
 	defer deleteClient()
 
-	if err := client.Run(); err != nil {
-		fmt.Println("Client running error")
+	if err := client.Execute(); err != nil {
+		fmt.Printf("Error: %v\n", err)
 	}
 }
