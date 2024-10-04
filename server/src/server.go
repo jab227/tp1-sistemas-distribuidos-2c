@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/common/communication"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/common/communication/utils"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/common/network"
 )
 
@@ -46,46 +47,22 @@ func (c *Server) Run() error {
 	}
 	defer deleteClientSocket()
 
-	// Communication library usage
 	protocol := communication.NewProtocol(clientSocket)
+	for {
+		msgData, err := protocol.RecvDataMessage()
+		if err != nil {
+			fmt.Println(err)
+			break
+		}
+		if msgData.Payload.Header.Start == utils.StartSet {
+			fmt.Println("inicio")
+		}
 
-	msgSync, _ := protocol.RecvSyncMessage()
-	fmt.Println(msgSync.Header.Optype)
-	fmt.Println(msgSync.Header.ClientId)
-	fmt.Println(msgSync.Header.RequestId)
-	fmt.Println(msgSync.Header.PayloadSize)
-	fmt.Println(msgSync.Payload)
-	fmt.Println("")
+		fmt.Print(string(msgData.Payload.Payload.Data))
 
-	msgSyncAck, _ := protocol.RecvSyncAckMessage()
-	fmt.Println(msgSyncAck.Header.Optype)
-	fmt.Println(msgSyncAck.Header.ClientId)
-	fmt.Println(msgSyncAck.Header.RequestId)
-	fmt.Println(msgSyncAck.Header.PayloadSize)
-	fmt.Println(msgSyncAck.Payload)
-	fmt.Println("")
-
-	msgData, _ := protocol.RecvDataMessage()
-	fmt.Println(msgData.Header.Optype)
-	fmt.Println(msgData.Header.ClientId)
-	fmt.Println(msgData.Header.RequestId)
-	fmt.Println(msgData.Header.PayloadSize)
-	fmt.Println(msgData.Payload.Header.Optype)
-	fmt.Println(msgData.Payload.Header.SequenceNumber)
-	fmt.Println(msgData.Payload.Header.Start)
-	fmt.Println(msgData.Payload.Header.End)
-	fmt.Println(string(msgData.Payload.Payload.Data))
-	fmt.Println("")
-
-	msgResult, _ := protocol.RecvResultMessage()
-	fmt.Println(msgResult.Header.Optype)
-	fmt.Println(msgResult.Header.ClientId)
-	fmt.Println(msgResult.Header.RequestId)
-	fmt.Println(msgResult.Header.PayloadSize)
-	fmt.Println(msgResult.Payload.Header.Optype)
-	fmt.Println(msgResult.Payload.Header.SequenceNumber)
-	fmt.Println(msgResult.Payload.Header.Start)
-	fmt.Println(msgResult.Payload.Header.End)
-	fmt.Println(string(msgResult.Payload.Payload.Data))
+		if msgData.Payload.Header.End == utils.EndSet {
+			fmt.Println("fin")
+		}
+	}
 	return nil
 }

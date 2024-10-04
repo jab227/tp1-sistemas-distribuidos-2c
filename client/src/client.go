@@ -6,6 +6,7 @@ import (
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/common/communication"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/common/communication/message"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/common/network"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/common/utils"
 )
 
 type ClientConfig struct {
@@ -16,6 +17,7 @@ type ClientConfig struct {
 type Client struct {
 	socket       *network.SocketTcp
 	deleteSocket func()
+	protocol     *communication.Protocol
 }
 
 func NewClient(clientConfig *ClientConfig) (*Client, func()) {
@@ -41,39 +43,60 @@ func (c *Client) Run() error {
 	if err := c.socket.Connect(); err != nil {
 		return err
 	}
+	c.protocol = communication.NewProtocol(c.socket)
 
-	// Communication library usage
-	protocol := communication.NewProtocol(c.socket)
-
-	protocol.SendSyncMessage()
-
-	synAckConfig := &message.SyncAckMessageConfig{
-		ClientId:  5,
-		RequestId: 77,
+	// Preparing for file reading
+	nlines := 100
+	fpath := "/home/daniel/Documents/facultad/2024-2C/75.74/tps/tp1-sistemas-distribuidos-2c/datasets/reviews.csv"
+	fileReader, deleteFileLinesReader, err := NewFileLinesReader(fpath, nlines)
+	if err != nil {
+		fmt.Println(err)
+		return err
 	}
-	protocol.SendSyncAckMessage(synAckConfig)
+	defer deleteFileLinesReader()
 
-	dataConfig := &message.DataMessageConfig{
-		ClientId:       5,
-		RequestId:      77,
-		SequenceNumber: 912,
-		Start:          true,
-		End:            false,
-		DataType:       message.Games,
-		Data:           []byte("Data - Hello, world!"),
+	// Sending reviews
+	lines, more, err := fileReader.Read()
+	batchSize := 10
+	maxBytes := 4 * 1024
+	batch := utils.NewBatchLines(lines, batchSize, maxBytes)
+	if len(lines) == 0 {
+		return err
 	}
-	protocol.SendDataMessage(dataConfig)
 
-	resultConfig := &message.ResultMessageConfig{
-		ClientId:       5,
-		RequestId:      77,
-		SequenceNumber: 812,
-		Start:          false,
-		End:            true,
-		ResultType:     message.Query5,
-		Data:           []byte("Result - Hello, world!"),
+	c.sendStart()
+	for {
+		batch.Run(c.sendData)
+		if !more {
+			break
+		}
+		lines, more, _ = fileReader.Read()
+		batch.Reset(lines)
 	}
-	protocol.SendResultMessage(resultConfig)
-
+	c.sendEnd()
 	return nil
+}
+
+func (c *Client) sendStart() error {
+	dataConfig := &message.DataMessageConfig{
+		Start:    true,
+		DataType: message.Reviews,
+	}
+	return c.protocol.SendDataMessage(dataConfig)
+}
+
+func (c *Client) sendData(data string) error {
+	dataConfig := &message.DataMessageConfig{
+		DataType: message.Reviews,
+		Data:     []byte(data),
+	}
+	return c.protocol.SendDataMessage(dataConfig)
+}
+
+func (c *Client) sendEnd() error {
+	dataConfig := &message.DataMessageConfig{
+		End:      true,
+		DataType: message.Reviews,
+	}
+	return c.protocol.SendDataMessage(dataConfig)
 }
