@@ -29,7 +29,6 @@ func NewClient(clientConfig *ClientConfig) (*Client, func()) {
 		deleteClient(client)
 	}
 	client.setSocket(clientConfig)
-
 	return client, cleanup
 }
 
@@ -84,5 +83,12 @@ func (c *Client) Execute() error {
 	if err := fileSenderThread.Join(); err != nil {
 		return err
 	}
-	return nil
+
+	for {
+		result, err := c.protocol.RecvResultMessage()
+		if err != nil {
+			return err
+		}
+		fmt.Println(result)
+	}
 }
