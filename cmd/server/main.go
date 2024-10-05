@@ -35,6 +35,7 @@ func main() {
 	server, deleteServer := src.NewServer(serverConfig, &ioManager)
 	defer deleteServer()
 
+	slog.Info("starting server")
 	go func() {
 		err := server.Run(ctx)
 		if err != nil {

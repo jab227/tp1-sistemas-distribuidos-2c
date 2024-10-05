@@ -24,6 +24,7 @@ func main() {
 		return
 	}
 
+	slog.Info("projection started")
 	go func() {
 		err = projection.Run(ctx)
 		if err != nil {
