@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/jab227/tp1-sistemas-distribuidos-2c/server/src"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/cmd/server/src"
 )
 
 func main() {
