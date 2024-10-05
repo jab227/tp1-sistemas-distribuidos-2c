@@ -108,7 +108,7 @@ func (m *IOManager) Connect(input InputType, output OutputType) error {
 	}
 	m.InputType = input
 
-	if err = m.connectOutput(conn, DirectPublisher); err != nil {
+	if err = m.connectOutput(conn, output); err != nil {
 		return err
 	}
 	m.OutputType = output
