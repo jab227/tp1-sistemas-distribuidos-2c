@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/common/communication"
-	"github.com/jab227/tp1-sistemas-distribuidos-2c/common/communication/message"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/common/network"
 )
 
@@ -52,43 +51,18 @@ func (c *Client) Connect() error {
 }
 
 func (c *Client) Execute() error {
-	taskQueue := NewBlockingQueue[*message.DataMessageConfig](c.clientConfig.TaskQueueSize)
+	sender := NewSender(c.clientConfig, c.protocol)
+	receiver := NewReceiver(c.clientConfig, c.protocol)
+	senderThread := NewThread(sender)
+	receiverThread := NewThread(receiver)
+	senderThread.Run()
+	receiverThread.Run()
 
-	reviewsBatch, deleteReviewsBatch, err := NewBatchFile(c.clientConfig.ReviewsBatch, taskQueue)
-	if err != nil {
+	if err := senderThread.Join(); err != nil {
 		return err
 	}
-	defer deleteReviewsBatch()
-	gamesBatch, deleteGamesBatch, err := NewBatchFile(c.clientConfig.GamesBatch, taskQueue)
-	if err != nil {
+	if err := receiverThread.Join(); err != nil {
 		return err
 	}
-	defer deleteGamesBatch()
-	fileSender := NewFileSender(c.protocol, taskQueue)
-
-	reviewsBatchThread := NewThread(reviewsBatch)
-	gamesBatchThread := NewThread(gamesBatch)
-	fileSenderThread := NewThread(fileSender)
-	gamesBatchThread.Run()
-	reviewsBatchThread.Run()
-	fileSenderThread.Run()
-
-	if err := reviewsBatchThread.Join(); err != nil {
-		return err
-	}
-	if err := gamesBatchThread.Join(); err != nil {
-		return err
-	}
-	taskQueue.Close()
-	if err := fileSenderThread.Join(); err != nil {
-		return err
-	}
-
-	for {
-		result, err := c.protocol.RecvResultMessage()
-		if err != nil {
-			return err
-		}
-		fmt.Println(result)
-	}
+	return nil
 }
