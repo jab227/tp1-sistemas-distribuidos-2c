@@ -41,7 +41,10 @@ func deleteBatchFile(bf *BatchFile) {
 
 func (bf *BatchFile) Run(join chan error) {
 	bf.pushStart()
-	bf.pushDataMessages()
+	if err := bf.pushDataMessages(); err != nil {
+		join <- err
+		return
+	}
 	bf.pushEnd()
 	join <- nil
 }
@@ -54,24 +57,34 @@ func (bf *BatchFile) pushStart() {
 	bf.taskQueue.Push(dataConfig)
 }
 
-func (bf *BatchFile) pushDataMessages() {
-	lines, more, _ := bf.reader.Read()
+func (bf *BatchFile) pushDataMessages() error {
+	lines, more, err := bf.reader.Read()
+	if err != nil {
+		return err
+	}
+
 	batchLines := NewBatchLines(lines, bf.config.BatchSize, bf.config.MaxBytes)
+	callback := func(data string) {
+		bf.taskQueue.Push(&message.DataMessageConfig{
+			DataType: bf.config.DataType,
+			Data:     []byte(data),
+		})
+	}
 
 	for {
-		callback := func(data string) {
-			bf.taskQueue.Push(&message.DataMessageConfig{
-				DataType: bf.config.DataType,
-				Data:     []byte(data),
-			})
+		if err := batchLines.Execute(callback); err != nil {
+			return err
 		}
 
-		batchLines.Execute(callback)
 		if !more {
-			break
+			return nil
 		}
-		lines, more, _ = bf.reader.Read()
+
+		lines, more, err = bf.reader.Read()
 		batchLines.Reset(lines)
+		if err != nil {
+			return err
+		}
 	}
 }
 
