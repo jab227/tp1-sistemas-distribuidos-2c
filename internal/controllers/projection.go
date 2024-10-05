@@ -12,6 +12,7 @@ import (
 
 type Projection struct {
 	iomanager client.IOManager
+	done      chan struct{}
 }
 
 func NewProjection() (*Projection, error) {
@@ -21,7 +22,13 @@ func NewProjection() (*Projection, error) {
 		return nil, err
 	}
 
-	return &Projection{ioManager}, nil
+	done := make(chan struct{}, 1)
+
+	return &Projection{ioManager, done}, nil
+}
+
+func (p *Projection) GetDone() <-chan struct{} {
+	return p.done
 }
 
 func (p *Projection) Run(ctx context.Context) error {
@@ -35,6 +42,7 @@ func (p *Projection) Run(ctx context.Context) error {
 				return err
 			}
 
+			// TODO(fede) - En el futuro se tiene que distinguir los ends y usar método de scincronización
 			if response.HasGameData() {
 				if err := p.iomanager.Write(response.Marshal(), "game"); err != nil {
 					return err
@@ -47,6 +55,7 @@ func (p *Projection) Run(ctx context.Context) error {
 
 			msg.Ack(false)
 		case <-ctx.Done():
+			p.done <- struct{}{}
 			return nil
 		}
 	}
@@ -61,16 +70,18 @@ func (p *Projection) handleMessage(msg amqp091.Delivery) (*protocol.Message, err
 		return nil, err
 	}
 
-	if !internalMsg.ExpectKind(protocol.Data) {
-		return nil, fmt.Errorf("expected Data MessageType got %d", internalMsg.GetMessageType())
-	}
-
-	if internalMsg.HasGameData() {
-		return p.handleGamesMessages(internalMsg)
-	} else if internalMsg.HasReviewData() {
-		return p.handleReviewsMessages(internalMsg)
+	if internalMsg.ExpectKind(protocol.Data) {
+		if internalMsg.HasGameData() {
+			return p.handleGamesMessages(internalMsg)
+		} else if internalMsg.HasReviewData() {
+			return p.handleReviewsMessages(internalMsg)
+		} else {
+			return nil, fmt.Errorf("unexpected message that isn't games or reviews")
+		}
+	} else if internalMsg.ExpectKind(protocol.End) {
+		return &internalMsg, nil
 	} else {
-		return nil, fmt.Errorf("unexpected message that isn't games or reviews")
+		return nil, fmt.Errorf("expected Data or End MessageType got %d", internalMsg.GetMessageType())
 	}
 }
 
