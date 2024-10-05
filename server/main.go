@@ -13,7 +13,18 @@ func main() {
 	server, deleteServer := src.NewServer(serverConfig)
 	defer deleteServer()
 
-	if err := server.Run(); err != nil {
-		fmt.Println("Server running error")
+	if err := server.Listen(); err != nil {
+		fmt.Printf("Error: %v\n", err)
+		return
+	}
+
+	if err := server.Accept(); err != nil {
+		fmt.Printf("Error: %v\n", err)
+		return
+	}
+
+	if err := server.Execute(); err != nil {
+		fmt.Printf("Error: %v\n", err)
+		return
 	}
 }
