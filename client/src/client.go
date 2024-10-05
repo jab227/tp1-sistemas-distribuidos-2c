@@ -9,19 +9,23 @@ import (
 )
 
 type ClientConfig struct {
-	ServerName string
-	ServerPort int
+	ServerName    string
+	ServerPort    int
+	TaskQueueSize int
+	ReviewsBatch  *BatchFileConfig
+	GamesBatch    *BatchFileConfig
 }
 
 type Client struct {
 	socket       *network.SocketTcp
 	deleteSocket func()
 	protocol     *communication.Protocol
+	clientConfig *ClientConfig
 }
 
 func NewClient(clientConfig *ClientConfig) (*Client, func()) {
 	socket, deleteSocket := newSocket(clientConfig)
-	client := &Client{socket: socket, deleteSocket: deleteSocket}
+	client := &Client{socket: socket, deleteSocket: deleteSocket, clientConfig: clientConfig}
 	cleanup := func() {
 		deleteClient(client)
 	}
@@ -38,42 +42,30 @@ func deleteClient(c *Client) {
 	c.deleteSocket()
 }
 
-func (c *Client) Execute() error {
+func (c *Client) Connect() error {
 	if err := c.socket.Connect(); err != nil {
 		return err
 	}
 	c.protocol = communication.NewProtocol(c.socket)
+	return nil
+}
 
+func (c *Client) Execute() error {
 	// Create common Task Queue
-	taskQueue := NewBlockingQueue[*message.DataMessageConfig](10)
+	taskQueue := NewBlockingQueue[*message.DataMessageConfig](c.clientConfig.TaskQueueSize)
 
-	// Create Producer
-	batchConfig := &BatchFileConfig{
-		DataType:       message.Reviews,
-		Path:           "/home/daniel/Documents/facultad/2024-2C/75.74/tps/tp1-sistemas-distribuidos-2c/datasets/reviews.csv",
-		NlinesFromDisk: 100,
-		BatchSize:      10,
-		MaxBytes:       4 * 1024,
-	}
-	reviewsBatch, deleteReviewsBatch, err := NewBatchFile(batchConfig, taskQueue)
+	// Create Producers
+	reviewsBatch, deleteReviewsBatch, err := NewBatchFile(c.clientConfig.ReviewsBatch, taskQueue)
 	if err != nil {
 		return err
 	}
 	defer deleteReviewsBatch()
-
-	// Create Producer
-	gamesConfig := &BatchFileConfig{
-		DataType:       message.Games,
-		Path:           "/home/daniel/Documents/facultad/2024-2C/75.74/tps/tp1-sistemas-distribuidos-2c/datasets/games.csv",
-		NlinesFromDisk: 100,
-		BatchSize:      1,
-		MaxBytes:       4 * 1024,
-	}
-	gamesBatch, deleteGamesBatch, err := NewBatchFile(gamesConfig, taskQueue)
+	gamesBatch, deleteGamesBatch, err := NewBatchFile(c.clientConfig.GamesBatch, taskQueue)
 	if err != nil {
 		return err
 	}
 	defer deleteGamesBatch()
+
 	// Create Consumer
 	fileSender := NewFileSender(c.protocol, taskQueue)
 
