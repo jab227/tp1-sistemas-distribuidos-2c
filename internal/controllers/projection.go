@@ -31,8 +31,13 @@ func (p *Projection) GetDone() <-chan struct{} {
 	return p.done
 }
 
+func (p *Projection) DoneSignal() {
+	p.done <- struct{}{}
+}
+
 func (p *Projection) Run(ctx context.Context) error {
 	consumerChan := p.iomanager.Input.GetConsumer()
+	defer p.DoneSignal()
 
 	for {
 		select {
@@ -55,7 +60,6 @@ func (p *Projection) Run(ctx context.Context) error {
 
 			msg.Ack(false)
 		case <-ctx.Done():
-			p.done <- struct{}{}
 			return nil
 		}
 	}

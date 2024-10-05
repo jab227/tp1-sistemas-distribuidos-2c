@@ -1,13 +1,33 @@
 package src
 
 import (
+	"context"
 	"fmt"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/client"
+	"os"
+	"strconv"
 
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/network"
 )
 
+const ServerPortEnv = "SERVER_PORT"
+
 type ServerConfig struct {
 	ServicePort int
+}
+
+func GetServerConfigFromEnv() (*ServerConfig, error) {
+	value, ok := os.LookupEnv(ServerPortEnv)
+	if !ok {
+		return nil, fmt.Errorf("environment variable %s not set", ServerPortEnv)
+	}
+
+	port, err := strconv.Atoi(value)
+	if err != nil {
+		return nil, fmt.Errorf("environment variable %s is not a number", ServerPortEnv)
+	}
+
+	return &ServerConfig{ServicePort: port}, nil
 }
 
 type Server struct {
@@ -15,20 +35,57 @@ type Server struct {
 	deleteSocket func()
 	client       *Client
 	deleteClient func()
+
+	ioManager *client.IOManager
+	done      chan struct{}
 }
 
-func NewServer(serverConfig *ServerConfig) (*Server, func()) {
-	server := &Server{}
+func NewServer(serverConfig *ServerConfig, ioManager *client.IOManager) (*Server, func()) {
+	server := &Server{ioManager: ioManager, done: make(chan struct{})}
 	cleanup := func() {
 		deleteServer(server)
 	}
 	server.setSocket(serverConfig)
+
 	return server, cleanup
 }
 
 func deleteServer(s *Server) {
 	s.deleteSocket()
 	s.deleteClient()
+	s.ioManager.Close()
+}
+
+func (s *Server) GetDone() <-chan struct{} {
+	return s.done
+}
+
+func (s *Server) DoneSignal() {
+	s.done <- struct{}{}
+}
+
+func (s *Server) Run(ctx context.Context) error {
+	defer s.DoneSignal()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+
+		default:
+			if err := s.Listen(); err != nil {
+				return fmt.Errorf("error when listenning %s", err)
+			}
+
+			if err := s.Accept(); err != nil {
+				return fmt.Errorf("error when accepting connection %s", err)
+			}
+
+			if err := s.Execute(); err != nil {
+				return fmt.Errorf("error when executing command %s", err)
+			}
+		}
+	}
 }
 
 func (s *Server) setSocket(serverConfig *ServerConfig) {
