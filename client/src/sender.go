@@ -3,6 +3,7 @@ package src
 import (
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/common/communication"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/common/communication/message"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/common/utils"
 )
 
 type Sender struct {
@@ -22,7 +23,7 @@ func (s *Sender) Run(join chan error) {
 }
 
 func (s *Sender) send() error {
-	taskQueue := NewBlockingQueue[*message.DataMessageConfig](s.clientConfig.TaskQueueSize)
+	taskQueue := utils.NewBlockingQueue[*message.DataMessageConfig](s.clientConfig.TaskQueueSize)
 
 	reviewsBatch, deleteReviewsBatch, err := NewBatchFile(s.clientConfig.ReviewsBatch, taskQueue)
 	if err != nil {
@@ -36,9 +37,9 @@ func (s *Sender) send() error {
 	defer deleteGamesBatch()
 	fileSender := NewFileSender(s.protocol, taskQueue)
 
-	reviewsBatchThread := NewThread(reviewsBatch)
-	gamesBatchThread := NewThread(gamesBatch)
-	fileSenderThread := NewThread(fileSender)
+	reviewsBatchThread := utils.NewThread(reviewsBatch)
+	gamesBatchThread := utils.NewThread(gamesBatch)
+	fileSenderThread := utils.NewThread(fileSender)
 	gamesBatchThread.Run()
 	reviewsBatchThread.Run()
 	fileSenderThread.Run()

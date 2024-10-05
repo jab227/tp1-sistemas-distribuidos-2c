@@ -1,4 +1,4 @@
-package src
+package utils
 
 type Thread[T Runnable] struct {
 	runnable T
