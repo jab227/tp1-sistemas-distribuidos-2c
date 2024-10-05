@@ -5,6 +5,7 @@ import (
 
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/client"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/utils"
+	"github.com/rabbitmq/amqp091-go"
 )
 
 type RouteSelector interface {
@@ -26,12 +27,11 @@ func NewRouter(input client.InputType, tags []string, selector RouteSelector) (R
 	return Router{m: manager, tags: tags, s: selector}, nil
 }
 
-func (r *Router) Read(onRead func([]byte) error) error {
+type Delivery = amqp091.Delivery
+
+func (r *Router) Read() Delivery {
 	delivery := r.m.Read()
-	error := onRead(delivery.Body)
-	// NOTE(Juan): should we acknowledge in case of err?
-	delivery.Ack(false)
-	return error
+	return delivery
 }
 
 func (r *Router) Write(p []byte, key string) error {
