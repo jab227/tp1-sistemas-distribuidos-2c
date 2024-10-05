@@ -39,3 +39,7 @@ func (r *Router) Write(p []byte, key string) error {
 	utils.Assert(idx < len(r.tags), "the index should be less that len(r.tags)")
 	return r.m.Write(p, r.tags[idx])
 }
+
+func (r *Router) Destroy() {
+	r.m.Close()
+}
