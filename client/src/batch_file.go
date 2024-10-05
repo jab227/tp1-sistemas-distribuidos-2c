@@ -66,7 +66,7 @@ func (bf *BatchFile) pushDataMessages() {
 			})
 		}
 
-		batchLines.Run(callback)
+		batchLines.Execute(callback)
 		if !more {
 			break
 		}

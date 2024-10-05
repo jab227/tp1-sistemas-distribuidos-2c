@@ -33,7 +33,7 @@ func NewBatchLines(lines string, size int, maxBytes int) *BatchLines {
 	return batch
 }
 
-func (bl *BatchLines) Run(callback Callback) error {
+func (bl *BatchLines) Execute(callback Callback) error {
 	bl.callback = callback
 	for {
 		sliceOfLines, more, err := bl.lineReader.Next()
