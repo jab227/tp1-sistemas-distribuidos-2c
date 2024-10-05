@@ -4,6 +4,7 @@ package models
 
 import (
 	"fmt"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/protocol"
 	"strconv"
 	"time"
 )
@@ -113,6 +114,19 @@ func GameFromCSVLine(csvLine []string) (*Game, error) {
 	}, nil
 }
 
+func (g *Game) BuildPayload(builder *protocol.PayloadBuffer) {
+	builder.BeginPayloadElement()
+
+	builder.WriteBytes([]byte(g.AppID))
+	builder.WriteBytes([]byte(g.Name))
+	builder.WriteBytes([]byte(g.Genres))
+	builder.WriteUint32(g.ReleaseYear)
+	builder.WriteFloat32(g.AvgPlayTime)
+	builder.WriteByte(byte(g.SupportedOS))
+
+	builder.EndPayloadElement()
+}
+
 type ReviewScore int8
 
 const (
@@ -120,7 +134,7 @@ const (
 	Negative ReviewScore = -1
 )
 
-func reviewScoreFromString(s string) (ReviewScore, error){
+func reviewScoreFromString(s string) (ReviewScore, error) {
 	if s == "1" {
 		return Positive, nil
 	}
@@ -147,4 +161,14 @@ func ReviewFromCSVLine(csvLine []string) (*Review, error) {
 		Text:  csvLine[ReviewTextCSVPosition],
 		Score: reviewScore,
 	}, nil
+}
+
+func (r *Review) BuildPayload(builder *protocol.PayloadBuffer) {
+	builder.BeginPayloadElement()
+
+	builder.WriteBytes([]byte(r.AppID))
+	builder.WriteBytes([]byte(r.Text))
+	builder.WriteByte(byte(r.Score))
+
+	builder.EndPayloadElement()
 }
