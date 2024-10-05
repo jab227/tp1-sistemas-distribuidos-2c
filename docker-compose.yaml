@@ -39,6 +39,28 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+  projection1:
+    container_name: projection1
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/projection
+    environment:
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - INPUT_WORKER_QUEUE=projection-input-queue
+      - INPUT_WORKER_QUEUE_TIMEOUT=5
+      - INPUT_WORKER_QUEUE_COUNT=1
+      - FANOUT_PUBLISHER_EXCHANGE=projection-output-exchange
+      - FANOUT_PUBLISHER_TIMEOUT=5
+      - LOGGER_LEVEL=info
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
 
 networks:
   rabbitmq_go_net:
