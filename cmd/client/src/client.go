@@ -48,7 +48,7 @@ func (c *Client) Connect() error {
 		return err
 	}
 	c.protocol = communication.NewProtocol(c.socket)
-	return nil
+	return c.protocol.Sync()
 }
 
 func (c *Client) Execute() error {
