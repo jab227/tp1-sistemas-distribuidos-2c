@@ -12,50 +12,58 @@ type ServerConfig struct {
 }
 
 type Server struct {
-	socket       *network.SocketTcp
-	deleteSocket func()
+	socket             *network.SocketTcp
+	deleteSocket       func()
+	clientSocket       *network.SocketTcp
+	deleteClientSocket func()
+	clientProtocol     *communication.Protocol
 }
 
 func NewServer(serverConfig *ServerConfig) (*Server, func()) {
-	socket, deleteSocket := newSocket(serverConfig)
-	server := &Server{socket: socket, deleteSocket: deleteSocket}
+	server := &Server{}
 	cleanup := func() {
 		deleteServer(server)
 	}
+	server.setSocket(serverConfig)
 	return server, cleanup
 }
 
-func newSocket(serverConfig *ServerConfig) (*network.SocketTcp, func()) {
+func deleteServer(s *Server) {
+	s.deleteSocket()
+	s.deleteClientSocket()
+}
+
+func (s *Server) setSocket(serverConfig *ServerConfig) {
 	const serverName = "localhost"
 	serverAddress := fmt.Sprintf("%v:%v", serverName, serverConfig.ServicePort)
-	return network.NewSocketTcp(serverAddress)
+	socket, deleteSocket := network.NewSocketTcp(serverAddress)
+	s.socket = socket
+	s.deleteSocket = deleteSocket
 }
 
-func deleteServer(c *Server) {
-	c.deleteSocket()
+func (s *Server) Listen() error {
+	return s.socket.Listen()
 }
 
-func (c *Server) Run() error {
-	if err := c.socket.Listen(); err != nil {
-		return err
-	}
-
-	clientSocket, deleteClientSocket, err := c.socket.Accept()
+func (s *Server) Accept() error {
+	clientSocket, deleteClientSocket, err := s.socket.Accept()
 	if err != nil {
 		return err
 	}
-	defer deleteClientSocket()
+	s.clientSocket = clientSocket
+	s.deleteClientSocket = deleteClientSocket
+	s.clientProtocol = communication.NewProtocol(s.clientSocket)
+	return nil
+}
 
-	protocol := communication.NewProtocol(clientSocket)
+func (s *Server) Execute() error {
 	for {
-		msgData, err := protocol.RecvDataMessage()
+		msgData, err := s.clientProtocol.RecvDataMessage()
 		if err != nil {
-			fmt.Println(err)
-			break
+			return err
 		}
 
 		fmt.Println(*msgData.Payload.Header)
 		fmt.Print(string(msgData.Payload.Payload.Data))
 	}
-	return nil
 }
