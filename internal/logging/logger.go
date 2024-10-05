@@ -36,4 +36,5 @@ func InitLoggerWithEnv() error {
 	}
 
 	InitLogger(level)
+	return nil
 }
