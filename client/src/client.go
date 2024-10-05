@@ -5,6 +5,7 @@ import (
 
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/common/communication"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/common/network"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/common/utils"
 )
 
 type ClientConfig struct {
@@ -53,8 +54,8 @@ func (c *Client) Connect() error {
 func (c *Client) Execute() error {
 	sender := NewSender(c.clientConfig, c.protocol)
 	receiver := NewReceiver(c.clientConfig, c.protocol)
-	senderThread := NewThread(sender)
-	receiverThread := NewThread(receiver)
+	senderThread := utils.NewThread(sender)
+	receiverThread := utils.NewThread(receiver)
 	senderThread.Run()
 	receiverThread.Run()
 

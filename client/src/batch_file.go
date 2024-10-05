@@ -2,6 +2,7 @@ package src
 
 import (
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/common/communication/message"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/common/utils"
 )
 
 type BatchFileConfig struct {
@@ -16,10 +17,10 @@ type BatchFile struct {
 	config       *BatchFileConfig
 	reader       *FileLinesReader
 	deleteReader func()
-	taskQueue    *BlockingQueue[*message.DataMessageConfig]
+	taskQueue    *utils.BlockingQueue[*message.DataMessageConfig]
 }
 
-func NewBatchFile(config *BatchFileConfig, taskQueue *BlockingQueue[*message.DataMessageConfig]) (*BatchFile, func(), error) {
+func NewBatchFile(config *BatchFileConfig, taskQueue *utils.BlockingQueue[*message.DataMessageConfig]) (*BatchFile, func(), error) {
 	fileReader, deleteFileLinesReader, err := NewFileLinesReader(config.Path, config.NlinesFromDisk)
 	if err != nil {
 		return nil, nil, err
