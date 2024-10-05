@@ -16,8 +16,6 @@ const (
 )
 
 type ResultMessageConfig struct {
-	ClientId   uint32
-	RequestId  uint32
 	Start      bool
 	End        bool
 	ResultType ResultType
@@ -43,8 +41,6 @@ func NewResultMessage(resultMsgConf *ResultMessageConfig) *Message[*payload.Resu
 	}
 	header := &Header{
 		Optype:      Result,
-		ClientId:    resultMsgConf.ClientId,
-		RequestId:   resultMsgConf.RequestId,
 		PayloadSize: uint32(payload.Sizeof()),
 	}
 

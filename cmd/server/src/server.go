@@ -49,7 +49,10 @@ func (s *Server) Accept() error {
 		return err
 	}
 
-	client, deleteClient := NewClient(clientSocket, deleteClientSocket)
+	client, deleteClient, err := NewClient(clientSocket, deleteClientSocket)
+	if err != nil {
+		return err
+	}
 	s.client = client
 	s.deleteClient = deleteClient
 	return nil
