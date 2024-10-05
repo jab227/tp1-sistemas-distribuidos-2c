@@ -1,10 +1,10 @@
 package communication
 
 import (
-	"github.com/jab227/tp1-sistemas-distribuidos-2c/common/communication/message"
-	"github.com/jab227/tp1-sistemas-distribuidos-2c/common/communication/payload"
-	"github.com/jab227/tp1-sistemas-distribuidos-2c/common/communication/utils"
-	"github.com/jab227/tp1-sistemas-distribuidos-2c/common/network"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/communication/message"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/communication/payload"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/communication/utils"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/network"
 )
 
 type Protocol struct {
