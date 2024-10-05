@@ -3,7 +3,7 @@ package src
 import (
 	"fmt"
 
-	"github.com/jab227/tp1-sistemas-distribuidos-2c/common/communication"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/communication"
 )
 
 type Receiver struct {

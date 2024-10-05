@@ -5,7 +5,7 @@ import (
 	"encoding/binary"
 	"unsafe"
 
-	"github.com/jab227/tp1-sistemas-distribuidos-2c/common/communication/utils"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/communication/utils"
 )
 
 type Optype uint8

@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/client/src"
-	"github.com/jab227/tp1-sistemas-distribuidos-2c/common/communication/message"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/communication/message"
 )
 
 func main() {

@@ -3,8 +3,8 @@ package src
 import (
 	"fmt"
 
-	"github.com/jab227/tp1-sistemas-distribuidos-2c/common/communication"
-	"github.com/jab227/tp1-sistemas-distribuidos-2c/common/network"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/communication"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/network"
 )
 
 type Client struct {

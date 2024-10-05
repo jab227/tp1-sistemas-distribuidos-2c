@@ -1,7 +1,7 @@
 package message
 
 import (
-	"github.com/jab227/tp1-sistemas-distribuidos-2c/common/communication/payload"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/communication/payload"
 )
 
 type SyncAckMessageConfig struct {

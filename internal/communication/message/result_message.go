@@ -1,8 +1,8 @@
 package message
 
 import (
-	"github.com/jab227/tp1-sistemas-distribuidos-2c/common/communication/payload"
-	"github.com/jab227/tp1-sistemas-distribuidos-2c/common/communication/utils"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/communication/payload"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/communication/utils"
 )
 
 type ResultType uint8
