@@ -24,22 +24,24 @@ type Client struct {
 }
 
 func NewClient(clientConfig *ClientConfig) (*Client, func()) {
-	socket, deleteSocket := newSocket(clientConfig)
-	client := &Client{socket: socket, deleteSocket: deleteSocket, clientConfig: clientConfig}
+	client := &Client{clientConfig: clientConfig}
 	cleanup := func() {
 		deleteClient(client)
 	}
+	client.setSocket(clientConfig)
 
 	return client, cleanup
 }
 
-func newSocket(clientConfig *ClientConfig) (*network.SocketTcp, func()) {
-	serverAddress := fmt.Sprintf("%v:%v", clientConfig.ServerName, clientConfig.ServerPort)
-	return network.NewSocketTcp(serverAddress)
-}
-
 func deleteClient(c *Client) {
 	c.deleteSocket()
+}
+
+func (c *Client) setSocket(clientConfig *ClientConfig) {
+	serverAddress := fmt.Sprintf("%v:%v", clientConfig.ServerName, clientConfig.ServerPort)
+	socket, deleteSocket := network.NewSocketTcp(serverAddress)
+	c.socket = socket
+	c.deleteSocket = deleteSocket
 }
 
 func (c *Client) Connect() error {
@@ -51,10 +53,8 @@ func (c *Client) Connect() error {
 }
 
 func (c *Client) Execute() error {
-	// Create common Task Queue
 	taskQueue := NewBlockingQueue[*message.DataMessageConfig](c.clientConfig.TaskQueueSize)
 
-	// Create Producers
 	reviewsBatch, deleteReviewsBatch, err := NewBatchFile(c.clientConfig.ReviewsBatch, taskQueue)
 	if err != nil {
 		return err
@@ -65,20 +65,15 @@ func (c *Client) Execute() error {
 		return err
 	}
 	defer deleteGamesBatch()
-
-	// Create Consumer
 	fileSender := NewFileSender(c.protocol, taskQueue)
 
-	// Spawn producers
 	reviewsBatchThread := NewThread(reviewsBatch)
 	gamesBatchThread := NewThread(gamesBatch)
+	fileSenderThread := NewThread(fileSender)
 	gamesBatchThread.Run()
 	reviewsBatchThread.Run()
-	// Spawn consumer
-	fileSenderThread := NewThread(fileSender)
 	fileSenderThread.Run()
 
-	// Synchronize consumers and producers
 	if err := reviewsBatchThread.Join(); err != nil {
 		return err
 	}
