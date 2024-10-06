@@ -56,14 +56,7 @@ func (o *OSCounter) Run(ctx context.Context) error {
 
 				elements := msg.Elements()
 				for _, element := range elements.Iter() {
-					game := models.Game{
-						AppID:       string(element.ReadBytes()),
-						Name:        string(element.ReadBytes()),
-						Genres:      string(element.ReadBytes()),
-						ReleaseYear: element.ReadUint32(),
-						AvgPlayTime: element.ReadFloat32(),
-						SupportedOS: models.OS(element.ReadByte()),
-					}
+					game := models.ReadGame(&element)
 					if game.SupportedOS.IsWindowsSupported() {
 						o.s.windows += 1
 					}
