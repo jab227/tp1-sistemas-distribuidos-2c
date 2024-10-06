@@ -31,7 +31,7 @@ services:
       - OUTPUT_WORKER_QUEUE_TIMEOUT=5
       - OUTPUT_WORKER_QUEUE_COUNT=1
       - SERVER_PORT=7070
-      - LOGGER_LEVEL=info
+      - LOGGER_LEVEL=debug
     ports:
       - "7070:7070/tcp"
     networks:
@@ -55,7 +55,7 @@ services:
       - INPUT_WORKER_QUEUE_COUNT=1
       - FANOUT_PUBLISHER_EXCHANGE=projection-output-exchange
       - FANOUT_PUBLISHER_TIMEOUT=5
-      - LOGGER_LEVEL=info
+      - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
     depends_on:

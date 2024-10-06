@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"encoding/csv"
 	"fmt"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/client"
 	models "github.com/jab227/tp1-sistemas-distribuidos-2c/internal/model"
@@ -95,11 +96,19 @@ func (p *Projection) handleGamesMessages(msg protocol.Message) (*protocol.Messag
 	var listOfGames []models.Game
 
 	for _, element := range elements.Iter() {
-		listOfLines := strings.Split(string(element), "\n")
+		csvData := string(element.ReadBytes())
+		reader := strings.NewReader(csvData)
+		csvReader := csv.NewReader(reader)
+		csvReader.LazyQuotes = true
+		csvReader.FieldsPerRecord = -1
 
-		for _, line := range listOfLines {
-			csvColumns := strings.Split(line, ",")
-			game, err := models.GameFromCSVLine(csvColumns)
+		listOfCsvGames, err := csvReader.ReadAll()
+		if err != nil {
+			return nil, fmt.Errorf("could not parse lines of csv %s: %w", csvData, err)
+		}
+
+		for _, line := range listOfCsvGames {
+			game, err := models.GameFromCSVLine(line)
 			if err != nil {
 				return nil, fmt.Errorf("could not parse game from csv line %s: %w", line, err)
 			}
@@ -127,11 +136,19 @@ func (p *Projection) handleReviewsMessages(msg protocol.Message) (*protocol.Mess
 	var listOfReviews []models.Review
 
 	for _, element := range elements.Iter() {
-		listOfLines := strings.Split(string(element), "\n")
+		csvData := string(element.ReadBytes())
+		reader := strings.NewReader(csvData)
+		csvReader := csv.NewReader(reader)
+		csvReader.LazyQuotes = true
+		csvReader.FieldsPerRecord = -1
 
-		for _, line := range listOfLines {
-			csvColumns := strings.Split(line, ",")
-			review, err := models.ReviewFromCSVLine(csvColumns)
+		listOfCsvReviews, err := csvReader.ReadAll()
+		if err != nil {
+			return nil, fmt.Errorf("could not parse lines of csv %s: %w", csvData, err)
+		}
+
+		for _, line := range listOfCsvReviews {
+			review, err := models.ReviewFromCSVLine(line)
 			if err != nil {
 				return nil, fmt.Errorf("could not parse review from csv line %s: %w", line, err)
 			}

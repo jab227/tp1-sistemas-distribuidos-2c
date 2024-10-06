@@ -9,7 +9,8 @@ import (
 	"time"
 )
 
-const releaseDateFmt = "Jan 02, 2006"
+const releaseDateFmtWithDay = "Jan 2, 2006"
+const releaseDateFmtOnlyMonthYear = "Jan 2006"
 
 const (
 	AppIDCSVPosition              = 0
@@ -73,8 +74,23 @@ func getSupportedOSs(p playableIn) OS {
 	return os
 }
 
+func ParseDate(data string) (time.Time, error) {
+	listOfFormats := []string{releaseDateFmtWithDay, releaseDateFmtOnlyMonthYear}
+
+	for _, format := range listOfFormats {
+		releaseDate, err := time.Parse(format, data)
+		if err != nil {
+			continue
+		} else {
+			return releaseDate, nil
+		}
+	}
+
+	return time.Time{}, fmt.Errorf("error with release date format %s", data)
+}
+
 func GameFromCSVLine(csvLine []string) (*Game, error) {
-	releaseDate, err := time.Parse(releaseDateFmt, csvLine[ReleaseDateCSVPosition])
+	releaseDate, err := ParseDate(csvLine[ReleaseDateCSVPosition])
 	if err != nil {
 		return nil, fmt.Errorf("couldn't parse release date: %w", err)
 	}

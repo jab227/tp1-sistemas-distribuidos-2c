@@ -1,6 +1,7 @@
 package src
 
 import (
+	"log/slog"
 	"strings"
 
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/communication/message"
@@ -43,12 +44,14 @@ func deleteBatchFile(bf *BatchFile) {
 }
 
 func (bf *BatchFile) Run(join chan error) {
+	slog.Info("Start sending file", "file", bf.config.Path)
 	bf.pushStart()
 	if err := bf.pushDataMessages(); err != nil {
 		join <- err
 		return
 	}
 	bf.pushEnd()
+	slog.Info("End sending file", "file", bf.config.Path)
 	join <- nil
 }
 
