@@ -1,42 +1,62 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/logging"
+	"io/ioutil"
+	"log/slog"
+	"os"
 
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/cmd/client/src"
-	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/communication/message"
 )
 
-func main() {
-	clientConfig := &src.ClientConfig{
-		ServerName:    "localhost",
-		ServerPort:    7070,
-		TaskQueueSize: 10,
-		ReviewsBatch: &src.BatchFileConfig{
-			DataType:       message.Reviews,
-			Path:           "/home/daniel/Documents/facultad/2024-2C/75.74/tps/tp1-sistemas-distribuidos-2c/datasets/reviews.csv",
-			NlinesFromDisk: 100,
-			BatchSize:      10,
-			MaxBytes:       4 * 1024,
-		},
-		GamesBatch: &src.BatchFileConfig{
-			DataType:       message.Games,
-			Path:           "/home/daniel/Documents/facultad/2024-2C/75.74/tps/tp1-sistemas-distribuidos-2c/datasets/games.csv",
-			NlinesFromDisk: 100,
-			BatchSize:      1,
-			MaxBytes:       4 * 1024,
-		},
+func loadConfig(path string) (*src.ClientConfig, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open config file: %w", err)
 	}
+
+	bytesValues, err := ioutil.ReadAll(file)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read config file: %w", err)
+	}
+
+	var config src.ClientConfig
+	if err := json.Unmarshal(bytesValues, &config); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal config file: %w", err)
+	}
+
+	return &config, nil
+}
+
+func main() {
+	clientConfig, err := loadConfig(os.Args[1])
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	if err = logging.InitLoggerWithString(clientConfig.LoggerLevel); err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	slog.Debug("Configuration debug",
+		"ClientConfig", clientConfig,
+		"ReviewsBatch", clientConfig.ReviewsBatch,
+		"GamesBatch", clientConfig.GamesBatch,
+	)
 
 	client, deleteClient := src.NewClient(clientConfig)
 	defer deleteClient()
 
 	if err := client.Connect(); err != nil {
-		fmt.Printf("Error: %v\n", err)
+		slog.Error("error connecting to server:", "error", err)
 		return
 	}
 	if err := client.Execute(); err != nil {
-		fmt.Printf("Error: %v\n", err)
+		slog.Error("error executing command:", "error", err)
 		return
 	}
 }

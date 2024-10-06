@@ -9,11 +9,12 @@ import (
 )
 
 type ClientConfig struct {
-	ServerName    string
-	ServerPort    int
-	TaskQueueSize int
-	ReviewsBatch  *BatchFileConfig
-	GamesBatch    *BatchFileConfig
+	ServerName    string           `json:"ServerName"`
+	ServerPort    int              `json:"ServerPort"`
+	LoggerLevel   string           `json:"LoggerLevel"`
+	TaskQueueSize int              `json:"TaskQueueSize"`
+	ReviewsBatch  *BatchFileConfig `json:"ReviewsBatch"`
+	GamesBatch    *BatchFileConfig `json:"GamesBatch"`
 }
 
 type Client struct {

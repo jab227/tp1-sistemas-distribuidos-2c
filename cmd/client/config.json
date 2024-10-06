@@ -1,0 +1,20 @@
+{
+  "ServerName": "localhost",
+  "ServerPort": 7070,
+  "LoggerLevel": "debug",
+  "TaskQueueSize": 10,
+  "ReviewsBatch": {
+    "DataType": 0,
+    "Path": "/home/daniel/Documents/facultad/2024-2C/75.74/tps/tp1-sistemas-distribuidos-2c/datasets/reviews.csv",
+    "NlinesFromDisk": 100,
+    "BatchSize": 10,
+    "MaxBytes": 4096
+  },
+  "GamesBatch": {
+    "DataType": 1,
+    "Path": "/home/daniel/Documents/facultad/2024-2C/75.74/tps/tp1-sistemas-distribuidos-2c/datasets/games.csv",
+    "NlinesFromDisk": 100,
+    "BatchSize": 10,
+    "MaxBytes": 4096
+  }
+}
