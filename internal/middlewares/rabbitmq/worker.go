@@ -84,6 +84,10 @@ func (wq *WorkerQueue) Write(p []byte, tag string) error {
 	return nil
 }
 
+func (wq *WorkerQueue) GetConsumer() <-chan amqp091.Delivery {
+	return wq.Consumer
+}
+
 func (wq *WorkerQueue) Read() amqp091.Delivery {
 	msg := <-wq.Consumer
 	return msg

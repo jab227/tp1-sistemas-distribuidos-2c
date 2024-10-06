@@ -4,11 +4,13 @@ package models
 
 import (
 	"fmt"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/protocol"
 	"strconv"
 	"time"
 )
 
-const releaseDateFmt = "Jan 02, 2006"
+const releaseDateFmtWithDay = "Jan 2, 2006"
+const releaseDateFmtOnlyMonthYear = "Jan 2006"
 
 const (
 	AppIDCSVPosition              = 0
@@ -72,8 +74,23 @@ func getSupportedOSs(p playableIn) OS {
 	return os
 }
 
+func ParseDate(data string) (time.Time, error) {
+	listOfFormats := []string{releaseDateFmtWithDay, releaseDateFmtOnlyMonthYear}
+
+	for _, format := range listOfFormats {
+		releaseDate, err := time.Parse(format, data)
+		if err != nil {
+			continue
+		} else {
+			return releaseDate, nil
+		}
+	}
+
+	return time.Time{}, fmt.Errorf("error with release date format %s", data)
+}
+
 func GameFromCSVLine(csvLine []string) (*Game, error) {
-	releaseDate, err := time.Parse(releaseDateFmt, csvLine[ReleaseDateCSVPosition])
+	releaseDate, err := ParseDate(csvLine[ReleaseDateCSVPosition])
 	if err != nil {
 		return nil, fmt.Errorf("couldn't parse release date: %w", err)
 	}
@@ -113,6 +130,19 @@ func GameFromCSVLine(csvLine []string) (*Game, error) {
 	}, nil
 }
 
+func (g *Game) BuildPayload(builder *protocol.PayloadBuffer) {
+	builder.BeginPayloadElement()
+
+	builder.WriteBytes([]byte(g.AppID))
+	builder.WriteBytes([]byte(g.Name))
+	builder.WriteBytes([]byte(g.Genres))
+	builder.WriteUint32(g.ReleaseYear)
+	builder.WriteFloat32(g.AvgPlayTime)
+	builder.WriteByte(byte(g.SupportedOS))
+
+	builder.EndPayloadElement()
+}
+
 type ReviewScore int8
 
 const (
@@ -120,7 +150,7 @@ const (
 	Negative ReviewScore = -1
 )
 
-func reviewScoreFromString(s string) (ReviewScore, error){
+func reviewScoreFromString(s string) (ReviewScore, error) {
 	if s == "1" {
 		return Positive, nil
 	}
@@ -147,4 +177,14 @@ func ReviewFromCSVLine(csvLine []string) (*Review, error) {
 		Text:  csvLine[ReviewTextCSVPosition],
 		Score: reviewScore,
 	}, nil
+}
+
+func (r *Review) BuildPayload(builder *protocol.PayloadBuffer) {
+	builder.BeginPayloadElement()
+
+	builder.WriteBytes([]byte(r.AppID))
+	builder.WriteBytes([]byte(r.Text))
+	builder.WriteByte(byte(r.Score))
+
+	builder.EndPayloadElement()
 }

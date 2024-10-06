@@ -60,9 +60,14 @@ type MessageOptions struct {
 	RequestID uint32
 }
 
-func NewEndMessage(opts MessageOptions) Message {
+func NewEndMessage(d DataType, opts MessageOptions) Message {
+	messageType := End
+	if d == Games {
+		messageType |= 0x04
+	}
+
 	return Message{
-		messageType: End,
+		messageType: messageType,
 		messageID:   opts.MessageID,
 		clientID:    opts.ClientID,
 		requestID:   opts.RequestID,
@@ -105,13 +110,31 @@ func (m Message) ExpectKind(kind MessageType) bool {
 
 }
 
+func (m Message) GetMessageType() MessageType {
+	b := byte(m.messageType)
+	b &= 0x03
+	return MessageType(b)
+}
+
+func (m Message) GetMessageID() uint32 {
+	return m.messageID
+}
+
+func (m Message) GetClientID() uint32 {
+	return m.clientID
+}
+
+func (m Message) GetRequestID() uint32 {
+	return m.requestID
+}
+
 func (m Message) HasGameData() bool {
-	utils.Assert(m.ExpectKind(Data), "the payload must be data")
+	utils.Assert(m.ExpectKind(Data) || m.ExpectKind(End), "the payload must be data")
 	return m.messageType>>2 == 1
 }
 
 func (m Message) HasReviewData() bool {
-	utils.Assert(m.ExpectKind(Data), "the payload must be  data")
+	utils.Assert(m.ExpectKind(Data) || m.ExpectKind(End), "the payload must be  data")
 	return m.messageType>>2 == 0
 }
 

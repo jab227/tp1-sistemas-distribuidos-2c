@@ -151,6 +151,10 @@ func (s *FanoutSubscriber) Read() amqp091.Delivery {
 	return msg
 }
 
+func (s *FanoutSubscriber) GetConsumer() <-chan amqp091.Delivery {
+	return s.Consumer
+}
+
 func (s *FanoutSubscriber) Close() error {
 	return s.ch.Close()
 }

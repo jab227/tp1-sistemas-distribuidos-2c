@@ -154,6 +154,10 @@ func (s *DirectSubscriber) Read() amqp091.Delivery {
 	return msg
 }
 
+func (s *DirectSubscriber) GetConsumer() <-chan amqp091.Delivery {
+	return s.Consumer
+}
+
 func (s *DirectSubscriber) Close() error {
 	return s.ch.Close()
 }
