@@ -35,19 +35,15 @@ func NewBatchLines(lines string, size int, maxBytes int) *BatchLines {
 
 func (bl *BatchLines) Execute(callback Callback) error {
 	bl.callback = callback
-	for {
-		sliceOfLines, more, err := bl.lineReader.Next()
+
+	for lines, err := range bl.lineReader.Lines() {
 		if err != nil {
 			return err
 		}
-
-		bl.processLines(sliceOfLines)
-
-		if !more {
-			bl.Flush()
-			return nil
-		}
+		bl.processLines(lines)
 	}
+	bl.Flush()
+	return nil
 }
 
 func (bl *BatchLines) Flush() {
