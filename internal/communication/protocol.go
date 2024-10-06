@@ -35,14 +35,14 @@ func (p *Protocol) Sync() error {
 	return nil
 }
 
-func (p *Protocol) SyncAck() error {
+func (p *Protocol) SyncAck(clientId uint32) error {
 	_, err := p.recvSyncMessage()
 	if err != nil {
 		return err
 	}
 
 	syncAckMsgConf := &message.SyncAckMessageConfig{
-		ClientId: 7218352, // TODO: Generate Client ID
+		ClientId: clientId,
 	}
 	if err := p.sendSyncAckMessage(syncAckMsgConf); err != nil {
 		return err
