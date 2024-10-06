@@ -53,15 +53,37 @@ services:
       - INPUT_WORKER_QUEUE=projection-input-queue
       - INPUT_WORKER_QUEUE_TIMEOUT=5
       - INPUT_WORKER_QUEUE_COUNT=1
-      - FANOUT_PUBLISHER_EXCHANGE=projection-output-exchange
-      - FANOUT_PUBLISHER_TIMEOUT=5
+      - DIRECT_PUBLISHER_EXCHANGE=projection-output-exchange
+      - DIRECT_PUBLISHER_TIMEOUT=5
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
     depends_on:
       rabbitmq:
         condition: service_healthy
-
+  os_counter_1:
+    container_name: os_counter_1
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/os_counter
+    environment:
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - OUTPUT_WORKER_QUEUE=os-counter-output-queue
+      - OUTPUT_WORKER_QUEUE_TIMEOUT=5
+      - OUTPUT_WORKER_QUEUE_COUNT=1
+      - DIRECT_SUBSCRIBER_EXCHANGE=projection-output-exchange
+      - DIRECT_SUBSCRIBER_QUEUE=os-counter-input-queue
+      - DIRECT_SUBSCRIBER_KEYS=game
+      - LOGGER_LEVEL=debug
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
 networks:
   rabbitmq_go_net:
     driver: bridge
