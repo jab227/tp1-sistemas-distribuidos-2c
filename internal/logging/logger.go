@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"strings"
 )
 
 const LoggerLevelEnvVariable = "LOGGER_LEVEL"
@@ -22,6 +23,16 @@ func InitLogger(level slog.Level) {
 	}
 	logger := slog.New(slog.NewTextHandler(os.Stderr, opts))
 	slog.SetDefault(logger)
+}
+
+func InitLoggerWithString(level string) error {
+	slogLevel, ok := slogLevelMap[strings.ToLower(level)]
+	if !ok {
+		return fmt.Errorf("invalid log level: %s", level)
+	}
+
+	InitLogger(slogLevel)
+	return nil
 }
 
 func InitLoggerWithEnv() error {

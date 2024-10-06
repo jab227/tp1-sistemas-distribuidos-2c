@@ -8,11 +8,11 @@ import (
 )
 
 type BatchFileConfig struct {
-	DataType       message.DataType
-	Path           string
-	NlinesFromDisk int
-	BatchSize      int
-	MaxBytes       int
+	DataType       message.DataType `json:"DataType"`
+	Path           string           `json:"Path"`
+	NlinesFromDisk int              `json:"NlinesFromDisk"`
+	BatchSize      int              `json:"BatchSize"`
+	MaxBytes       int              `json:"MaxBytes"`
 }
 
 type BatchFile struct {
