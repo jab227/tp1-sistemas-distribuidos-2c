@@ -53,6 +53,7 @@ func TestReviewFromCSV(t *testing.T) {
 
 	want := &models.Review{
 		AppID: "8870",
+		Name: "BioShock Infinite",
 		Text:  "By playing this game and finally understanding it, my mind lost its virginity. 10/10 would totally lose mind virginity again",
 		Score: models.Positive,
 	}

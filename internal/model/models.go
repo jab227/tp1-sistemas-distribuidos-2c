@@ -163,6 +163,7 @@ func reviewScoreFromString(s string) (ReviewScore, error) {
 
 type Review struct {
 	AppID string
+	Name  string
 	Text  string
 	Score ReviewScore
 }
@@ -174,6 +175,7 @@ func ReviewFromCSVLine(csvLine []string) (*Review, error) {
 	}
 	return &Review{
 		AppID: csvLine[AppIDCSVPosition],
+		Name:  csvLine[NameCSVPosition],
 		Text:  csvLine[ReviewTextCSVPosition],
 		Score: reviewScore,
 	}, nil
@@ -183,8 +185,21 @@ func (r *Review) BuildPayload(builder *protocol.PayloadBuffer) {
 	builder.BeginPayloadElement()
 
 	builder.WriteBytes([]byte(r.AppID))
+	builder.WriteBytes([]byte(r.Name))
 	builder.WriteBytes([]byte(r.Text))
 	builder.WriteByte(byte(r.Score))
 
 	builder.EndPayloadElement()
+}
+
+func ReadGame(element *protocol.Element) Game {
+	game := Game{
+		AppID:       string(element.ReadBytes()),
+		Name:        string(element.ReadBytes()),
+		Genres:      string(element.ReadBytes()),
+		ReleaseYear: element.ReadUint32(),
+		AvgPlayTime: element.ReadFloat32(),
+		SupportedOS: OS(element.ReadByte()),
+	}
+	return game
 }
