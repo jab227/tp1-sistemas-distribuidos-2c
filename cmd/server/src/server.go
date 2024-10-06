@@ -36,8 +36,9 @@ type Server struct {
 	client       *Client
 	deleteClient func()
 
-	ioManager *client.IOManager
-	done      chan struct{}
+	ioManager       *client.IOManager
+	clientIdCounter uint32
+	done            chan struct{}
 }
 
 func NewServer(serverConfig *ServerConfig, ioManager *client.IOManager) (*Server, func()) {
@@ -54,6 +55,11 @@ func deleteServer(s *Server) {
 	s.deleteSocket()
 	s.deleteClient()
 	s.ioManager.Close()
+}
+
+func (s *Server) GetClientId() uint32 {
+	defer func() { s.clientIdCounter++ }()
+	return s.clientIdCounter
 }
 
 func (s *Server) GetDone() <-chan struct{} {
@@ -106,7 +112,11 @@ func (s *Server) Accept() error {
 		return err
 	}
 
-	client, deleteClient, err := NewClient(clientSocket, deleteClientSocket)
+	client, deleteClient, err := NewClient(
+		clientSocket,
+		s.GetClientId(),
+		deleteClientSocket,
+	)
 	if err != nil {
 		return err
 	}
@@ -116,5 +126,5 @@ func (s *Server) Accept() error {
 }
 
 func (s *Server) Execute() error {
-	return s.client.Execute()
+	return s.client.Execute(s.ioManager)
 }
