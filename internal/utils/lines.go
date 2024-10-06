@@ -15,13 +15,18 @@ type LineReader struct {
 
 func NewLinesReader(r io.Reader, chunkSize int) *LineReader {
 	scanner := bufio.NewScanner(r)
-	buf := make([]byte, 0, 24*1024)
-	scanner.Buffer(buf, 128*1024)
+	buf := make([]byte, 0, 64*1024)
+	scanner.Buffer(buf, 1024*1024)
 	return &LineReader{
 		scanner: scanner,
 		chunk:   make([]string, chunkSize),
 		size:    chunkSize,
 	}
+}
+
+func (c *LineReader) Text() string {
+	c.scanner.Scan()
+	return c.scanner.Text()
 }
 
 func (c *LineReader) Next() ([]string, bool, error) {

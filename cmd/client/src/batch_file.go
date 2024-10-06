@@ -1,6 +1,8 @@
 package src
 
 import (
+	"strings"
+
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/communication/message"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/utils"
 )
@@ -15,7 +17,7 @@ type BatchFileConfig struct {
 
 type BatchFile struct {
 	config       *BatchFileConfig
-	reader       *FileLinesReader
+	fileReader   *FileLinesReader
 	deleteReader func()
 	taskQueue    *utils.BlockingQueue[*message.DataMessageConfig]
 }
@@ -27,7 +29,7 @@ func NewBatchFile(config *BatchFileConfig, taskQueue *utils.BlockingQueue[*messa
 	}
 
 	batchFile := &BatchFile{
-		reader:       fileReader,
+		fileReader:   fileReader,
 		deleteReader: deleteFileLinesReader,
 		taskQueue:    taskQueue,
 		config:       config,
@@ -59,12 +61,7 @@ func (bf *BatchFile) pushStart() {
 }
 
 func (bf *BatchFile) pushDataMessages() error {
-	lines, more, err := bf.reader.Read()
-	if err != nil {
-		return err
-	}
-
-	batchLines := NewBatchLines(lines, bf.config.BatchSize, bf.config.MaxBytes)
+	batchLines := NewBatchLines("", bf.config.BatchSize, bf.config.MaxBytes)
 	callback := func(data string) {
 		bf.taskQueue.Push(&message.DataMessageConfig{
 			DataType: bf.config.DataType,
@@ -72,21 +69,19 @@ func (bf *BatchFile) pushDataMessages() error {
 		})
 	}
 
-	for {
-		if err := batchLines.Execute(callback); err != nil {
-			return err
-		}
-
-		if !more {
-			return nil
-		}
-
-		lines, more, err = bf.reader.Read()
-		batchLines.Reset(lines)
+	bf.fileReader.Text()
+	for sliceOfLines, err := range bf.fileReader.Lines() {
 		if err != nil {
 			return err
 		}
+
+		lines := strings.Join(sliceOfLines, "\n") + "\n"
+		batchLines.Reset(lines)
+		if err := batchLines.Execute(callback); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 func (bf *BatchFile) pushEnd() {

@@ -1,8 +1,8 @@
 package src
 
 import (
+	"iter"
 	"os"
-	"strings"
 
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/utils"
 )
@@ -30,13 +30,10 @@ func (flr *FileLinesReader) deleteFileLinesReader() error {
 	return flr.file.Close()
 }
 
-func (flr *FileLinesReader) Read() (string, bool, error) {
-	sliceOfLines, more, err := flr.reader.Next()
-	if len(sliceOfLines) == 0 {
-		return "", more, err
-	}
+func (flr *FileLinesReader) Text() string {
+	return flr.reader.Text()
+}
 
-	separator := "\n"
-	lines := strings.Join(sliceOfLines, separator) + separator
-	return lines, more, err
+func (flr *FileLinesReader) Lines() iter.Seq2[[]string, error] {
+	return flr.reader.Lines()
 }
