@@ -99,12 +99,8 @@ func (bl *BatchLines) splitLinesProcessing(sliceOfLines []string, currentLines s
 }
 
 func (bl *BatchLines) newLinesJoin(sliceOfLines []string) string {
-	if len(sliceOfLines) == 0 {
-		return ""
-	}
-
 	separator := "\n"
-	lines := strings.Join(sliceOfLines, separator) + separator
+	lines := strings.Join(sliceOfLines, separator)
 	return lines
 }
 

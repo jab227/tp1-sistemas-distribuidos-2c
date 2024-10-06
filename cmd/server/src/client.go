@@ -46,7 +46,6 @@ func (c *Client) GetMessageId() uint32 {
 	return c.msgIdCounter
 }
 
-// TODO - Crear abstraccion para validaciones
 // TODO(fede) - Parte 2 - Validar esta comunicación con el IOManager es thread safe
 func (c *Client) Execute(ioManager *client.IOManager) error {
 	for {
@@ -57,10 +56,15 @@ func (c *Client) Execute(ioManager *client.IOManager) error {
 
 		if msgData.Header.Optype == message.Data {
 			// This payload contains data
-			if msgData.Payload.Header.Start == utils.StartNotSet && msgData.Payload.Header.End != utils.EndNotSet {
+			if msgData.Payload.Header.Start == utils.StartNotSet && msgData.Payload.Header.End == utils.EndNotSet {
 				if msgData.Payload.Header.Type == uint8(message.Games) {
+					payloadBuffer := protocol.NewPayloadBuffer(1)
+					payloadBuffer.BeginPayloadElement()
+					payloadBuffer.WriteBytes(msgData.Payload.Payload.Marshall())
+					payloadBuffer.EndPayloadElement()
+
 					internalMsg := protocol.NewDataMessage(protocol.Games,
-						msgData.Payload.Payload.Marshall(),
+						payloadBuffer.Bytes(),
 						protocol.MessageOptions{
 							ClientID:  msgData.Header.ClientId,
 							RequestID: msgData.Header.RequestId,
@@ -73,8 +77,13 @@ func (c *Client) Execute(ioManager *client.IOManager) error {
 						return fmt.Errorf("cannot send data to client: %w - %v", err, internalMsg)
 					}
 				} else if msgData.Payload.Header.Type == uint8(message.Reviews) {
+					payloadBuffer := protocol.NewPayloadBuffer(1)
+					payloadBuffer.BeginPayloadElement()
+					payloadBuffer.WriteBytes(msgData.Payload.Payload.Marshall())
+					payloadBuffer.EndPayloadElement()
+
 					internalMsg := protocol.NewDataMessage(protocol.Reviews,
-						msgData.Payload.Payload.Marshall(),
+						payloadBuffer.Bytes(),
 						protocol.MessageOptions{
 							ClientID:  msgData.Header.ClientId,
 							RequestID: msgData.Header.RequestId,

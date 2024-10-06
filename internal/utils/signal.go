@@ -15,9 +15,14 @@ func MakeSignalHandler() <-chan os.Signal {
 }
 
 func BlockUntilSignal(signal <-chan os.Signal, done <-chan struct{}, cancel context.CancelFunc) {
-	s := <-signal
-	slog.Info("exit", "signal", s)
-	cancel()
-	<-done
-	return
+	select {
+	case s := <-signal:
+		slog.Info("exit", "signal", s)
+		cancel()
+		<-done
+	case <-done:
+		slog.Info("exit received done")
+		cancel()
+		return
+	}
 }

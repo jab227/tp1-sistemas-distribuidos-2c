@@ -95,8 +95,7 @@ func (s *Server) Run(ctx context.Context) error {
 }
 
 func (s *Server) setSocket(serverConfig *ServerConfig) {
-	const serverName = "localhost"
-	serverAddress := fmt.Sprintf("%v:%v", serverName, serverConfig.ServicePort)
+	serverAddress := fmt.Sprintf("0.0.0.0:%v", serverConfig.ServicePort)
 	socket, deleteSocket := network.NewSocketTcp(serverAddress)
 	s.socket = socket
 	s.deleteSocket = deleteSocket
