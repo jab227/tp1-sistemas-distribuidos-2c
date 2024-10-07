@@ -26,6 +26,7 @@ type Joiner struct {
 func NewJoiner() (*Joiner, error) {
 	var io client.IOManager
 	// TODO: Change to the correct configs
+	// TODO: Check ouput type by env
 	if err := io.Connect(client.InputWorker, client.OutputWorker); err != nil {
 		return nil, fmt.Errorf("couldn't create os counter: %w", err)
 	}
