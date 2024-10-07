@@ -3,9 +3,11 @@ package src
 import (
 	"context"
 	"fmt"
-	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/client"
 	"os"
 	"strconv"
+
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/client"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/results"
 
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/network"
 )
@@ -76,7 +78,7 @@ func (s *Server) Run(ctx context.Context) error {
 	for {
 		select {
 		case <-ctx.Done():
-			return nil
+			return ctx.Err()
 
 		default:
 			if err := s.Listen(); err != nil {
@@ -90,6 +92,14 @@ func (s *Server) Run(ctx context.Context) error {
 			if err := s.Execute(); err != nil {
 				return fmt.Errorf("error when executing command %s", err)
 			}
+			service, err := results.NewResultsService(s.GetClientConn())
+			ctx, cancel := context.WithCancel(ctx)
+			defer cancel()
+			if err != nil {
+				return err
+			}
+			go service.Run(ctx)
+			<-service.Done()
 		}
 	}
 }
@@ -124,6 +134,9 @@ func (s *Server) Accept() error {
 	return nil
 }
 
+func (s *Server) GetClientConn() net.Conn {
+	s.client.socket.GetConnection()
+}
 func (s *Server) Execute() error {
 	return s.client.Execute(s.ioManager)
 }

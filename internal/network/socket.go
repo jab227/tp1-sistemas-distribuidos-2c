@@ -110,3 +110,7 @@ func (s *SocketTcp) Receive(buffer []byte) error {
 	}
 	return nil
 }
+
+func (s *SocketTcp) GetConnection() net.Conn {
+
+}
