@@ -36,6 +36,10 @@ func NewJoiner() (*Joiner, error) {
 	}, nil
 }
 
+func (j *Joiner) Destroy() {
+	j.io.Close()
+}
+
 func (j *Joiner) Done() <-chan struct{} {
 	return j.done
 }
