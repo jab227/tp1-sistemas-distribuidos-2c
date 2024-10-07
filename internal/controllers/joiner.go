@@ -79,7 +79,7 @@ func (j *Joiner) Run(ctx context.Context) error {
 					game := tuple.X
 					builder := protocol.NewPayloadBuffer(1)
 					game.BuildPayload(builder)
-					res := protocol.NewResultsMessage(protocol.Query1, builder.Bytes(), protocol.MessageOptions{
+					res := protocol.NewDataMessage(protocol.Games, builder.Bytes(), protocol.MessageOptions{
 						MessageID: msg.GetMessageID(),
 						ClientID:  msg.GetClientID(),
 						RequestID: msg.GetRequestID(),
