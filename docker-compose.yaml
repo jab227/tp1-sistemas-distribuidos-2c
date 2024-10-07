@@ -72,7 +72,7 @@ services:
       - RABBITMQ_PORT=5672
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
-      - OUTPUT_WORKER_QUEUE=os-counter-output-queue
+      - OUTPUT_WORKER_QUEUE=output-queue
       - OUTPUT_WORKER_QUEUE_TIMEOUT=5
       - OUTPUT_WORKER_QUEUE_COUNT=1
       - DIRECT_SUBSCRIBER_EXCHANGE=projection-output-exchange
