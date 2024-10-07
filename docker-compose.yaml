@@ -84,6 +84,54 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+  top_games_1:
+    container_name: top_games_1
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/top_games
+    environment:
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - DIRECT_SUBSCRIBER_EXCHANGE=projection-output-exchange
+      - DIRECT_SUBSCRIBER_QUEUE=top-games-input-queue
+      - DIRECT_SUBSCRIBER_KEYS=game
+      - OUTPUT_WORKER_QUEUE=top-games-output-queue
+      - OUTPUT_WORKER_QUEUE_TIMEOUT=5
+      - OUTPUT_WORKER_QUEUE_COUNT=1
+      - LOGGER_LEVEL=debug
+      - N_VALUE=10
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+  top_reviews_1:
+    container_name: top_reviews_1
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/top_reviews
+    environment:
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - INPUT_WORKER_QUEUE= #joiner-query-3-output-queue
+      - INPUT_WORKER_QUEUE_TIMEOUT=5
+      - INPUT_WORKER_QUEUE_COUNT=1
+      - OUTPUT_WORKER_QUEUE=top-reviews-output-queue
+      - OUTPUT_WORKER_QUEUE_TIMEOUT=5
+      - OUTPUT_WORKER_QUEUE_COUNT=1
+      - LOGGER_LEVEL=debug
+      - N_VALUE=5
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
 networks:
   rabbitmq_go_net:
     driver: bridge
