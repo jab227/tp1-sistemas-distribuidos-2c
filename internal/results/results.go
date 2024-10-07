@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"iter"
 	"net"
+	"slices"
 
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/client"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/protocol"
@@ -206,12 +207,14 @@ func (r *ResultsService) Run(ctx context.Context) error {
 				switch queryNumber {
 				case 4:
 					r.res.received |= query4Received
+					slices.Sort(r.res.q4)
 					_, err := writer.Write(r.res.q4.Marshal())
 					if err != nil {
 						return fmt.Errorf("couldn't write query 4: %w", err)
 					}
 				case 5:
 					r.res.received |= query5Received
+					slices.Sort(r.res.q5)				
 					_, err := writer.Write(r.res.q5.Marshal())
 					if err != nil {
 						return fmt.Errorf("couldn't write query 5: %w", err)
