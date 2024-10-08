@@ -90,6 +90,14 @@ func (j *Joiner) Run(ctx context.Context) error {
 					}
 				}
 				// TODO: Send end and handle sync
+				res := protocol.NewEndMessage(protocol.Games, protocol.MessageOptions{
+					MessageID: msg.GetMessageID(),
+					ClientID:  msg.GetClientID(),
+					RequestID: msg.GetRequestID(),
+				})
+				if err := j.io.Write(res.Marshal(), ""); err != nil {
+					return fmt.Errorf("couldn't write query 1 output: %w", err)
+				}
 				j.s = joinerState{}
 			} else {
 				return fmt.Errorf("unexpected message type: %s", msg.GetMessageType())
