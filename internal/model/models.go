@@ -203,3 +203,20 @@ func ReadGame(element *protocol.Element) Game {
 	}
 	return game
 }
+
+func ReadReview(element *protocol.Element) Review{
+	return Review{
+		AppID:       string(element.ReadBytes()),
+		Name:        string(element.ReadBytes()),
+		Text:  string(element.ReadBytes()),
+		Score: ReviewScore(element.ReadByte()),
+	}
+}
+
+func (g Game) GetID() string {
+	return g.AppID
+}
+
+func (r Review) GetID() string {
+	return r.AppID
+}
