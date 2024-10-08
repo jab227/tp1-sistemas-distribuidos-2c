@@ -204,7 +204,6 @@ func ReadGame(element *protocol.Element) Game {
 	return game
 }
 
-
 func ReadReview(element *protocol.Element) Review{
 	return Review{
 		AppID:       string(element.ReadBytes()),

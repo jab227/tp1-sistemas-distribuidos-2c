@@ -71,7 +71,7 @@ func main() {
 	scanner := bufio.NewScanner(r)
 	const capacity = 128 * 1024
 	buffer := make([]byte, capacity)
-	scanner.Buffer(buffer, capacity)
+	scanner.Buffer(buffer, 1024*1024)
 	scanner.Scan()
 	firstLine := scanner.Text()
 	for _, ch := range channels {
@@ -102,7 +102,7 @@ func main() {
 	if err := scanner.Err(); err != nil {
 		fmt.Fprintf(os.Stderr, "error reading file: %s\n", err)
 	}
-	
+
 	for _, ch := range channels {
 		close(ch)
 	}
