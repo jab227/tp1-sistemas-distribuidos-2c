@@ -1,12 +1,13 @@
 package results
 
 import (
-	"bufio"
 	"context"
 	"fmt"
-	"net"
 	"slices"
+	"strings"
 
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/communication"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/communication/message"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/client"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/protocol"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/utils"
@@ -18,68 +19,68 @@ type query1 struct {
 	linux   uint32
 }
 
-func (q query1) Marshal() []byte {
-	buffer := protocol.NewPayloadBuffer(1)
-	buffer.BeginPayloadElement()
-	buffer.WriteByte(1)
-	buffer.WriteUint32(q.windows)
-	buffer.WriteUint32(q.mac)
-	buffer.WriteUint32(q.linux)
-	buffer.EndPayloadElement()
-	return buffer.Bytes()
-}
+// func (q query1) Marshal() []byte {
+// 	buffer := protocol.NewPayloadBuffer(1)
+// 	buffer.BeginPayloadElement()
+// 	buffer.WriteByte(1)
+// 	buffer.WriteUint32(q.windows)
+// 	buffer.WriteUint32(q.mac)
+// 	buffer.WriteUint32(q.linux)
+// 	buffer.EndPayloadElement()
+// 	return buffer.Bytes()
+// }
 
 type query2 [10]string
 
-func (q query2) Marshal() []byte {
-	buffer := protocol.NewPayloadBuffer(1)
-	buffer.BeginPayloadElement()
-	buffer.WriteByte(2)
-	for _, s := range q {
-		buffer.WriteBytes([]byte(s))
-	}
-	buffer.EndPayloadElement()
-	return buffer.Bytes()
-}
+// func (q query2) Marshal() []byte {
+// 	buffer := protocol.NewPayloadBuffer(1)
+// 	buffer.BeginPayloadElement()
+// 	buffer.WriteByte(2)
+// 	for _, s := range q {
+// 		buffer.WriteBytes([]byte(s))
+// 	}
+// 	buffer.EndPayloadElement()
+// 	return buffer.Bytes()
+// }
 
 type query3 [5]string
 
-func (q query3) Marshal() []byte {
-	buffer := protocol.NewPayloadBuffer(1)
-	buffer.BeginPayloadElement()
-	buffer.WriteByte(3)
-	for _, s := range q {
-		buffer.WriteBytes([]byte(s))
-	}
-	buffer.EndPayloadElement()
-	return buffer.Bytes()
-}
+// func (q query3) Marshal() []byte {
+// 	buffer := protocol.NewPayloadBuffer(1)
+// 	buffer.BeginPayloadElement()
+// 	buffer.WriteByte(3)
+// 	for _, s := range q {
+// 		buffer.WriteBytes([]byte(s))
+// 	}
+// 	buffer.EndPayloadElement()
+// 	return buffer.Bytes()
+// }
 
 type query4 []string
 
-func (q query4) Marshal() []byte {
-	buffer := protocol.NewPayloadBuffer(1)
-	buffer.BeginPayloadElement()
-	buffer.WriteByte(4)
-	for _, s := range q {
-		buffer.WriteBytes([]byte(s))
-	}
-	buffer.EndPayloadElement()
-	return buffer.Bytes()
-}
+// func (q query4) Marshal() []byte {
+// 	buffer := protocol.NewPayloadBuffer(1)
+// 	buffer.BeginPayloadElement()
+// 	buffer.WriteByte(4)
+// 	for _, s := range q {
+// 		buffer.WriteBytes([]byte(s))
+// 	}
+// 	buffer.EndPayloadElement()
+// 	return buffer.Bytes()
+// }
 
 type query5 []string
 
-func (q query5) Marshal() []byte {
-	buffer := protocol.NewPayloadBuffer(1)
-	buffer.BeginPayloadElement()
-	buffer.WriteByte(5)
-	for _, s := range q {
-		buffer.WriteBytes([]byte(s))
-	}
-	buffer.EndPayloadElement()
-	return buffer.Bytes()
-}
+// func (q query5) Marshal() []byte {
+// 	buffer := protocol.NewPayloadBuffer(1)
+// 	buffer.BeginPayloadElement()
+// 	buffer.WriteByte(5)
+// 	for _, s := range q {
+// 		buffer.WriteBytes([]byte(s))
+// 	}
+// 	buffer.EndPayloadElement()
+// 	return buffer.Bytes()
+// }
 
 type receivedQuerys uint8
 
@@ -102,24 +103,20 @@ type results struct {
 }
 
 type ResultsService struct {
-	client net.Conn
-	io     client.IOManager
+	client *communication.Protocol
+	io     *client.IOManager
 	done   chan struct{}
 	res    *results
 }
 
 // I don't own the connection
-func NewResultsService(conn net.Conn, io client.IOManager) *ResultsService {
+func NewResultsService(client *communication.Protocol, io *client.IOManager) *ResultsService {
 	return &ResultsService{
-		client: conn,
+		client: client,
 		io:     io,
 		done:   make(chan struct{}),
 		res:    &results{},
 	}
-}
-
-func (r *ResultsService) Destroy() {
-	// r.io.Close()
 }
 
 func (r *ResultsService) Done() <-chan struct{} {
@@ -132,8 +129,6 @@ func (r *ResultsService) Run(ctx context.Context) error {
 		r.done <- struct{}{}
 	}()
 
-	writer := bufio.NewWriter(r.client)
-	defer writer.Flush()
 	for {
 		select {
 		case delivery := <-consumerCh:
@@ -155,8 +150,11 @@ func (r *ResultsService) Run(ctx context.Context) error {
 						}
 					}
 					r.res.received |= query1Received
-					_, err := writer.Write(r.res.q1.Marshal())
-					if err != nil {
+
+					messageResult := &message.ResultMessageConfig{}
+					messageResult.ResultType = message.Query1
+					messageResult.Data = []byte(fmt.Sprintf("%d,%d,%d", r.res.q1.windows, r.res.q1.mac, r.res.q1.linux))
+					if err := r.client.SendResultMessage(messageResult); err != nil {
 						return fmt.Errorf("couldn't write query 1: %w", err)
 					}
 				case 2:
@@ -168,8 +166,11 @@ func (r *ResultsService) Run(ctx context.Context) error {
 						r.res.q2 = q2
 					}
 					r.res.received |= query2Received
-					_, err := writer.Write(r.res.q2.Marshal())
-					if err != nil {
+
+					messageResult := &message.ResultMessageConfig{}
+					messageResult.ResultType = message.Query2
+					messageResult.Data = []byte(strings.Join(r.res.q2[:], "\n"))
+					if err := r.client.SendResultMessage(messageResult); err != nil {
 						return fmt.Errorf("couldn't write query 2: %w", err)
 					}
 				case 3:
@@ -181,8 +182,10 @@ func (r *ResultsService) Run(ctx context.Context) error {
 						r.res.q3 = q3
 					}
 					r.res.received |= query3Received
-					_, err := writer.Write(r.res.q3.Marshal())
-					if err != nil {
+					messageResult := &message.ResultMessageConfig{}
+					messageResult.ResultType = message.Query3
+					messageResult.Data = []byte(strings.Join(r.res.q3[:], "\n"))
+					if err := r.client.SendResultMessage(messageResult); err != nil {
 						return fmt.Errorf("couldn't write query 3: %w", err)
 					}
 				case 4:
@@ -202,15 +205,20 @@ func (r *ResultsService) Run(ctx context.Context) error {
 				case 4:
 					r.res.received |= query4Received
 					slices.Sort(r.res.q4)
-					_, err := writer.Write(r.res.q4.Marshal())
-					if err != nil {
+					r.res.received |= query3Received
+					messageResult := &message.ResultMessageConfig{}
+					messageResult.ResultType = message.Query4
+					messageResult.Data = []byte(strings.Join(r.res.q4, "\n"))
+					if err := r.client.SendResultMessage(messageResult); err != nil {
 						return fmt.Errorf("couldn't write query 4: %w", err)
 					}
 				case 5:
 					r.res.received |= query5Received
 					slices.Sort(r.res.q5)
-					_, err := writer.Write(r.res.q5.Marshal())
-					if err != nil {
+					messageResult := &message.ResultMessageConfig{}
+					messageResult.ResultType = message.Query5
+					messageResult.Data = []byte(strings.Join(r.res.q5, "\n"))
+					if err := r.client.SendResultMessage(messageResult); err != nil {
 						return fmt.Errorf("couldn't write query 5: %w", err)
 					}
 				default:

@@ -137,7 +137,7 @@ func (s *Server) StartClient(ctx context.Context) error {
 		return fmt.Errorf("error receiving data from client %s", err)
 	}
 
-	service := results.NewResultsService(s.GetClientConn(), *s.inputManager)
+	service := results.NewResultsService(s.client.protocol, s.inputManager)
 	go service.Run(ctx)
 	<-service.Done()
 	return nil
