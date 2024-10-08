@@ -32,9 +32,8 @@ func FilterByGenreIndie(msg protocol.Message) ([]models.Game, error) {
 	elements := msg.Elements()
 	for _, element := range elements.Iter() {
 		game := models.ReadGame(&element)
-		if strings.ToLower(game.Genres) == "indie" {
-			listOfPassed = append(listOfPassed, game)
-		}
+		genres := strings.Split(game.Genres, ",")
+		listOfPassed = AppendIfContainsGenre(game, listOfPassed, "indie")
 	}
 
 	return listOfPassed, nil
@@ -50,11 +49,19 @@ func FilterByGenreAction(msg protocol.Message) ([]models.Game, error) {
 	elements := msg.Elements()
 	for _, element := range elements.Iter() {
 		game := models.ReadGame(&element)
-		if strings.ToLower(game.Genres) == "action" {
+		listOfPassed = AppendIfContainsGenre(game, listOfPassed, "action")
+	}
+	return listOfPassed, nil
+}
+
+func AppendIfContainsGenre(game models.Game, listOfPassed []models.Game, genre string) []models.Game {
+	genres := strings.Split(game.Genres, ",")
+	for _, genre := range genres {
+		if strings.EqualFold(genre, genre) {
 			listOfPassed = append(listOfPassed, game)
 		}
 	}
-	return listOfPassed, nil
+	return listOfPassed
 }
 
 func FilterByDecade(msg protocol.Message) ([]models.Game, error) {
