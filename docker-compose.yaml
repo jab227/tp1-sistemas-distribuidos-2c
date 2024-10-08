@@ -61,6 +61,30 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+  filter_indie_1:
+    container_name: filter_indie_1
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/filter
+    environment:
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - FILTER_NAME=indieFilter
+      - DIRECT_PUBLISHER_EXCHANGE=indie-filter-exchange
+      - DIRECT_PUBLISHER_TIMEOUT=5
+      - DIRECT_SUBSCRIBER_EXCHANGE=projection-output-exchange
+      - DIRECT_SUBSCRIBER_QUEUE=indie-genre-filter-input-queue
+      - DIRECT_SUBSCRIBER_KEYS=game
+      - OUTPUT_ROUTER_TAGS=game
+      - LOGGER_LEVEL=debug
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
   os_counter_1:
     container_name: os_counter_1
     build:
@@ -83,7 +107,7 @@ services:
       - rabbitmq_go_net
     depends_on:
       rabbitmq:
-        condition: service_healthy
+        condition: service_healthy        
 networks:
   rabbitmq_go_net:
     driver: bridge

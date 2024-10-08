@@ -3,12 +3,14 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"log/slog"
+
 	filter2 "github.com/jab227/tp1-sistemas-distribuidos-2c/internal/filter"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/client"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/routing"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/protocol"
 	"github.com/pemistahl/lingua-go"
-	"log/slog"
+	"github.com/rabbitmq/amqp091-go"
 )
 
 type Filter struct {
@@ -26,13 +28,14 @@ type Filter struct {
 }
 
 // TODO - Improve this brainrot code
+// GRUG APPROVED
 func NewFilter(filter string) (Filter, error) {
 	// Check if it is a game filter
 	var gameFilterFunc filter2.FunFilterGames
 	var reviewFilterFunc filter2.FuncFilterReviews
 	var hasGameFilter bool
 	var ok bool
-
+	slog.Debug("Entered NewFilter")
 	gameFilterFunc, ok = filter2.FilterGamesMap[filter]
 	if !ok {
 		reviewFilterFunc, ok = filter2.FilterReviewsMap[filter]
@@ -62,14 +65,16 @@ func NewFilter(filter string) (Filter, error) {
 	if !ok {
 		return Filter{}, fmt.Errorf("unknown filter IO config: %s", filter)
 	}
-
+	slog.Debug("selected filter")
 	if filterIOConfig.UseRouter {
+		slog.Debug("use router")
 		internalRouter, err := routing.NewRouterById(filterIOConfig.Input)
 		if err != nil {
 			return Filter{}, fmt.Errorf("failed to create filter router: %w", err)
 		}
 		router = internalRouter
 	} else {
+		slog.Debug("dont use router")
 		if err := io.Connect(filterIOConfig.Input, filterIOConfig.Output); err != nil {
 			return Filter{}, fmt.Errorf("couldn't create filter io: %w", err)
 		}
@@ -94,7 +99,12 @@ func (f *Filter) Done() <-chan struct{} {
 }
 
 func (f *Filter) Run(ctx context.Context) error {
-	consumerCh := f.io.Input.GetConsumer()
+	var consumerCh <-chan amqp091.Delivery
+	if !f.usesRouter {
+		consumerCh = f.io.Input.GetConsumer()
+	} else {
+		consumerCh = f.router.GetConsumer()
+	}
 	defer func() { f.done <- struct{}{} }()
 
 	for {
@@ -133,8 +143,14 @@ func (f *Filter) Run(ctx context.Context) error {
 						RequestID: msg.GetRequestID(),
 						MessageID: msg.GetMessageID(),
 					})
-				if err := f.io.Write(newMsg.Marshal(), ""); err != nil {
-					return fmt.Errorf("couldn't write end message: %w", err)
+				if !f.usesRouter {
+					if err := f.io.Write(newMsg.Marshal(), ""); err != nil {
+						return fmt.Errorf("couldn't write end message: %w", err)
+					}
+				} else {
+					if err := f.router.Write(newMsg.Marshal(), ""); err != nil {
+						return fmt.Errorf("couldn't write end message: %w", err)
+					}
 				}
 				slog.Info("Received End message",
 					"clientId", msg.GetClientID(),
@@ -153,7 +169,7 @@ func (f *Filter) handleGameFunc(receivedMsg protocol.Message) error {
 	if err != nil {
 		return fmt.Errorf("couldn't filter game: %w", err)
 	}
-
+	slog.Debug("games passed", "games", gamesPassed)
 	if f.usesRouter {
 		for _, game := range gamesPassed {
 			payloadBuffer := protocol.NewPayloadBuffer(1)
@@ -255,5 +271,9 @@ func (f *Filter) handleReviewFunc(receivedMsg protocol.Message) error {
 }
 
 func (f *Filter) Close() {
-	f.io.Close()
+	if f.usesRouter {
+		f.router.Destroy()
+	} else {
+		f.io.Close()
+	}
 }

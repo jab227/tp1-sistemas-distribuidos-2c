@@ -2,7 +2,9 @@ package env
 
 import (
 	"fmt"
+
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/rabbitmq"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/utils"
 )
 
 const InputWorkerQueueName = "INPUT_WORKER_QUEUE"
@@ -10,12 +12,12 @@ const InputWorkerQueueTimeout = "INPUT_WORKER_QUEUE_TIMEOUT"
 const InputWorkerQueueCount = "INPUT_WORKER_QUEUE_COUNT"
 
 func GetInputWorkerQueueConfig() (*rabbitmq.WorkerQueueConfig, error) {
-	name, err := GetFromEnv(InputWorkerQueueName)
+	name, err := utils.GetFromEnv(InputWorkerQueueName)
 	if err != nil {
 		return nil, err
 	}
 
-	timeout, err := GetFromEnvUint(InputWorkerQueueTimeout)
+	timeout, err := utils.GetFromEnvUint(InputWorkerQueueTimeout)
 	if err != nil {
 		return nil, err
 	}
@@ -28,7 +30,7 @@ func GetInputWorkerQueueConfig() (*rabbitmq.WorkerQueueConfig, error) {
 		)
 	}
 
-	count, err := GetFromEnvInt(InputWorkerQueueCount)
+	count, err := utils.GetFromEnvInt(InputWorkerQueueCount)
 	if err != nil {
 		return nil, err
 	}
@@ -52,12 +54,12 @@ const OutputWorkerQueueTimeout = "OUTPUT_WORKER_QUEUE_TIMEOUT"
 const OutputWorkerQueueCount = "OUTPUT_WORKER_QUEUE_COUNT"
 
 func GetOutputWorkerQueueConfig() (*rabbitmq.WorkerQueueConfig, error) {
-	name, err := GetFromEnv(OutputWorkerQueueName)
+	name, err := utils.GetFromEnv(OutputWorkerQueueName)
 	if err != nil {
 		return nil, err
 	}
 
-	timeout, err := GetFromEnvUint(OutputWorkerQueueTimeout)
+	timeout, err := utils.GetFromEnvUint(OutputWorkerQueueTimeout)
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +71,7 @@ func GetOutputWorkerQueueConfig() (*rabbitmq.WorkerQueueConfig, error) {
 		)
 	}
 
-	count, err := GetFromEnvInt(OutputWorkerQueueCount)
+	count, err := utils.GetFromEnvInt(OutputWorkerQueueCount)
 	if err != nil {
 		return nil, err
 	}

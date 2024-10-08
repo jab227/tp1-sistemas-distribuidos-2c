@@ -1,11 +1,15 @@
 package env
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/utils"
+)
 
 const OutputRouterTags = "OUTPUT_ROUTER_TAGS"
 
 func GetRouterTags() ([]string, error) {
-	tags, err := GetFromEnv(OutputRouterTags)
+	tags, err := utils.GetFromEnv(OutputRouterTags)
 	if err != nil {
 		return nil, err
 	}

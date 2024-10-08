@@ -51,6 +51,10 @@ func (r *Router) Read() Delivery {
 	return delivery
 }
 
+func (r *Router) GetConsumer() <-chan Delivery {
+	return r.m.Input.GetConsumer()
+}
+
 func (r *Router) Write(p []byte, key string) error {
 	idx := r.s.Select(key)
 	utils.Assert(idx < len(r.tags), "the index should be less that len(r.tags)")
