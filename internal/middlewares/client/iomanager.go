@@ -1,6 +1,8 @@
 package client
 
 import (
+	"fmt"
+
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/env"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/rabbitmq"
 	"github.com/rabbitmq/amqp091-go"
@@ -22,6 +24,7 @@ const (
 	OutputWorker
 	FanoutPublisher
 	DirectPublisher
+	Router
 )
 
 type IOManager struct {
@@ -87,6 +90,14 @@ func (m *IOManager) connectOutput(conn *rabbitmq.Connection, output OutputType) 
 			return err
 		}
 		m.Output = rabbitmq.NewDirectPublisher(*config)
+	case Router:
+		config, err := env.GetDirectPublisherConfig()
+		tags, err := env.GetRouterTags()
+		if err != nil {
+			return fmt.Errorf("couldn't get tags from env: %w", err)
+		}
+		router := rabbitmq.NewRouter(*config, tags, rabbitmq.NewIDRouter(len(tags)))
+		m.Output = &router
 	}
 
 	err := m.Output.Connect(conn)

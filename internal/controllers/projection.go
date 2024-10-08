@@ -170,3 +170,7 @@ func (p *Projection) handleReviewsMessages(msg protocol.Message) (*protocol.Mess
 
 	return &responseMsg, nil
 }
+
+func (p *Projection) Close() {
+	p.iomanager.Close()
+}

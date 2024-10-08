@@ -109,7 +109,7 @@ func (s *DirectSubscriber) Connect(conn *Connection) error {
 		s.Config.Queue,
 		true,
 		false,
-		true,
+		false,
 		false,
 		nil,
 	)
