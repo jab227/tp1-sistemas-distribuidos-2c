@@ -16,20 +16,32 @@ type Filter struct {
 	router     routing.Router
 	usesRouter bool
 
-	filterFunc filter2.FuncFilter
-	detector   *lingua.LanguageDetector
+	gameFilter    filter2.FunFilterGames
+	reviewFilter  filter2.FuncFilterReviews
+	hasGameFilter bool
+
+	detector *lingua.LanguageDetector
 
 	done chan struct{}
 }
 
-// TODO(fede) - Lista de Juegos o Reviews a enviar debe devolver los filtros por el routing
-// TODO(fede) - Conditional IOManager depending of filter
-// TODO(fede)- FilterFunc from env variable
-func NewFilter(filter filter2.FuncFilterName) (Filter, error) {
-	// Obtains the filter function
-	filterFunc, ok := filter2.FilterMap[filter]
+// TODO - Improve this brainrot code
+func NewFilter(filter string) (Filter, error) {
+	// Check if it is a game filter
+	var gameFilterFunc filter2.FunFilterGames
+	var reviewFilterFunc filter2.FuncFilterReviews
+	var hasGameFilter bool
+	var ok bool
+
+	gameFilterFunc, ok = filter2.FilterGamesMap[filter]
 	if !ok {
-		return Filter{}, fmt.Errorf("unknown filter: %s", filter)
+		reviewFilterFunc, ok = filter2.FilterReviewsMap[filter]
+		if !ok {
+			return Filter{}, fmt.Errorf("unknown filter: %s", filter)
+		}
+		hasGameFilter = false
+	} else {
+		hasGameFilter = true
 	}
 
 	// If it needs a detector, create one
@@ -68,8 +80,10 @@ func NewFilter(filter filter2.FuncFilterName) (Filter, error) {
 		router:     router,
 		usesRouter: filterIOConfig.UseRouter,
 
-		filterFunc: filterFunc,
-		detector:   detector,
+		gameFilter:    gameFilterFunc,
+		reviewFilter:  reviewFilterFunc,
+		hasGameFilter: hasGameFilter,
+		detector:      detector,
 
 		done: make(chan struct{}),
 	}, nil
@@ -95,13 +109,14 @@ func (f *Filter) Run(ctx context.Context) error {
 			// Detect type
 			if msg.ExpectKind(protocol.Data) {
 				// Handle filter
-				responseMsg, err := f.filterFunc(msg, f.detector)
-				if err != nil {
-					return fmt.Errorf("couldn't filter message: %w", err)
-				}
-
-				if err = f.io.Write(responseMsg.Marshal(), ""); err != nil {
-					return fmt.Errorf("couldn't write data: %w", err)
+				if f.hasGameFilter {
+					if err := f.handleGameFunc(msg); err != nil {
+						return fmt.Errorf("couldn't handle game function: %w", err)
+					}
+				} else {
+					if err := f.handleReviewFunc(msg); err != nil {
+						return fmt.Errorf("couldn't handle review function: %w", err)
+					}
 				}
 			} else if msg.ExpectKind(protocol.End) {
 				var msgType protocol.DataType
@@ -131,6 +146,112 @@ func (f *Filter) Run(ctx context.Context) error {
 			return nil
 		}
 	}
+}
+
+func (f *Filter) handleGameFunc(receivedMsg protocol.Message) error {
+	gamesPassed, err := f.gameFilter(receivedMsg)
+	if err != nil {
+		return fmt.Errorf("couldn't filter game: %w", err)
+	}
+
+	if f.usesRouter {
+		for _, game := range gamesPassed {
+			payloadBuffer := protocol.NewPayloadBuffer(1)
+			payloadBuffer.BeginPayloadElement()
+			game.BuildPayload(payloadBuffer)
+			payloadBuffer.EndPayloadElement()
+
+			responseMsg := protocol.NewDataMessage(
+				protocol.Games,
+				payloadBuffer.Bytes(),
+				protocol.MessageOptions{
+					ClientID:  receivedMsg.GetClientID(),
+					RequestID: receivedMsg.GetRequestID(),
+					MessageID: receivedMsg.GetMessageID(),
+				},
+			)
+
+			if err := f.router.Write(responseMsg.Marshal(), game.AppID); err != nil {
+				return fmt.Errorf("couldn't write game response: %w", err)
+			}
+		}
+	} else {
+		payloadBuffer := protocol.NewPayloadBuffer(len(gamesPassed))
+		for _, game := range gamesPassed {
+			payloadBuffer.BeginPayloadElement()
+			game.BuildPayload(payloadBuffer)
+			payloadBuffer.EndPayloadElement()
+		}
+
+		responseMsg := protocol.NewDataMessage(
+			protocol.Games,
+			payloadBuffer.Bytes(),
+			protocol.MessageOptions{
+				ClientID:  receivedMsg.GetClientID(),
+				RequestID: receivedMsg.GetRequestID(),
+				MessageID: receivedMsg.GetMessageID(),
+			},
+		)
+
+		if err := f.io.Write(responseMsg.Marshal(), ""); err != nil {
+			return fmt.Errorf("couldn't write game message: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func (f *Filter) handleReviewFunc(receivedMsg protocol.Message) error {
+	reviewsPassed, err := f.reviewFilter(receivedMsg, f.detector)
+	if err != nil {
+		return fmt.Errorf("couldn't filter reviews: %w", err)
+	}
+
+	if f.usesRouter {
+		for _, review := range reviewsPassed {
+			payloadBuffer := protocol.NewPayloadBuffer(1)
+			payloadBuffer.BeginPayloadElement()
+			review.BuildPayload(payloadBuffer)
+			payloadBuffer.EndPayloadElement()
+
+			responseMsg := protocol.NewDataMessage(
+				protocol.Reviews,
+				payloadBuffer.Bytes(),
+				protocol.MessageOptions{
+					ClientID:  receivedMsg.GetClientID(),
+					RequestID: receivedMsg.GetRequestID(),
+					MessageID: receivedMsg.GetMessageID(),
+				},
+			)
+
+			if err := f.router.Write(responseMsg.Marshal(), review.AppID); err != nil {
+				return fmt.Errorf("couldn't write review response: %w", err)
+			}
+		}
+	} else {
+		payloadBuffer := protocol.NewPayloadBuffer(len(reviewsPassed))
+		for _, review := range reviewsPassed {
+			payloadBuffer.BeginPayloadElement()
+			review.BuildPayload(payloadBuffer)
+			payloadBuffer.EndPayloadElement()
+		}
+
+		responseMsg := protocol.NewDataMessage(
+			protocol.Reviews,
+			payloadBuffer.Bytes(),
+			protocol.MessageOptions{
+				ClientID:  receivedMsg.GetClientID(),
+				RequestID: receivedMsg.GetRequestID(),
+				MessageID: receivedMsg.GetMessageID(),
+			},
+		)
+
+		if err := f.io.Write(responseMsg.Marshal(), ""); err != nil {
+			return fmt.Errorf("couldn't write review message: %w", err)
+		}
+	}
+
+	return nil
 }
 
 func (f *Filter) Close() {

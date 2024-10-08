@@ -33,6 +33,7 @@ func GetDirectPublisherConfig() (*rabbitmq.DirectPublisherConfig, error) {
 	}, nil
 }
 
+// TODO(fede) - Urgent - Subscribe to multiple exchanges
 const DirectSubscriberExchange = "DIRECT_SUBSCRIBER_EXCHANGE"
 const DirectSubscriberQueue = "DIRECT_SUBSCRIBER_QUEUE"
 const DirectSubscriberKeys = "DIRECT_SUBSCRIBER_KEYS"
