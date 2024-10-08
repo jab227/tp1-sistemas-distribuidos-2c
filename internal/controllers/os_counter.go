@@ -95,3 +95,7 @@ func (o *OSCounter) Run(ctx context.Context) error {
 		}
 	}
 }
+
+func (o *OSCounter) Close() {
+	o.io.Close()
+}

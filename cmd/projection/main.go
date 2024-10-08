@@ -19,6 +19,7 @@ func main() {
 	signal := utils.MakeSignalHandler()
 
 	projection, err := controllers.NewProjection()
+	defer projection.Close()
 	if err != nil {
 		slog.Error("error creating projection", "error", err.Error())
 		return

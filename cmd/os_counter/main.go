@@ -19,6 +19,7 @@ func main() {
 	signal := utils.MakeSignalHandler()
 
 	osCounter, err := controllers.NewOSCounter()
+	defer osCounter.Close()
 	if err != nil {
 		slog.Error("error creating os counter", "error", err)
 		return
