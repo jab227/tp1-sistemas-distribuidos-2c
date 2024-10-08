@@ -2,6 +2,7 @@ package routing
 
 import (
 	"fmt"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/env"
 
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/client"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/utils"
@@ -18,6 +19,7 @@ type Router struct {
 	m    *client.IOManager
 }
 
+// TODO(juan) - Ver como lo manejas con env
 func NewRouter(input client.InputType, tags []string, selector RouteSelector) (Router, error) {
 	manager := &client.IOManager{}
 	if err := manager.Connect(input, client.DirectPublisher); err != nil {
@@ -25,6 +27,21 @@ func NewRouter(input client.InputType, tags []string, selector RouteSelector) (R
 	}
 
 	return Router{m: manager, tags: tags, s: selector}, nil
+}
+
+// TODO(fede) - Solución del momento para manejar con env
+func NewRouterById(input client.InputType) (Router, error) {
+	manager := &client.IOManager{}
+	if err := manager.Connect(input, client.DirectPublisher); err != nil {
+		return Router{}, fmt.Errorf("couldn't create router: %w", err)
+	}
+
+	tags, err := env.GetRouterTags()
+	if err != nil {
+		return Router{}, fmt.Errorf("couldn't get tags from env: %w", err)
+	}
+
+	return Router{m: manager, tags: tags, s: NewIDRouter(len(tags))}, nil
 }
 
 type Delivery = amqp091.Delivery

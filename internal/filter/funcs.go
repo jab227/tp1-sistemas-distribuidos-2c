@@ -31,19 +31,22 @@ var FilterMap map[FuncFilterName]FuncFilter = map[FuncFilterName]FuncFilter{
 	EnglishFilter:  FilterByEnglish,
 }
 
+// TODO - Improve how it is selected router or iomanager
 var FilterInputsOutputs map[FuncFilterName]struct {
-	Input  client.InputType
-	Output client.OutputType
+	Input     client.InputType
+	Output    client.OutputType
+	UseRouter bool
 } = map[FuncFilterName]struct {
-	Input  client.InputType
-	Output client.OutputType
+	Input     client.InputType
+	Output    client.OutputType
+	UseRouter bool
 }{
-	IndieFilter:    {Input: client.DirectSubscriber, Output: client.DirectPublisher},
-	ActionFilter:   {Input: client.DirectSubscriber, Output: client.DirectPublisher},
-	DecadeFilter:   {Input: client.DirectSubscriber, Output: client.OutputWorker},
-	PositiveFilter: {Input: client.DirectSubscriber, Output: client.DirectPublisher},
-	NegativeFilter: {Input: client.DirectSubscriber, Output: client.DirectPublisher},
-	EnglishFilter:  {Input: client.DirectSubscriber, Output: client.DirectPublisher},
+	IndieFilter:    {Input: client.DirectSubscriber, Output: client.DirectPublisher, UseRouter: true},
+	ActionFilter:   {Input: client.DirectSubscriber, Output: client.DirectPublisher, UseRouter: true},
+	DecadeFilter:   {Input: client.DirectSubscriber, Output: client.OutputWorker, UseRouter: false},
+	PositiveFilter: {Input: client.DirectSubscriber, Output: client.DirectPublisher, UseRouter: true},
+	NegativeFilter: {Input: client.DirectSubscriber, Output: client.DirectPublisher, UseRouter: true},
+	EnglishFilter:  {Input: client.DirectSubscriber, Output: client.DirectPublisher, UseRouter: true},
 }
 
 func NeedsDecoder(name FuncFilterName) bool {

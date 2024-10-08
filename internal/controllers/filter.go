@@ -5,6 +5,7 @@ import (
 	"fmt"
 	filter2 "github.com/jab227/tp1-sistemas-distribuidos-2c/internal/filter"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/client"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/routing"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/protocol"
 	"github.com/pemistahl/lingua-go"
 	"log/slog"
@@ -12,12 +13,16 @@ import (
 
 type Filter struct {
 	io         client.IOManager
+	router     routing.Router
+	usesRouter bool
+
 	filterFunc filter2.FuncFilter
 	detector   *lingua.LanguageDetector
 
 	done chan struct{}
 }
 
+// TODO(fede) - Lista de Juegos o Reviews a enviar debe devolver los filtros por el routing
 // TODO(fede) - Conditional IOManager depending of filter
 // TODO(fede)- FilterFunc from env variable
 func NewFilter(filter filter2.FuncFilterName) (Filter, error) {
@@ -39,12 +44,30 @@ func NewFilter(filter filter2.FuncFilterName) (Filter, error) {
 	}
 
 	var io client.IOManager
-	if err := io.Connect(client.DirectSubscriber, client.FanoutPublisher); err != nil {
-		return Filter{}, fmt.Errorf("couldn't create filter: %w", err)
+	var router routing.Router
+	// Checks filter IO config
+	filterIOConfig, ok := filter2.FilterInputsOutputs[filter]
+	if !ok {
+		return Filter{}, fmt.Errorf("unknown filter IO config: %s", filter)
+	}
+
+	if filterIOConfig.UseRouter {
+		internalRouter, err := routing.NewRouterById(filterIOConfig.Input)
+		if err != nil {
+			return Filter{}, fmt.Errorf("failed to create filter router: %w", err)
+		}
+		router = internalRouter
+	} else {
+		if err := io.Connect(filterIOConfig.Input, filterIOConfig.Output); err != nil {
+			return Filter{}, fmt.Errorf("couldn't create filter io: %w", err)
+		}
 	}
 
 	return Filter{
 		io:         io,
+		router:     router,
+		usesRouter: filterIOConfig.UseRouter,
+
 		filterFunc: filterFunc,
 		detector:   detector,
 
