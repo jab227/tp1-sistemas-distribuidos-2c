@@ -7,16 +7,12 @@ import (
 
 	filter2 "github.com/jab227/tp1-sistemas-distribuidos-2c/internal/filter"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/client"
-	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/routing"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/protocol"
 	"github.com/pemistahl/lingua-go"
-	"github.com/rabbitmq/amqp091-go"
 )
 
 type Filter struct {
-	io         client.IOManager
-	router     routing.Router
-	usesRouter bool
+	io client.IOManager
 
 	gameFilter    filter2.FunFilterGames
 	reviewFilter  filter2.FuncFilterReviews
@@ -59,32 +55,18 @@ func NewFilter(filter string) (Filter, error) {
 	}
 
 	var io client.IOManager
-	var router routing.Router
 	// Checks filter IO config
 	filterIOConfig, ok := filter2.FilterInputsOutputs[filter]
 	if !ok {
 		return Filter{}, fmt.Errorf("unknown filter IO config: %s", filter)
 	}
 	slog.Debug("selected filter")
-	if filterIOConfig.UseRouter {
-		slog.Debug("use router")
-		internalRouter, err := routing.NewRouterById(filterIOConfig.Input)
-		if err != nil {
-			return Filter{}, fmt.Errorf("failed to create filter router: %w", err)
-		}
-		router = internalRouter
-	} else {
-		slog.Debug("dont use router")
-		if err := io.Connect(filterIOConfig.Input, filterIOConfig.Output); err != nil {
-			return Filter{}, fmt.Errorf("couldn't create filter io: %w", err)
-		}
+	if err := io.Connect(filterIOConfig.Input, filterIOConfig.Output); err != nil {
+		return Filter{}, fmt.Errorf("couldn't create filter io: %w", err)
 	}
 
 	return Filter{
-		io:         io,
-		router:     router,
-		usesRouter: filterIOConfig.UseRouter,
-
+		io:            io,
 		gameFilter:    gameFilterFunc,
 		reviewFilter:  reviewFilterFunc,
 		hasGameFilter: hasGameFilter,
@@ -99,12 +81,7 @@ func (f *Filter) Done() <-chan struct{} {
 }
 
 func (f *Filter) Run(ctx context.Context) error {
-	var consumerCh <-chan amqp091.Delivery
-	if !f.usesRouter {
-		consumerCh = f.io.Input.GetConsumer()
-	} else {
-		consumerCh = f.router.GetConsumer()
-	}
+	consumerCh := f.io.Input.GetConsumer()
 	defer func() { f.done <- struct{}{} }()
 
 	for {
@@ -143,14 +120,9 @@ func (f *Filter) Run(ctx context.Context) error {
 						RequestID: msg.GetRequestID(),
 						MessageID: msg.GetMessageID(),
 					})
-				if !f.usesRouter {
-					if err := f.io.Write(newMsg.Marshal(), ""); err != nil {
-						return fmt.Errorf("couldn't write end message: %w", err)
-					}
-				} else {
-					if err := f.router.Write(newMsg.Marshal(), ""); err != nil {
-						return fmt.Errorf("couldn't write end message: %w", err)
-					}
+
+				if err := f.io.Write(newMsg.Marshal(), ""); err != nil {
+					return fmt.Errorf("couldn't write end message: %w", err)
 				}
 				slog.Info("Received End message",
 					"clientId", msg.GetClientID(),
@@ -170,34 +142,11 @@ func (f *Filter) handleGameFunc(receivedMsg protocol.Message) error {
 		return fmt.Errorf("couldn't filter game: %w", err)
 	}
 	slog.Debug("games passed", "games", gamesPassed)
-	if f.usesRouter {
-		for _, game := range gamesPassed {
-			payloadBuffer := protocol.NewPayloadBuffer(1)
-			payloadBuffer.BeginPayloadElement()
-			game.BuildPayload(payloadBuffer)
-			payloadBuffer.EndPayloadElement()
-
-			responseMsg := protocol.NewDataMessage(
-				protocol.Games,
-				payloadBuffer.Bytes(),
-				protocol.MessageOptions{
-					ClientID:  receivedMsg.GetClientID(),
-					RequestID: receivedMsg.GetRequestID(),
-					MessageID: receivedMsg.GetMessageID(),
-				},
-			)
-
-			if err := f.router.Write(responseMsg.Marshal(), game.AppID); err != nil {
-				return fmt.Errorf("couldn't write game response: %w", err)
-			}
-		}
-	} else {
-		payloadBuffer := protocol.NewPayloadBuffer(len(gamesPassed))
-		for _, game := range gamesPassed {
-			payloadBuffer.BeginPayloadElement()
-			game.BuildPayload(payloadBuffer)
-			payloadBuffer.EndPayloadElement()
-		}
+	for _, game := range gamesPassed {
+		payloadBuffer := protocol.NewPayloadBuffer(1)
+		payloadBuffer.BeginPayloadElement()
+		game.BuildPayload(payloadBuffer)
+		payloadBuffer.EndPayloadElement()
 
 		responseMsg := protocol.NewDataMessage(
 			protocol.Games,
@@ -209,11 +158,10 @@ func (f *Filter) handleGameFunc(receivedMsg protocol.Message) error {
 			},
 		)
 
-		if err := f.io.Write(responseMsg.Marshal(), ""); err != nil {
-			return fmt.Errorf("couldn't write game message: %w", err)
+		if err := f.io.Write(responseMsg.Marshal(), game.AppID); err != nil {
+			return fmt.Errorf("couldn't write game response: %w", err)
 		}
 	}
-
 	return nil
 }
 
@@ -223,34 +171,11 @@ func (f *Filter) handleReviewFunc(receivedMsg protocol.Message) error {
 		return fmt.Errorf("couldn't filter reviews: %w", err)
 	}
 
-	if f.usesRouter {
-		for _, review := range reviewsPassed {
-			payloadBuffer := protocol.NewPayloadBuffer(1)
-			payloadBuffer.BeginPayloadElement()
-			review.BuildPayload(payloadBuffer)
-			payloadBuffer.EndPayloadElement()
-
-			responseMsg := protocol.NewDataMessage(
-				protocol.Reviews,
-				payloadBuffer.Bytes(),
-				protocol.MessageOptions{
-					ClientID:  receivedMsg.GetClientID(),
-					RequestID: receivedMsg.GetRequestID(),
-					MessageID: receivedMsg.GetMessageID(),
-				},
-			)
-
-			if err := f.router.Write(responseMsg.Marshal(), review.AppID); err != nil {
-				return fmt.Errorf("couldn't write review response: %w", err)
-			}
-		}
-	} else {
-		payloadBuffer := protocol.NewPayloadBuffer(len(reviewsPassed))
-		for _, review := range reviewsPassed {
-			payloadBuffer.BeginPayloadElement()
-			review.BuildPayload(payloadBuffer)
-			payloadBuffer.EndPayloadElement()
-		}
+	for _, review := range reviewsPassed {
+		payloadBuffer := protocol.NewPayloadBuffer(1)
+		payloadBuffer.BeginPayloadElement()
+		review.BuildPayload(payloadBuffer)
+		payloadBuffer.EndPayloadElement()
 
 		responseMsg := protocol.NewDataMessage(
 			protocol.Reviews,
@@ -262,18 +187,13 @@ func (f *Filter) handleReviewFunc(receivedMsg protocol.Message) error {
 			},
 		)
 
-		if err := f.io.Write(responseMsg.Marshal(), ""); err != nil {
-			return fmt.Errorf("couldn't write review message: %w", err)
+		if err := f.io.Write(responseMsg.Marshal(), review.AppID); err != nil {
+			return fmt.Errorf("couldn't write review response: %w", err)
 		}
 	}
-
 	return nil
 }
 
 func (f *Filter) Close() {
-	if f.usesRouter {
-		f.router.Destroy()
-	} else {
-		f.io.Close()
-	}
+	f.io.Close()
 }
