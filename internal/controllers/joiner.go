@@ -25,7 +25,7 @@ type Joiner struct {
 
 func NewJoiner() (*Joiner, error) {
 	var io client.IOManager
-	if err := io.Connect(client.DirectSubscriber, client.DirectPublisher); err != nil {
+	if err := io.Connect(client.DirectSubscriber, client.Router); err != nil {
 		return nil, fmt.Errorf("couldn't create os counter: %w", err)
 	}
 	return &Joiner{
@@ -83,7 +83,7 @@ func (j *Joiner) Run(ctx context.Context) error {
 						ClientID:  msg.GetClientID(),
 						RequestID: msg.GetRequestID(),
 					})
-					if err := j.io.Write(res.Marshal(), ""); err != nil {
+					if err := j.io.Write(res.Marshal(), game.AppID); err != nil {
 						return fmt.Errorf("couldn't write query 1 output: %w", err)
 					}
 				}
@@ -93,7 +93,8 @@ func (j *Joiner) Run(ctx context.Context) error {
 					ClientID:  msg.GetClientID(),
 					RequestID: msg.GetRequestID(),
 				})
-				if err := j.io.Write(res.Marshal(), ""); err != nil {
+				// TODO(fede) - Handle end sync - Replace hardcoded 1
+				if err := j.io.Write(res.Marshal(), "1"); err != nil {
 					return fmt.Errorf("couldn't write query 1 output: %w", err)
 				}
 				j.s = joinerState{}

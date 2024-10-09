@@ -1,6 +1,9 @@
 package rabbitmq
 
-import "github.com/jab227/tp1-sistemas-distribuidos-2c/internal/utils"
+import (
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/utils"
+	"log/slog"
+)
 
 import "hash"
 import "hash/fnv"
@@ -50,6 +53,7 @@ func (r *Router) Close() error {
 
 func (r *Router) Write(p []byte, key string) error {
 	idx := r.s.Select(key)
+	slog.Debug("Index chosen from router", "index", idx, "key", key, "tag", r.tags[idx])
 	utils.Assert(idx < len(r.tags), "the index should be less that len(r.tags)")
 	return r.p.Write(p, r.tags[idx])
 }
