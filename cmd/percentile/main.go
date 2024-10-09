@@ -19,6 +19,7 @@ func main() {
 	signal := utils.MakeSignalHandler()
 
 	percentile, err := controllers.NewPercentile()
+	defer percentile.Close()
 	if err != nil {
 		slog.Error("error creating percentile", "error", err)
 		return

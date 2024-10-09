@@ -19,6 +19,7 @@ func main() {
 	signal := utils.MakeSignalHandler()
 
 	reviewCounter, err := controllers.NewReviewCounter()
+	defer reviewCounter.Close()
 	if err != nil {
 		slog.Error("error creating review", "error", err)
 		return
