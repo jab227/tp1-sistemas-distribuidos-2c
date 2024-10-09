@@ -98,6 +98,7 @@ func (r *Percentile) Run(ctx context.Context) error {
 				})
 				idx := percentilIndex(len(results), 90)
 				// NOTE: This should be batched instead of being sent one by one
+				slog.Debug("query 5 results", "result", results[idx:], "state", r.s)
 				for _, result := range results[idx:] {
 					builder := protocol.NewPayloadBuffer(1)
 					builder.BeginPayloadElement()
@@ -111,7 +112,7 @@ func (r *Percentile) Run(ctx context.Context) error {
 					if err := r.io.Write(res.Marshal(), ""); err != nil {
 						return fmt.Errorf("couldn't write query 5 output: %w", err)
 					}
-					slog.Debug("query 5 results", "result", res, "state", r.s)
+
 					r.s = percentileState(make(map[string]innerPercentile))
 				}
 				res := protocol.NewEndMessage(protocol.Games, protocol.MessageOptions{

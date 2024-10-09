@@ -24,7 +24,7 @@ type TopGames struct {
 
 func NewTopGames(n uint64) (*TopGames, error) {
 	ioManager := client.IOManager{}
-	err := ioManager.Connect(client.DirectSubscriber, client.OutputWorker)
+	err := ioManager.Connect(client.InputWorker, client.OutputWorker)
 	if err != nil {
 		return nil, err
 	}
@@ -98,12 +98,15 @@ func (tg *TopGames) processGamesData(internalMsg protocol.Message) {
 
 func (tg *TopGames) writeResult(internalMsg protocol.Message) error {
 	listOfGames := tg.state.heapGames.TopNGames(tg.n)
-	payloadBuffer := protocol.NewPayloadBuffer(len(listOfGames))
+	slog.Debug("top10", "games", listOfGames)
+	buffer := protocol.NewPayloadBuffer(len(listOfGames))
 	for _, game := range listOfGames {
-		game.BuildPayload(payloadBuffer)
+		buffer.BeginPayloadElement()
+		buffer.WriteBytes([]byte(game.Name))
+		buffer.EndPayloadElement()
 	}
 
-	response := protocol.NewResultsMessage(protocol.Query2, payloadBuffer.Bytes(), protocol.MessageOptions{
+	response := protocol.NewResultsMessage(protocol.Query2, buffer.Bytes(), protocol.MessageOptions{
 		MessageID: internalMsg.GetMessageID(),
 		ClientID:  internalMsg.GetClientID(),
 		RequestID: internalMsg.GetRequestID(),

@@ -2,6 +2,8 @@ package filter
 
 import (
 	"errors"
+	"log/slog"
+
 	models "github.com/jab227/tp1-sistemas-distribuidos-2c/internal/model"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/protocol"
 	"github.com/pemistahl/lingua-go"
@@ -47,12 +49,13 @@ func FilterByNegativeScore(msg protocol.Message, detector *lingua.LanguageDetect
 	var listOfPassed []models.Review
 
 	if !msg.HasReviewData() {
+		slog.Debug("Shouldn't happen")
 		return []models.Review{}, errors.New("expected review data")
 	}
-
 	elements := msg.Elements()
 	for _, element := range elements.Iter() {
 		review := models.ReadReview(&element)
+		slog.Debug("read review", "review", review)
 		if review.Score == models.Negative {
 			listOfPassed = append(listOfPassed, review)
 		}

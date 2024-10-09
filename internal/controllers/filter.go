@@ -23,8 +23,6 @@ type Filter struct {
 	done chan struct{}
 }
 
-// TODO - Improve this brainrot code
-// GRUG APPROVED
 func NewFilter(filter string) (Filter, error) {
 	// Check if it is a game filter
 	var gameFilterFunc filter2.FunFilterGames
@@ -122,14 +120,16 @@ func (f *Filter) Run(ctx context.Context) error {
 						MessageID: msg.GetMessageID(),
 					})
 
-				if err := f.io.Write(newMsg.Marshal(), ""); err != nil {
+				// TODO(fede) - Propagation of END
+				if err := f.io.Write(newMsg.Marshal(), "1"); err != nil {
 					return fmt.Errorf("couldn't write end message: %w", err)
 				}
 				delivery.Ack(false)
 				slog.Info("Received End message",
 					"clientId", msg.GetClientID(),
 					"requestId", msg.GetRequestID(),
-					"type", msg.GetRequestID(),
+					"game", msg.HasGameData(),
+					"review", msg.HasReviewData(),
 				)
 			}
 		case <-ctx.Done():
@@ -172,7 +172,7 @@ func (f *Filter) handleReviewFunc(receivedMsg protocol.Message) error {
 	if err != nil {
 		return fmt.Errorf("couldn't filter reviews: %w", err)
 	}
-
+	slog.Debug("reviews passed", "reviews", reviewsPassed)
 	for _, review := range reviewsPassed {
 		payloadBuffer := protocol.NewPayloadBuffer(1)
 		payloadBuffer.BeginPayloadElement()
