@@ -205,3 +205,7 @@ func (m *Message) Elements() *PayloadElements {
 	elements, _ := newPayloadElements(m.payload)
 	return elements
 }
+
+func (m *Message) SetQueryResult(q QueryNumber) {
+	m.messageType |= MessageType(q)
+}

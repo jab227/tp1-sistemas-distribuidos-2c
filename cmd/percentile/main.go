@@ -18,22 +18,20 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	signal := utils.MakeSignalHandler()
 
-	projection, err := controllers.NewProjection()
-	defer projection.Close()
+	percentile, err := controllers.NewPercentile()
 	if err != nil {
-		slog.Error("error creating projection", "error", err.Error())
+		slog.Error("error creating percentile", "error", err)
 		return
 	}
-	defer projection.Close()
-	
-	slog.Info("projection started")
+
+	slog.Info("review percentile")
 	go func() {
-		err = projection.Run(ctx)
+		err = percentile.Run(ctx)
 		if err != nil {
-			slog.Error("error running projection", "error", err.Error())
+			slog.Error("error running percentile", "error", err.Error())
 			return
 		}
 	}()
 
-	utils.BlockUntilSignal(signal, projection.GetDone(), cancel)
+	utils.BlockUntilSignal(signal, percentile.Done(), cancel)
 }

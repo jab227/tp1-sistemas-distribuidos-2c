@@ -199,7 +199,6 @@ func ReadReview(element *protocol.Element) *Review {
 		Name:  string(element.ReadBytes()),
 		Text:  string(element.ReadBytes()),
 		Score: ReviewScore(element.ReadByte()),
-	}
 	return review
 }
 
@@ -213,4 +212,13 @@ func ReadGame(element *protocol.Element) Game {
 		SupportedOS: OS(element.ReadByte()),
 	}
 	return game
+}
+
+
+func (g Game) GetID() string {
+	return g.AppID
+}
+
+func (r Review) GetID() string {
+	return r.AppID
 }

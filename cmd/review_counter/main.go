@@ -18,22 +18,20 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	signal := utils.MakeSignalHandler()
 
-	projection, err := controllers.NewProjection()
-	defer projection.Close()
+	reviewCounter, err := controllers.NewReviewCounter()
 	if err != nil {
-		slog.Error("error creating projection", "error", err.Error())
+		slog.Error("error creating review", "error", err)
 		return
 	}
-	defer projection.Close()
-	
-	slog.Info("projection started")
+
+	slog.Info("review counter started")
 	go func() {
-		err = projection.Run(ctx)
+		err = reviewCounter.Run(ctx)
 		if err != nil {
-			slog.Error("error running projection", "error", err.Error())
+			slog.Error("error running review counter", "error", err.Error())
 			return
 		}
 	}()
 
-	utils.BlockUntilSignal(signal, projection.GetDone(), cancel)
+	utils.BlockUntilSignal(signal, reviewCounter.Done(), cancel)
 }

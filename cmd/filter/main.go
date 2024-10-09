@@ -2,10 +2,11 @@ package main
 
 import (
 	"context"
+	"log/slog"
+
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/controllers"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/logging"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/utils"
-	"log/slog"
 )
 
 func main() {
@@ -18,22 +19,26 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	signal := utils.MakeSignalHandler()
 
-	projection, err := controllers.NewProjection()
-	defer projection.Close()
+	filterName, err := utils.GetFromEnv("FILTER_NAME")
 	if err != nil {
-		slog.Error("error creating projection", "error", err.Error())
+		slog.Error("couldn't read filter name", "error", err)
 		return
 	}
-	defer projection.Close()
+	filter, err := controllers.NewFilter(*filterName)
+	if err != nil {
+		slog.Error("error creating filter", "error", err)
+		return
+	}
+	defer filter.Close()
 	
-	slog.Info("projection started")
+	slog.Info("filter started", "filter", *filterName)
 	go func() {
-		err = projection.Run(ctx)
+		err = filter.Run(ctx)
 		if err != nil {
-			slog.Error("error running projection", "error", err.Error())
+			slog.Error("error running filter", "filter", *filterName, "error", err.Error())
 			return
 		}
 	}()
 
-	utils.BlockUntilSignal(signal, projection.GetDone(), cancel)
+	utils.BlockUntilSignal(signal, filter.Done(), cancel)
 }

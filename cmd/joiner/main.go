@@ -18,22 +18,21 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	signal := utils.MakeSignalHandler()
 
-	projection, err := controllers.NewProjection()
-	defer projection.Close()
+	joiner, err := controllers.NewJoiner()
 	if err != nil {
-		slog.Error("error creating projection", "error", err.Error())
+		slog.Error("error creating joiner", "error", err)
 		return
 	}
-	defer projection.Close()
-	
-	slog.Info("projection started")
+	defer joiner.Destroy()
+
+	slog.Info("joiner started")
 	go func() {
-		err = projection.Run(ctx)
+		err = joiner.Run(ctx)
 		if err != nil {
-			slog.Error("error running projection", "error", err.Error())
+			slog.Error("error running joiner", "error", err.Error())
 			return
 		}
 	}()
 
-	utils.BlockUntilSignal(signal, projection.GetDone(), cancel)
+	utils.BlockUntilSignal(signal, joiner.Done(), cancel)
 }
