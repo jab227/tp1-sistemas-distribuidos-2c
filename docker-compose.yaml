@@ -77,7 +77,7 @@ services:
       - OUTPUT_WORKER_QUEUE=os-counter-output-queue
       - OUTPUT_WORKER_QUEUE_TIMEOUT=5
       - OUTPUT_WORKER_QUEUE_COUNT=1
-      - DIRECT_SUBSCRIBER_EXCHANGE=projection-output-exchange
+      - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
       - DIRECT_SUBSCRIBER_QUEUE=os-counter-input-queue
       - DIRECT_SUBSCRIBER_KEYS=game
       - LOGGER_LEVEL=debug
@@ -103,7 +103,7 @@ services:
       - DIRECT_PUBLISHER_EXCHANGE=indie-filter-exchange
       - DIRECT_PUBLISHER_TIMEOUT=5
       - OUTPUT_ROUTER_TAGS=1 # Affects filter_decade and JoinnerQuery3
-      - DIRECT_SUBSCRIBER_EXCHANGE=projection-output-exchange
+      - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
       - DIRECT_SUBSCRIBER_QUEUE=indie-genre-filter-input-queue
       - DIRECT_SUBSCRIBER_KEYS=game
       - LOGGER_LEVEL=debug
@@ -129,7 +129,7 @@ services:
       - OUTPUT_WORKER_QUEUE=decade-filter-output-queue
       - OUTPUT_WORKER_QUEUE_TIMEOUT=5
       - OUTPUT_WORKER_QUEUE_COUNT=1
-      - DIRECT_SUBSCRIBER_EXCHANGE=indie-filter-exchange
+      - DIRECT_SUBSCRIBER_EXCHANGES=indie-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=decade-filter-input-queue
       - DIRECT_SUBSCRIBER_KEYS=1 # Affects Top10
       - LOGGER_LEVEL=debug
@@ -155,7 +155,7 @@ services:
       - DIRECT_PUBLISHER_EXCHANGE=positive-filter-exchange
       - DIRECT_PUBLISHER_TIMEOUT=5
       - OUTPUT_ROUTER_TAGS=1 # Affects Joinner Query 3
-      - DIRECT_SUBSCRIBER_EXCHANGE=projection-output-exchange
+      - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
       - DIRECT_SUBSCRIBER_QUEUE=positive-filter-input-queue
       - DIRECT_SUBSCRIBER_KEYS=review
       - LOGGER_LEVEL=debug
@@ -181,7 +181,7 @@ services:
       - DIRECT_PUBLISHER_EXCHANGE=action-filter-exchange
       - DIRECT_PUBLISHER_TIMEOUT=5
       - OUTPUT_ROUTER_TAGS=1 # Affects JoinnerQuery 4 and Joinner Query 5
-      - DIRECT_SUBSCRIBER_EXCHANGE=projection-output-exchange
+      - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
       - DIRECT_SUBSCRIBER_QUEUE=action-genre-filter-input-queue
       - DIRECT_SUBSCRIBER_KEYS=game
       - LOGGER_LEVEL=debug
@@ -207,7 +207,7 @@ services:
       - DIRECT_PUBLISHER_EXCHANGE=negative-filter-exchange
       - DIRECT_PUBLISHER_TIMEOUT=5
       - OUTPUT_ROUTER_TAGS=1 # Affect filter_english and JoinnerQuery5
-      - DIRECT_SUBSCRIBER_EXCHANGE=projection-output-exchange
+      - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
       - DIRECT_SUBSCRIBER_QUEUE=negative-filter-input-queue
       - DIRECT_SUBSCRIBER_KEYS=review
       - LOGGER_LEVEL=debug
@@ -233,7 +233,7 @@ services:
       - DIRECT_PUBLISHER_EXCHANGE=english-filter-exchange
       - DIRECT_PUBLISHER_TIMEOUT=5
       - OUTPUT_ROUTER_TAGS=1
-      - DIRECT_SUBSCRIBER_EXCHANGE=negative-filter-exchange
+      - DIRECT_SUBSCRIBER_EXCHANGES=negative-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=english-filter-input-queue
       - DIRECT_SUBSCRIBER_KEYS=1
       - LOGGER_LEVEL=debug

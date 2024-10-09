@@ -70,7 +70,7 @@ func (p *DirectPublisher) Close() error {
 }
 
 type DirectSubscriberConfig struct {
-	Exchange string
+	Exchange []string
 	Queue    string
 	Keys     []string
 }
@@ -92,17 +92,19 @@ func (s *DirectSubscriber) Connect(conn *Connection) error {
 		return fmt.Errorf("failed to open channel: %w", err)
 	}
 
-	err = ch.ExchangeDeclare(
-		s.Config.Exchange,
-		"direct",
-		true,
-		false,
-		false,
-		false,
-		nil,
-	)
-	if err != nil {
-		return fmt.Errorf("failed to declare exchange: %w", err)
+	for _, exchange := range s.Config.Exchange {
+		err = ch.ExchangeDeclare(
+			exchange,
+			"direct",
+			true,
+			false,
+			false,
+			false,
+			nil,
+		)
+		if err != nil {
+			return fmt.Errorf("failed to declare exchange %s: %w", exchange, err)
+		}
 	}
 
 	q, err := ch.QueueDeclare(
@@ -118,15 +120,17 @@ func (s *DirectSubscriber) Connect(conn *Connection) error {
 	}
 
 	for _, key := range s.Config.Keys {
-		err = ch.QueueBind(
-			q.Name,
-			key,
-			s.Config.Exchange,
-			false,
-			nil,
-		)
-		if err != nil {
-			return fmt.Errorf("failed to bind queue: %w", err)
+		for _, exchange := range s.Config.Exchange {
+			err = ch.QueueBind(
+				q.Name,
+				key,
+				exchange,
+				false,
+				nil,
+			)
+			if err != nil {
+				return fmt.Errorf("failed to bind queue %s to exchange %s: %w", q.Name, exchange, err)
+			}
 		}
 	}
 
