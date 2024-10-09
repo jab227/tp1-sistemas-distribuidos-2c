@@ -6,7 +6,6 @@ import (
 
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/controllers"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/logging"
-	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/env"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/utils"
 )
 
@@ -21,7 +20,7 @@ func main() {
 	signal := utils.MakeSignalHandler()
 
 	const nKeyName = "N_VALUE"
-	n, err := env.GetFromEnvUint(nKeyName)
+	n, err := utils.GetFromEnvUint(nKeyName)
 	if err != nil {
 		slog.Error("error parsing N_VALUE env var", "error", err)
 		return
