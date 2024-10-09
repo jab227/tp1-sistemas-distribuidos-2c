@@ -367,7 +367,6 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
-
 networks:
   rabbitmq_go_net:
     driver: bridge

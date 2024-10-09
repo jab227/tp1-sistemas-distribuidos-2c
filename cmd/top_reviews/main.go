@@ -2,10 +2,11 @@ package main
 
 import (
 	"context"
+	"log/slog"
+
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/controllers"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/logging"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/utils"
-	"log/slog"
 )
 
 func main() {
@@ -18,22 +19,28 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	signal := utils.MakeSignalHandler()
 
-	projection, err := controllers.NewProjection()
-	defer projection.Close()
+	const nKeyName = "N_VALUE"
+	n, err := utils.GetFromEnvInt(nKeyName)
 	if err != nil {
-		slog.Error("error creating projection", "error", err.Error())
+		slog.Error("error parsing N_VALUE env var", "error", err)
 		return
 	}
-	defer projection.Close()
-	
-	slog.Info("projection started")
+
+	topReviews, err := controllers.NewTopReviews(int(*n))
+	if err != nil {
+		slog.Error("error creating top reviews", "error", err)
+		return
+	}
+	defer topReviews.Close()
+
+	slog.Info("top reviews started")
 	go func() {
-		err = projection.Run(ctx)
+		err = topReviews.Run(ctx)
 		if err != nil {
-			slog.Error("error running projection", "error", err.Error())
+			slog.Error("error running top reviews", "error", err.Error())
 			return
 		}
 	}()
 
-	utils.BlockUntilSignal(signal, projection.GetDone(), cancel)
+	utils.BlockUntilSignal(signal, topReviews.Done(), cancel)
 }
