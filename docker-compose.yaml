@@ -31,7 +31,7 @@ services:
       - OUTPUT_WORKER_QUEUE_TIMEOUT=5
       - OUTPUT_WORKER_QUEUE_COUNT=1
       - SERVER_PORT=7070
-      - LOGGER_LEVEL=debug
+      - LOGGER_LEVEL=info
     ports:
       - "7070:7070/tcp"
     networks:
@@ -55,7 +55,7 @@ services:
       - INPUT_WORKER_QUEUE_COUNT=1
       - DIRECT_PUBLISHER_EXCHANGE=projection-output-exchange
       - DIRECT_PUBLISHER_TIMEOUT=5
-      - LOGGER_LEVEL=debug
+      - LOGGER_LEVEL=info
     networks:
       - rabbitmq_go_net
     depends_on:
@@ -80,7 +80,7 @@ services:
       - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
       - DIRECT_SUBSCRIBER_QUEUE=os-counter-input-queue
       - DIRECT_SUBSCRIBER_KEYS=game
-      - LOGGER_LEVEL=debug
+      - LOGGER_LEVEL=info
     networks:
       - rabbitmq_go_net
     depends_on:
@@ -106,7 +106,7 @@ services:
       - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
       - DIRECT_SUBSCRIBER_QUEUE=indie-genre-filter-input-queue
       - DIRECT_SUBSCRIBER_KEYS=game
-      - LOGGER_LEVEL=debug
+      - LOGGER_LEVEL=info
     networks:
       - rabbitmq_go_net
     depends_on:
@@ -132,7 +132,33 @@ services:
       - DIRECT_SUBSCRIBER_EXCHANGES=indie-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=decade-filter-input-queue
       - DIRECT_SUBSCRIBER_KEYS=1 # Affects Top10
-      - LOGGER_LEVEL=debug
+      - LOGGER_LEVEL=info
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+# Query 2 controller
+  top10_games_1:
+    container_name: top10_games_1
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/top10_games
+    environment:
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - OUTPUT_WORKER_QUEUE=output-queue
+      - OUTPUT_WORKER_QUEUE_TIMEOUT=5
+      - OUTPUT_WORKER_QUEUE_COUNT=1
+      - INPUT_WORKER_QUEUE=decade-filter-output-queue
+      - INPUT_WORKER_QUEUE_TIMEOUT=5
+      - INPUT_WORKER_QUEUE_COUNT=1
+      - LOGGER_LEVEL=info
+      - N_VALUE=10
     networks:
       - rabbitmq_go_net
     depends_on:
@@ -158,7 +184,7 @@ services:
       - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
       - DIRECT_SUBSCRIBER_QUEUE=positive-filter-input-queue
       - DIRECT_SUBSCRIBER_KEYS=review
-      - LOGGER_LEVEL=debug
+      - LOGGER_LEVEL=info
     networks:
       - rabbitmq_go_net
     depends_on:
@@ -167,7 +193,7 @@ services:
 
 # Query 3 controller
   joiner_query3_1:
-    container_name: joinner_query3_1
+    container_name: joiner_query3_1
     build:
       context: ./
       dockerfile: cmd/Dockerfile
@@ -182,8 +208,34 @@ services:
       - OUTPUT_ROUTER_TAGS=1 # Affects Top5
       - DIRECT_SUBSCRIBER_EXCHANGES=indie-filter-exchange,positive-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=q3-joiner-input-queue
-      - DIRECT_SUBSCRIBER_KEYS=review
-      - LOGGER_LEVEL=debug
+      - DIRECT_SUBSCRIBER_KEYS=1
+      - LOGGER_LEVEL=info
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  # Query 3 controller
+  top5_reviews_1:
+    container_name: top5_reviews_1
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/top5_reviews
+    environment:
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - OUTPUT_WORKER_QUEUE=output-queue
+      - OUTPUT_WORKER_QUEUE_TIMEOUT=5
+      - OUTPUT_WORKER_QUEUE_COUNT=1
+      - DIRECT_SUBSCRIBER_EXCHANGES=top-5-exchange
+      - DIRECT_SUBSCRIBER_QUEUE=top5-input-queue-1
+      - DIRECT_SUBSCRIBER_KEYS=1
+      - LOGGER_LEVEL=info
+      - N_VALUE=5
     networks:
       - rabbitmq_go_net
     depends_on:
@@ -209,7 +261,7 @@ services:
       - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
       - DIRECT_SUBSCRIBER_QUEUE=action-genre-filter-input-queue
       - DIRECT_SUBSCRIBER_KEYS=game
-      - LOGGER_LEVEL=debug
+      - LOGGER_LEVEL=info
     networks:
       - rabbitmq_go_net
     depends_on:
@@ -235,7 +287,7 @@ services:
       - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
       - DIRECT_SUBSCRIBER_QUEUE=negative-filter-input-queue
       - DIRECT_SUBSCRIBER_KEYS=review
-      - LOGGER_LEVEL=debug
+      - LOGGER_LEVEL=info
     networks:
       - rabbitmq_go_net
     depends_on:
@@ -261,7 +313,7 @@ services:
       - DIRECT_SUBSCRIBER_EXCHANGES=negative-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=english-filter-input-queue
       - DIRECT_SUBSCRIBER_KEYS=1
-      - LOGGER_LEVEL=debug
+      - LOGGER_LEVEL=info
     networks:
       - rabbitmq_go_net
     depends_on:
@@ -286,7 +338,7 @@ services:
       - DIRECT_SUBSCRIBER_EXCHANGES=action-filter-exchange,english-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=q4-joiner-input-queue
       - DIRECT_SUBSCRIBER_KEYS=1
-      - LOGGER_LEVEL=debug
+      - LOGGER_LEVEL=info
     networks:
       - rabbitmq_go_net
     depends_on:
@@ -311,7 +363,7 @@ services:
       - DIRECT_SUBSCRIBER_EXCHANGES=counter-5000-exchange
       - DIRECT_SUBSCRIBER_QUEUE=q4-joiner-output_queue
       - DIRECT_SUBSCRIBER_KEYS=1
-      - LOGGER_LEVEL=debug
+      - LOGGER_LEVEL=info
     networks:
       - rabbitmq_go_net
     depends_on:
@@ -336,7 +388,7 @@ services:
       - DIRECT_SUBSCRIBER_EXCHANGES=action-filter-exchange,negative-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=q5-joiner-input-queue
       - DIRECT_SUBSCRIBER_KEYS=1
-      - LOGGER_LEVEL=debug
+      - LOGGER_LEVEL=info
     networks:
       - rabbitmq_go_net
     depends_on:
@@ -361,7 +413,7 @@ services:
       - DIRECT_SUBSCRIBER_EXCHANGES=counter-percentil-exchange
       - DIRECT_SUBSCRIBER_QUEUE=percentil-input-queue
       - DIRECT_SUBSCRIBER_KEYS=1
-      - LOGGER_LEVEL=debug
+      - LOGGER_LEVEL=info
     networks:
       - rabbitmq_go_net
     depends_on:

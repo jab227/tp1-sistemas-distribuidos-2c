@@ -24,7 +24,7 @@ type TopGames struct {
 
 func NewTopGames(n uint64) (*TopGames, error) {
 	ioManager := client.IOManager{}
-	err := ioManager.Connect(client.DirectSubscriber, client.OutputWorker)
+	err := ioManager.Connect(client.InputWorker, client.OutputWorker)
 	if err != nil {
 		return nil, err
 	}
