@@ -119,3 +119,7 @@ func (r *ReviewCounter) Run(ctx context.Context) error {
 	}
 	return nil
 }
+
+func (r *ReviewCounter) Close() {
+	r.io.Close()
+}

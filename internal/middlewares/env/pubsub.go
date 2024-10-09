@@ -36,7 +36,7 @@ func GetDirectPublisherConfig() (*rabbitmq.DirectPublisherConfig, error) {
 }
 
 // TODO(fede) - Urgent - Subscribe to multiple exchanges
-const DirectSubscriberExchange = "DIRECT_SUBSCRIBER_EXCHANGE"
+const DirectSubscriberExchange = "DIRECT_SUBSCRIBER_EXCHANGES"
 const DirectSubscriberQueue = "DIRECT_SUBSCRIBER_QUEUE"
 const DirectSubscriberKeys = "DIRECT_SUBSCRIBER_KEYS"
 
@@ -56,9 +56,10 @@ func GetDirectSubscriberConfig() (*rabbitmq.DirectSubscriberConfig, error) {
 		return nil, err
 	}
 
+	exchangeList := strings.Split(*exchange, ",")
 	keysList := strings.Split(*keys, ",")
 	return &rabbitmq.DirectSubscriberConfig{
-		Exchange: *exchange,
+		Exchange: exchangeList,
 		Queue:    *queue,
 		Keys:     keysList,
 	}, nil

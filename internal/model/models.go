@@ -193,6 +193,7 @@ func (r *Review) BuildPayload(builder *protocol.PayloadBuffer) {
 	builder.EndPayloadElement()
 }
 
+
 func ReadReview(element *protocol.Element) Review {
 	review := Review{
 		AppID: string(element.ReadBytes()),
@@ -202,6 +203,7 @@ func ReadReview(element *protocol.Element) Review {
 	}
 	return review
 }
+
 
 func ReadGame(element *protocol.Element) Game {
 	game := Game{

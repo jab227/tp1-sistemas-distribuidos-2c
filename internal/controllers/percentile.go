@@ -134,3 +134,7 @@ func (r *Percentile) Run(ctx context.Context) error {
 	}
 	return nil
 }
+
+func (r *Percentile) Close() {
+	r.io.Close()
+}
