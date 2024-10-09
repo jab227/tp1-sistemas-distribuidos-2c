@@ -21,17 +21,18 @@ func main() {
 	signal := utils.MakeSignalHandler()
 
 	const nKeyName = "N_VALUE"
-	n, err := env.GetFromEnvUint(nKeyName)
+	n, err := env.GetFromEnvInt(nKeyName)
 	if err != nil {
 		slog.Error("error parsing N_VALUE env var", "error", err)
 		return
 	}
 
-	topReviews, err := controllers.NewTopReviews(*n)
+	topReviews, err := controllers.NewTopReviews(int(*n))
 	if err != nil {
 		slog.Error("error creating top reviews", "error", err)
 		return
 	}
+	defer topReviews.Close()
 
 	slog.Info("top reviews started")
 	go func() {
