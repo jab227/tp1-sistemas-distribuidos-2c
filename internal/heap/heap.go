@@ -9,9 +9,9 @@ import (
 
 type HeapGames []models.Game
 
-func (hg HeapGames) Len() int           { return len(hg) }
-func (hg HeapGames) Less(i, j int) bool { return hg[i].AvgPlayTime < hg[j].AvgPlayTime }
-func (hg HeapGames) Swap(i, j int)      { hg[i], hg[j] = hg[j], hg[i] }
+func (h HeapGames) Len() int           { return len(h) }
+func (h HeapGames) Less(i, j int) bool { return h[i].AvgPlayTime < h[j].AvgPlayTime }
+func (h HeapGames) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
 
 // DON'T USE Push and Pop
 func (h *HeapGames) Push(x any) {
@@ -26,26 +26,25 @@ func (h *HeapGames) Pop() any {
 }
 
 func NewHeapGames() *HeapGames {
-	hg := &HeapGames{}
-	heap.Init(hg)
-	return hg
+	h := &HeapGames{}
+	heap.Init(h)
+	return h
 }
 
-func (h *HeapGames) PushValue(x *models.Game) {
+func (h *HeapGames) PushValue(x models.Game) {
 	heap.Push(h, x)
 }
 
-func (h *HeapGames) PopValue() *models.Game {
-	return heap.Pop(h).(*models.Game)
+func (h *HeapGames) PopValue() models.Game {
+	return heap.Pop(h).(models.Game)
 }
 
-func (hg *HeapGames) TopNGames(n uint64) []models.Game {
+func (h *HeapGames) TopNGames(n uint64) []models.Game {
 	top := make([]models.Game, n)
-	nmin := min(n, uint64(hg.Len()))
+	nmin := min(n, uint64(h.Len()))
 
 	for i := 0; i < int(nmin); i++ {
-		topTmp, _ := hg.Pop().(models.Game)
-		top[i] = topTmp
+		top[i] = h.PopValue()
 	}
 	slices.Reverse(top)
 	return top

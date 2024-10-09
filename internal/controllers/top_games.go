@@ -24,7 +24,7 @@ type TopGames struct {
 
 func NewTopGames(n uint64) (*TopGames, error) {
 	ioManager := client.IOManager{}
-	err := ioManager.Connect(client.InputWorker, client.OutputWorker)
+	err := ioManager.Connect(client.DirectSubscriber, client.OutputWorker)
 	if err != nil {
 		return nil, err
 	}
@@ -82,18 +82,16 @@ func (tg *TopGames) processGamesData(internalMsg protocol.Message) {
 
 	for _, element := range elements.Iter() {
 		game := models.ReadGame(&element)
-
 		if heapGames.Len() < int(tg.n) {
-			heapGames.PushValue(&game)
+			heapGames.PushValue(game)
 			continue
 		}
 
-		currentGame := game
 		minGame := heapGames.PopValue()
-		if currentGame.AvgPlayTime < minGame.AvgPlayTime {
+		if game.AvgPlayTime < minGame.AvgPlayTime {
 			heapGames.PushValue(minGame)
 		} else {
-			heapGames.PushValue(&currentGame)
+			heapGames.PushValue(game)
 		}
 	}
 }
@@ -114,7 +112,7 @@ func (tg *TopGames) writeResult(internalMsg protocol.Message) error {
 	if err := tg.iomanager.Write(response.Marshal(), ""); err != nil {
 		return fmt.Errorf("couldn't write query 2 output: %w", err)
 	}
-	slog.Debug("query 2 results", "result", response, "state", *tg.state)
+	slog.Debug("query 2 results", "result", response, "state", listOfGames)
 
 	// reset state
 	tg.state.heapGames = heap.NewHeapGames()
