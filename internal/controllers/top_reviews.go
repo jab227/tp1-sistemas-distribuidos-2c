@@ -20,10 +20,10 @@ type TopReviews struct {
 	iomanager client.IOManager
 	done      chan struct{}
 	state     *topReviewsState
-	n         uint64
+	n         int
 }
 
-func NewTopReviews(n uint64) (*TopReviews, error) {
+func NewTopReviews(n int) (*TopReviews, error) {
 	ioManager := client.IOManager{}
 	err := ioManager.Connect(client.DirectSubscriber, client.OutputWorker)
 	if err != nil {
@@ -43,34 +43,34 @@ func (tr *TopReviews) Done() <-chan struct{} {
 }
 
 func (tr *TopReviews) Run(ctx context.Context) error {
-	consumerChan := tr.iomanager.Input.GetConsumer()
+	consumerCh := tr.iomanager.Input.GetConsumer()
 	defer func() {
 		tr.done <- struct{}{}
 	}()
 
 	for {
 		select {
-		case msg := <-consumerChan:
-			bytes := msg.Body
-			internalMsg := protocol.Message{}
-			if err := internalMsg.Unmarshal(bytes); err != nil {
+		case delivery := <-consumerCh:
+			bytes := delivery.Body
+			msg := protocol.Message{}
+			if err := msg.Unmarshal(bytes); err != nil {
 				return fmt.Errorf("couldn't unmarshal protocol message: %w", err)
 			}
 
-			if internalMsg.ExpectKind(protocol.Data) {
-				if !internalMsg.HasGameData() {
+			if msg.ExpectKind(protocol.Data) {
+				if !msg.HasGameData() {
 					return fmt.Errorf("wrong type: expected game data")
 				}
-				tr.processReviewsData(internalMsg)
-			} else if internalMsg.ExpectKind(protocol.End) {
-				if err := tr.writeResult(internalMsg); err != nil {
+				tr.processReviewsData(msg)
+			} else if msg.ExpectKind(protocol.End) {
+				slog.Debug("received end", "game", msg.HasGameData())
+				if err := tr.writeResult(msg); err != nil {
 					return err
 				}
 			} else {
-				return fmt.Errorf("unexpected message type: %s", internalMsg.GetMessageType())
+				return fmt.Errorf("unexpected message type: %s", msg.GetMessageType())
 			}
-
-			msg.Ack(false)
+			delivery.Ack(false)
 		case <-ctx.Done():
 			return ctx.Err()
 		}
@@ -80,36 +80,35 @@ func (tr *TopReviews) Run(ctx context.Context) error {
 func (tr *TopReviews) processReviewsData(internalMsg protocol.Message) {
 	elements := internalMsg.Elements()
 	for _, element := range elements.Iter() {
-		review := models.ReadReview(&element)
-		key := fmt.Sprintf("%s,%s", review.AppID, review.Name)
-		tr.state.appByReviewScore[key] += int(review.Score)
+		game := models.ReadGame(&element)
+		slog.Debug("received game", "game", game)
+		key := fmt.Sprintf("%s||%s", game.AppID, game.Name)
+		tr.state.appByReviewScore[key] += 1
 	}
 }
 
 func (tr *TopReviews) writeResult(internalMsg protocol.Message) error {
-	reviews := make([]models.Review, 0, len(tr.state.appByReviewScore))
-	for key, value := range tr.state.appByReviewScore {
-		compositeKey := strings.Split(key, ",")
-		review := models.Review{
-			AppID: compositeKey[0],
-			Name:  compositeKey[1],
-			Score: models.ReviewScore(value),
-		}
-		reviews = append(reviews, review)
+	values := make([]heap.Value, 0, len(tr.state.appByReviewScore))
+	for k, v := range tr.state.appByReviewScore {
+		name := strings.Split(k, "||")[1]
+		count := v
+		values = append(values, heap.Value{name, count})
+	}
+	h := heap.NewHeap()
+	for _, value := range values {
+		h.PushValue(value)
 	}
 
-	reviewsHeap := heap.NewHeapReviews()
-	for _, review := range reviews {
-		reviewsHeap.PushValue(review)
+	results := h.TopN(int(tr.n))
+	slog.Debug("topn results", "results", results)
+	buffer := protocol.NewPayloadBuffer(len(results))
+	for _, value := range results {
+		buffer.BeginPayloadElement()
+		buffer.WriteBytes([]byte(value.Name))
+		buffer.EndPayloadElement()
 	}
 
-	results := reviewsHeap.TopNReviews(int(tr.n))
-	payloadBuffer := protocol.NewPayloadBuffer(len(results))
-	for _, reviews := range results {
-		reviews.BuildPayload(payloadBuffer)
-	}
-
-	response := protocol.NewResultsMessage(protocol.Query3, payloadBuffer.Bytes(), protocol.MessageOptions{
+	response := protocol.NewResultsMessage(protocol.Query3, buffer.Bytes(), protocol.MessageOptions{
 		MessageID: internalMsg.GetMessageID(),
 		ClientID:  internalMsg.GetClientID(),
 		RequestID: internalMsg.GetRequestID(),
@@ -123,4 +122,8 @@ func (tr *TopReviews) writeResult(internalMsg protocol.Message) error {
 	// reset state
 	tr.state.appByReviewScore = make(map[string]int)
 	return nil
+}
+
+func (t *TopReviews) Close() {
+	t.iomanager.Close()
 }

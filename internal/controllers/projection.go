@@ -4,11 +4,13 @@ import (
 	"context"
 	"encoding/csv"
 	"fmt"
+	"log/slog"
+	"strings"
+
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/client"
 	models "github.com/jab227/tp1-sistemas-distribuidos-2c/internal/model"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/protocol"
 	"github.com/rabbitmq/amqp091-go"
-	"strings"
 )
 
 type Projection struct {
@@ -61,7 +63,7 @@ func (p *Projection) Run(ctx context.Context) error {
 
 			msg.Ack(false)
 		case <-ctx.Done():
-			return nil
+			return ctx.Err()
 		}
 	}
 }
@@ -84,6 +86,7 @@ func (p *Projection) handleMessage(msg amqp091.Delivery) (*protocol.Message, err
 			return nil, fmt.Errorf("unexpected message that isn't games or reviews")
 		}
 	} else if internalMsg.ExpectKind(protocol.End) {
+		slog.Debug("received end", "game", internalMsg.HasGameData(), "reviews", internalMsg.HasReviewData())
 		return &internalMsg, nil
 	} else {
 		return nil, fmt.Errorf("expected Data or End MessageType got %d", internalMsg.GetMessageType())
@@ -169,4 +172,8 @@ func (p *Projection) handleReviewsMessages(msg protocol.Message) (*protocol.Mess
 	})
 
 	return &responseMsg, nil
+}
+
+func (p *Projection) Close() {
+	p.iomanager.Close()
 }
