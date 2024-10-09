@@ -193,17 +193,15 @@ func (r *Review) BuildPayload(builder *protocol.PayloadBuffer) {
 	builder.EndPayloadElement()
 }
 
-
 func ReadReview(element *protocol.Element) Review {
 	review := Review{
 		AppID: string(element.ReadBytes()),
 		Name:  string(element.ReadBytes()),
 		Text:  string(element.ReadBytes()),
-		Score: ReviewScore(element.ReadByte()),
+		Score: ReviewScore(int8(element.ReadByte())),
 	}
 	return review
 }
-
 
 func ReadGame(element *protocol.Element) Game {
 	game := Game{

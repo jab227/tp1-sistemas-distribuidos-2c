@@ -172,7 +172,6 @@ func (f *Filter) handleReviewFunc(receivedMsg protocol.Message) error {
 	if err != nil {
 		return fmt.Errorf("couldn't filter reviews: %w", err)
 	}
-
 	slog.Debug("reviews passed", "reviews", reviewsPassed)
 	for _, review := range reviewsPassed {
 		payloadBuffer := protocol.NewPayloadBuffer(1)

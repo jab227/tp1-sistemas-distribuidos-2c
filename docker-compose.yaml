@@ -334,7 +334,7 @@ services:
       - RABBITMQ_PASSWORD=password
       - DIRECT_PUBLISHER_EXCHANGE=counter-5000-exchange
       - DIRECT_PUBLISHER_TIMEOUT=5
-      - OUTPUT_ROUTER_TAGS=1 # Affects Counter50.000
+      - OUTPUT_ROUTER_TAGS=1 
       - DIRECT_SUBSCRIBER_EXCHANGES=action-filter-exchange,english-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=q4-joiner-input-queue
       - DIRECT_SUBSCRIBER_KEYS=1
@@ -363,7 +363,7 @@ services:
       - DIRECT_SUBSCRIBER_EXCHANGES=counter-5000-exchange
       - DIRECT_SUBSCRIBER_QUEUE=q4-joiner-output_queue
       - DIRECT_SUBSCRIBER_KEYS=1
-      - LOGGER_LEVEL=info
+      - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
     depends_on:
@@ -413,7 +413,7 @@ services:
       - DIRECT_SUBSCRIBER_EXCHANGES=counter-percentil-exchange
       - DIRECT_SUBSCRIBER_QUEUE=percentil-input-queue
       - DIRECT_SUBSCRIBER_KEYS=1
-      - LOGGER_LEVEL=info
+      - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
     depends_on:
