@@ -105,6 +105,7 @@ func (f *Filter) Run(ctx context.Context) error {
 						return fmt.Errorf("couldn't handle review function: %w", err)
 					}
 				}
+				delivery.Ack(false)
 			} else if msg.ExpectKind(protocol.End) {
 				var msgType protocol.DataType
 				if msg.HasGameData() {
@@ -124,6 +125,7 @@ func (f *Filter) Run(ctx context.Context) error {
 				if err := f.io.Write(newMsg.Marshal(), ""); err != nil {
 					return fmt.Errorf("couldn't write end message: %w", err)
 				}
+				delivery.Ack(false)
 				slog.Info("Received End message",
 					"clientId", msg.GetClientID(),
 					"requestId", msg.GetRequestID(),
