@@ -31,7 +31,8 @@ func main() {
 		slog.Error("error connecting to IOManager", "error", err.Error())
 		return
 	}
-
+	defer ioManager.Close()
+	
 	server, deleteServer := src.NewServer(serverConfig, &ioManager)
 	defer deleteServer()
 

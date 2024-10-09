@@ -5,14 +5,14 @@
   "TaskQueueSize": 10,
   "ReviewsBatch": {
     "DataType": 0,
-    "Path": "/home/wave/dev/tp1-sistemas-distribuidos-2c/.data/reviews.csv",
+    "Path": "/home/wave/dev/tp1-sistemas-distribuidos-2c/.data/reviews100.csv",
     "NlinesFromDisk": 100,
     "BatchSize": 100,
     "MaxBytes": 8192
   },
   "GamesBatch": {
     "DataType": 1,
-    "Path": "/home/wave/dev/tp1-sistemas-distribuidos-2c/.data/games.csv",
+    "Path": "/home/wave/dev/tp1-sistemas-distribuidos-2c/.data/games100.csv",
     "NlinesFromDisk": 100,
     "BatchSize": 50,
     "MaxBytes": 8192

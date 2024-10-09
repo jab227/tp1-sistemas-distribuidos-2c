@@ -4,9 +4,10 @@ package models
 
 import (
 	"fmt"
-	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/protocol"
 	"strconv"
 	"time"
+
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/protocol"
 )
 
 const releaseDateFmtWithDay = "Jan 2, 2006"
@@ -143,7 +144,7 @@ func (g *Game) BuildPayload(builder *protocol.PayloadBuffer) {
 	builder.EndPayloadElement()
 }
 
-type ReviewScore int8
+type ReviewScore int
 
 const (
 	Positive ReviewScore = 1
@@ -192,24 +193,12 @@ func (r *Review) BuildPayload(builder *protocol.PayloadBuffer) {
 	builder.EndPayloadElement()
 }
 
-func ReadReview(element *protocol.Element) Review {
-	appId := string(element.ReadBytes())
-	name := string(element.ReadBytes())
-	text := string(element.ReadBytes())
-	scoreInt8 := int8(element.ReadByte())
-	var score ReviewScore
-	if scoreInt8 == 1 {
-		score = Positive
-	} else {
-		score = Negative
-	}
-
-	review := Review{
-		AppID: appId,
-		Name:  name,
-		Text:  text,
-		Score: score,
-	}
+func ReadReview(element *protocol.Element) *Review {
+	review := &Review{
+		AppID: string(element.ReadBytes()),
+		Name:  string(element.ReadBytes()),
+		Text:  string(element.ReadBytes()),
+		Score: ReviewScore(element.ReadByte()),
 	return review
 }
 
@@ -225,14 +214,6 @@ func ReadGame(element *protocol.Element) Game {
 	return game
 }
 
-func ReadReview(element *protocol.Element) Review{
-	return Review{
-		AppID:       string(element.ReadBytes()),
-		Name:        string(element.ReadBytes()),
-		Text:  string(element.ReadBytes()),
-		Score: ReviewScore(element.ReadByte()),
-	}
-}
 
 func (g Game) GetID() string {
 	return g.AppID
