@@ -165,6 +165,31 @@ services:
       rabbitmq:
         condition: service_healthy
 
+# Query 3 controller
+  joiner_query3_1:
+    container_name: joinner_query3_1
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/joiner
+    environment:
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - DIRECT_PUBLISHER_EXCHANGE=top-5-exchange
+      - DIRECT_PUBLISHER_TIMEOUT=5
+      - OUTPUT_ROUTER_TAGS=1 # Affects Top5
+      - DIRECT_SUBSCRIBER_EXCHANGES=indie-filter-exchange,positive-filter-exchange
+      - DIRECT_SUBSCRIBER_QUEUE=q3-joiner-input-queue
+      - DIRECT_SUBSCRIBER_KEYS=review
+      - LOGGER_LEVEL=debug
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
 # Query 4 and Query 5 controller
   filter_action_1:
     container_name: filter_action_1
@@ -232,7 +257,7 @@ services:
       - FILTER_NAME=englishFilter
       - DIRECT_PUBLISHER_EXCHANGE=english-filter-exchange
       - DIRECT_PUBLISHER_TIMEOUT=5
-      - OUTPUT_ROUTER_TAGS=1
+      - OUTPUT_ROUTER_TAGS=1 # Affects JoinnerQuery4
       - DIRECT_SUBSCRIBER_EXCHANGES=negative-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=english-filter-input-queue
       - DIRECT_SUBSCRIBER_KEYS=1
@@ -243,6 +268,55 @@ services:
       rabbitmq:
         condition: service_healthy
 
+  # Query 4 controller
+  joiner_query4_1:
+    container_name: joinner_query4_1
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/joiner
+    environment:
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - DIRECT_PUBLISHER_EXCHANGE=counter-50000-exchange
+      - DIRECT_PUBLISHER_TIMEOUT=5
+      - OUTPUT_ROUTER_TAGS=1 # Affects Counter50.000
+      - DIRECT_SUBSCRIBER_EXCHANGES=action-filter-exchange,english-filter-exchange
+      - DIRECT_SUBSCRIBER_QUEUE=q4-joiner-input-queue
+      - DIRECT_SUBSCRIBER_KEYS=1
+      - LOGGER_LEVEL=debug
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+# Query 5 controller
+  joiner_query5_1:
+    container_name: joinner_query5_1
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/joiner
+    environment:
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - DIRECT_PUBLISHER_EXCHANGE=counter-percentil-exchange
+      - DIRECT_PUBLISHER_TIMEOUT=5
+      - OUTPUT_ROUTER_TAGS=1 # Affects percentil
+      - DIRECT_SUBSCRIBER_EXCHANGES=action-filter-exchange,negative-filter-exchange
+      - DIRECT_SUBSCRIBER_QUEUE=q4-joiner-input-queue
+      - DIRECT_SUBSCRIBER_KEYS=1
+      - LOGGER_LEVEL=debug
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
 
 networks:
   rabbitmq_go_net:
