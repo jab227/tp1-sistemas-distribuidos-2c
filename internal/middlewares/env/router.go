@@ -1,6 +1,7 @@
 package env
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/utils"
@@ -16,4 +17,12 @@ func GetRouterTags() ([]string, error) {
 
 	tagsList := strings.Split(*tags, ",")
 	return tagsList, nil
+}
+
+func GetIsProjection() (bool, error) {
+	isProjectionStr, err := utils.GetFromEnv("IS_PROJECTION")
+	if err != nil {
+		return false, err
+	}
+	return strconv.ParseBool(*isProjectionStr)
 }

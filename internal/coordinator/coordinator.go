@@ -71,8 +71,7 @@ func (c *EndCoordinator) Run(ctx context.Context) error {
 						})
 
 						slog.Info("Propagating END", "counter", c.GamesEndCounter)
-						// Hardcoded tag porque no nos importa a donde lo routee
-						if err := c.io.Write(endMsg.Marshal(), "1"); err != nil {
+						if err := c.io.Write(endMsg.Marshal(), "game"); err != nil {
 							return fmt.Errorf("couldn't write end message: %w", err)
 						}
 					}
@@ -96,8 +95,7 @@ func (c *EndCoordinator) Run(ctx context.Context) error {
 						})
 
 						slog.Info("Propagating END", "counter", c.ReviewsEndCounter)
-						// Hardcoded tag porque no nos importa a donde lo routee
-						if err := c.io.Write(endMsg.Marshal(), "1"); err != nil {
+						if err := c.io.Write(endMsg.Marshal(), "review"); err != nil {
 							return fmt.Errorf("couldn't write end message: %w", err)
 						}
 					}

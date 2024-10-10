@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/client"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/end"
 	models "github.com/jab227/tp1-sistemas-distribuidos-2c/internal/model"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/protocol"
 	"github.com/rabbitmq/amqp091-go"
@@ -41,27 +42,28 @@ func (p *Projection) DoneSignal() {
 func (p *Projection) Run(ctx context.Context) error {
 	consumerChan := p.iomanager.Input.GetConsumer()
 	defer p.DoneSignal()
-
+	options, err := end.GetServiceOptionsFromEnv()
+	if err != nil {
+		return err
+	}
+	service, err := end.NewService(options)
+	if err != nil {
+		return err
+	}
+	tx, rx := service.Run(ctx)
+	ends := 2
 	for {
 		select {
 		case msg := <-consumerChan:
-			response, err := p.handleMessage(msg)
+			err := p.handleMessage(msg, tx)
 			if err != nil {
 				return err
 			}
 
-			// TODO(fede) - En el futuro se tiene que distinguir los ends y usar método de scincronización
-			if response.HasGameData() {
-				if err := p.iomanager.Write(response.Marshal(), "game"); err != nil {
-					return err
-				}
-			} else if response.HasReviewData() {
-				if err := p.iomanager.Write(response.Marshal(), "review"); err != nil {
-					return err
-				}
-			}
-
 			msg.Ack(false)
+		case <-rx:
+			ends--
+			slog.Info("END received", "ends", ends)
 		case <-ctx.Done():
 			return ctx.Err()
 		}
@@ -69,28 +71,41 @@ func (p *Projection) Run(ctx context.Context) error {
 }
 
 // TODO(fede) - Replace name for something else
-func (p *Projection) handleMessage(msg amqp091.Delivery) (*protocol.Message, error) {
+func (p *Projection) handleMessage(msg amqp091.Delivery, tx chan<- protocol.Message) error {
 	bytes := msg.Body
 	internalMsg := protocol.Message{}
 	err := internalMsg.Unmarshal(bytes)
 	if err != nil {
-		return nil, err
+		return err
 	}
-
 	if internalMsg.ExpectKind(protocol.Data) {
+		var res *protocol.Message
+		var tag string
 		if internalMsg.HasGameData() {
-			return p.handleGamesMessages(internalMsg)
+			res, err = p.handleGamesMessages(internalMsg)
+			if err != nil {
+				return err
+			}
+			tag = "game"
 		} else if internalMsg.HasReviewData() {
-			return p.handleReviewsMessages(internalMsg)
+			res, err = p.handleReviewsMessages(internalMsg)
+			if err != nil {
+				return err
+			}
+			tag = "review"
 		} else {
-			return nil, fmt.Errorf("unexpected message that isn't games or reviews")
+			return fmt.Errorf("unexpected message that isn't games or reviews")
+		}
+		if err := p.iomanager.Write(res.Marshal(), tag); err != nil {
+			return err
 		}
 	} else if internalMsg.ExpectKind(protocol.End) {
 		slog.Debug("received end", "game", internalMsg.HasGameData(), "reviews", internalMsg.HasReviewData())
-		return &internalMsg, nil
+		tx <- internalMsg
 	} else {
-		return nil, fmt.Errorf("expected Data or End MessageType got %d", internalMsg.GetMessageType())
+		return fmt.Errorf("expected Data or End MessageType got %d", internalMsg.GetMessageType())
 	}
+	return nil
 }
 
 // TODO(fede) - Replace hardcoded separators
