@@ -2,11 +2,11 @@ package rabbitmq
 
 import (
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/utils"
-	"log/slog"
+	"hash"
+	"hash/fnv"
+	"strings"
+	//	"log/slog"
 )
-
-import "hash"
-import "hash/fnv"
 
 type IDRouter struct {
 	hasher  hash.Hash64
@@ -23,6 +23,20 @@ func NewIDRouter(idCount int) IDRouter {
 func (r IDRouter) Select(key string) int {
 	r.hasher.Write([]byte(key))
 	return int(r.hasher.Sum64()) % r.idCount
+}
+
+type GameReviewRouter struct {
+}
+
+func (g GameReviewRouter) Select(key string) int {
+	if strings.EqualFold(key, "game") {
+		return 0
+	} else if strings.EqualFold(key, "review") {
+		return 1
+	} else {
+		utils.Assert(false, "unreachable")
+	}
+	return -1
 }
 
 type RouteSelector interface {
@@ -53,7 +67,7 @@ func (r *Router) Close() error {
 
 func (r *Router) Write(p []byte, key string) error {
 	idx := r.s.Select(key)
-	slog.Debug("Index chosen from router", "index", idx, "key", key, "tag", r.tags[idx])
+	//o	slog.Debug("Index chosen from router", "index", idx, "key", key, "tag", r.tags[idx])
 	utils.Assert(idx < len(r.tags), "the index should be less that len(r.tags)")
 	return r.p.Write(p, r.tags[idx])
 }

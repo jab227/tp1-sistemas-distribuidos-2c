@@ -2,6 +2,7 @@ package client
 
 import (
 	"fmt"
+	"log/slog"
 
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/env"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/rabbitmq"
@@ -92,10 +93,24 @@ func (m *IOManager) connectOutput(conn *rabbitmq.Connection, output OutputType) 
 	case Router:
 		config, err := env.GetDirectPublisherConfig()
 		tags, err := env.GetRouterTags()
+
 		if err != nil {
 			return fmt.Errorf("couldn't get tags from env: %w", err)
 		}
-		router := rabbitmq.NewRouter(*config, tags, rabbitmq.NewIDRouter(len(tags)))
+		isProjection, err := env.GetIsProjection()
+		if err != nil {
+			isProjection = false
+		}
+		var selector rabbitmq.RouteSelector
+		if isProjection {
+			slog.Debug("selected game review selector")
+			selector = rabbitmq.GameReviewRouter{}
+			tags = []string{"game", "review"}
+		} else {
+			slog.Debug("selected id selector")
+			selector = rabbitmq.NewIDRouter(len(tags))
+		}
+		router := rabbitmq.NewRouter(*config, tags, selector)
 		m.Output = &router
 	}
 

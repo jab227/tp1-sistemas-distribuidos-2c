@@ -17,7 +17,6 @@ type osState struct {
 type OSCounter struct {
 	io   client.IOManager
 	done chan struct{}
-	s    osState
 }
 
 func NewOSCounter() (OSCounter, error) {
@@ -40,7 +39,7 @@ func (o *OSCounter) Run(ctx context.Context) error {
 	defer func() {
 		o.done <- struct{}{}
 	}()
-
+	var s osState
 	for {
 		select {
 		case delivery := <-consumerCh:
@@ -58,23 +57,23 @@ func (o *OSCounter) Run(ctx context.Context) error {
 				for _, element := range elements.Iter() {
 					game := models.ReadGame(&element)
 					if game.SupportedOS.IsWindowsSupported() {
-						o.s.windows += 1
+						s.windows += 1
 					}
 					if game.SupportedOS.IsMacSupported() {
-						o.s.mac += 1
+						s.mac += 1
 					}
 					if game.SupportedOS.IsLinuxSupported() {
-						o.s.linux += 1
+						s.linux += 1
 					}
 				}
 			} else if msg.ExpectKind(protocol.End) {
 				// reset state
-				slog.Debug("received end", "node", "os_counter")
+				slog.Info("received end", "node", "os_counter")
 				builder := protocol.NewPayloadBuffer(1)
 				builder.BeginPayloadElement()
-				builder.WriteUint32(uint32(o.s.windows))
-				builder.WriteUint32(uint32(o.s.mac))
-				builder.WriteUint32(uint32(o.s.linux))
+				builder.WriteUint32(uint32(s.windows))
+				builder.WriteUint32(uint32(s.mac))
+				builder.WriteUint32(uint32(s.linux))
 				builder.EndPayloadElement()
 				res := protocol.NewResultsMessage(protocol.Query1, builder.Bytes(), protocol.MessageOptions{
 					MessageID: msg.GetMessageID(),
@@ -84,8 +83,8 @@ func (o *OSCounter) Run(ctx context.Context) error {
 				if err := o.io.Write(res.Marshal(), ""); err != nil {
 					return fmt.Errorf("couldn't write query 1 output: %w", err)
 				}
-				slog.Debug("query 1 results", "result", res, "state", o.s)
-				o.s = osState{}
+				slog.Debug("query 1 results", "result", res, "state", s)
+				s = osState{}
 			} else {
 				return fmt.Errorf("unexpected message type: %s", msg.GetMessageType())
 			}
