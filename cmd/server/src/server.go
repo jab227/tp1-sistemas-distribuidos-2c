@@ -3,6 +3,7 @@ package src
 import (
 	"context"
 	"fmt"
+	"net"
 	"os"
 	"strconv"
 
@@ -38,13 +39,14 @@ type Server struct {
 	client       *Client
 	deleteClient func()
 
-	ioManager       *client.IOManager
+	inputManager    *client.IOManager
+	outputManager   *client.IOManager
 	clientIdCounter uint32
 	done            chan struct{}
 }
 
-func NewServer(serverConfig *ServerConfig, ioManager *client.IOManager) (*Server, func()) {
-	server := &Server{ioManager: ioManager, done: make(chan struct{})}
+func NewServer(serverConfig *ServerConfig, inputManager *client.IOManager, outputManager *client.IOManager) (*Server, func()) {
+	server := &Server{inputManager: inputManager, outputManager: outputManager, done: make(chan struct{})}
 	cleanup := func() {
 		deleteServer(server)
 	}
@@ -56,7 +58,8 @@ func NewServer(serverConfig *ServerConfig, ioManager *client.IOManager) (*Server
 func deleteServer(s *Server) {
 	s.deleteSocket()
 	s.deleteClient()
-	s.ioManager.Close()
+	s.inputManager.Close()
+	s.outputManager.Close()
 }
 
 func (s *Server) GetClientId() uint32 {
@@ -75,31 +78,23 @@ func (s *Server) DoneSignal() {
 func (s *Server) Run(ctx context.Context) error {
 	defer s.DoneSignal()
 
+	if err := s.Listen(); err != nil {
+		return fmt.Errorf("error when listenning %s", err)
+	}
+
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 
 		default:
-			if err := s.Listen(); err != nil {
-				return fmt.Errorf("error when listenning %s", err)
-			}
-
 			if err := s.Accept(); err != nil {
 				return fmt.Errorf("error when accepting connection %s", err)
 			}
 
-			if err := s.Execute(); err != nil {
+			if err := s.StartClient(ctx); err != nil {
 				return fmt.Errorf("error when executing command %s", err)
 			}
-			service, err := results.NewResultsService(s.GetClientConn())
-			ctx, cancel := context.WithCancel(ctx)
-			defer cancel()
-			if err != nil {
-				return err
-			}
-			go service.Run(ctx)
-			<-service.Done()
 		}
 	}
 }
@@ -135,8 +130,15 @@ func (s *Server) Accept() error {
 }
 
 func (s *Server) GetClientConn() net.Conn {
-	s.client.socket.GetConnection()
+	return s.client.socket.GetConnection()
 }
-func (s *Server) Execute() error {
-	return s.client.Execute(s.ioManager)
+func (s *Server) StartClient(ctx context.Context) error {
+	if err := s.client.Execute(s.outputManager); err != nil {
+		return fmt.Errorf("error receiving data from client %s", err)
+	}
+
+	service := results.NewResultsService(s.GetClientConn(), *s.inputManager)
+	go service.Run(ctx)
+	<-service.Done()
+	return nil
 }

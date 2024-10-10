@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"iter"
 	"net"
 	"slices"
 
@@ -110,22 +109,17 @@ type ResultsService struct {
 }
 
 // I don't own the connection
-func NewResultsService(conn net.Conn) (*ResultsService, error) {
-	var io client.IOManager
-	err := io.Connect(client.InputWorker, client.NoneOutput)
-	if err != nil {
-		return nil, err
-	}
+func NewResultsService(conn net.Conn, io client.IOManager) *ResultsService {
 	return &ResultsService{
 		client: conn,
 		io:     io,
 		done:   make(chan struct{}),
 		res:    &results{},
-	}, err
+	}
 }
 
 func (r *ResultsService) Destroy() {
-	r.io.Close()
+	// r.io.Close()
 }
 
 func (r *ResultsService) Done() <-chan struct{} {
@@ -214,7 +208,7 @@ func (r *ResultsService) Run(ctx context.Context) error {
 					}
 				case 5:
 					r.res.received |= query5Received
-					slices.Sort(r.res.q5)				
+					slices.Sort(r.res.q5)
 					_, err := writer.Write(r.res.q5.Marshal())
 					if err != nil {
 						return fmt.Errorf("couldn't write query 5: %w", err)

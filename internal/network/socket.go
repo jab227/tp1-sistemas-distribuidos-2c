@@ -112,5 +112,5 @@ func (s *SocketTcp) Receive(buffer []byte) error {
 }
 
 func (s *SocketTcp) GetConnection() net.Conn {
-
+	return s.connection
 }

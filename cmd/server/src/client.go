@@ -2,13 +2,14 @@ package src
 
 import (
 	"fmt"
+	"log/slog"
+
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/communication"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/communication/message"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/communication/utils"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/client"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/network"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/protocol"
-	"log/slog"
 )
 
 type Client struct {
