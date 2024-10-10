@@ -2,13 +2,14 @@ package src
 
 import (
 	"fmt"
+	"log/slog"
+
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/communication"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/communication/message"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/communication/utils"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/client"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/network"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/protocol"
-	"log/slog"
 )
 
 type Client struct {
@@ -48,6 +49,8 @@ func (c *Client) GetMessageId() uint32 {
 
 // TODO(fede) - Parte 2 - Validar esta comunicación con el IOManager es thread safe
 func (c *Client) Execute(ioManager *client.IOManager) error {
+	isEndReviews := false
+	isEndGames := false
 	for {
 		msgData, err := c.protocol.RecvDataMessage()
 		if err != nil {
@@ -116,6 +119,7 @@ func (c *Client) Execute(ioManager *client.IOManager) error {
 					if err != nil {
 						return fmt.Errorf("cannot send data to client: %w - %v", err, internalMsg)
 					}
+					isEndGames = true
 					slog.Info("Received End message",
 						"clientId", msgData.Header.ClientId,
 						"requestId", msgData.Header.RequestId,
@@ -133,12 +137,15 @@ func (c *Client) Execute(ioManager *client.IOManager) error {
 					if err != nil {
 						return fmt.Errorf("cannot send data to client: %w - %v", err, internalMsg)
 					}
-
+					isEndReviews = true
 					slog.Info("Received End message",
 						"clientId", msgData.Header.ClientId,
 						"requestId", msgData.Header.RequestId,
 						"type", msgData.Payload.Header.Type,
 					)
+				}
+				if isEndGames && isEndReviews {
+					return nil
 				}
 			}
 		}

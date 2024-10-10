@@ -30,8 +30,11 @@ services:
       - OUTPUT_WORKER_QUEUE=projection-input-queue
       - OUTPUT_WORKER_QUEUE_TIMEOUT=5
       - OUTPUT_WORKER_QUEUE_COUNT=1
+      - INPUT_WORKER_QUEUE=output-queue
+      - INPUT_WORKER_QUEUE_TIMEOUT=5
+      - INPUT_WORKER_QUEUE_COUNT=1
       - SERVER_PORT=7070
-      - LOGGER_LEVEL=info
+      - LOGGER_LEVEL=debug
     ports:
       - "7070:7070/tcp"
     networks:
@@ -106,6 +109,66 @@ services:
       - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
       - DIRECT_SUBSCRIBER_QUEUE=indie-genre-filter-input-queue
       - DIRECT_SUBSCRIBER_KEYS=game
+      - END_SERVICE_COORDINATOR_QUEUE=indie-filter-control
+      - END_SERVICE_EXCHANGE=indie-exchange-control
+      - END_SERVICE_SUBSCRIBER_QUEUE=indie-peer-queue-1
+      - END_SERVICE_TIMEOUT=5
+      - LOGGER_LEVEL=info
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  filter_indie_2:
+    container_name: filter_indie_2
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/filter
+    environment:
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - FILTER_NAME=indieFilter
+      - DIRECT_PUBLISHER_EXCHANGE=indie-filter-exchange
+      - DIRECT_PUBLISHER_TIMEOUT=5
+      - OUTPUT_ROUTER_TAGS=1 # Affects filter_decade and JoinnerQuery3
+      - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
+      - DIRECT_SUBSCRIBER_QUEUE=indie-genre-filter-input-queue
+      - DIRECT_SUBSCRIBER_KEYS=game
+      - END_SERVICE_COORDINATOR_QUEUE=indie-filter-control
+      - END_SERVICE_EXCHANGE=indie-exchange-control
+      - END_SERVICE_SUBSCRIBER_QUEUE=indie-peer-queue-2
+      - END_SERVICE_TIMEOUT=5
+      - LOGGER_LEVEL=info
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  coordinator_filter_indie:
+    container_name: coordinator_indie
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/coordinator
+    environment:
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - EXPECTED_GAMES=2
+      - EXPECTED_REVIEWS=0
+      - OUTPUT_TYPE=direct
+      - INPUT_WORKER_QUEUE=indie-filter-control
+      - INPUT_WORKER_QUEUE_TIMEOUT=5
+      - INPUT_WORKER_QUEUE_COUNT=1
+      - DIRECT_PUBLISHER_EXCHANGE=indie-filter-exchange
+      - DIRECT_PUBLISHER_TIMEOUT=5
+      - OUTPUT_ROUTER_TAGS=1 # Affects filter_decade and JoinnerQuery3
       - LOGGER_LEVEL=info
     networks:
       - rabbitmq_go_net
@@ -132,6 +195,66 @@ services:
       - DIRECT_SUBSCRIBER_EXCHANGES=indie-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=decade-filter-input-queue
       - DIRECT_SUBSCRIBER_KEYS=1 # Affects Top10
+      - END_SERVICE_COORDINATOR_QUEUE=decade-filter-control
+      - END_SERVICE_EXCHANGE=decade-exchange-control
+      - END_SERVICE_SUBSCRIBER_QUEUE=decade-peer-queue-1
+      - END_SERVICE_TIMEOUT=5
+      - LOGGER_LEVEL=info
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  filter_decade_2:
+    container_name: filter_decade_2
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/filter
+    environment:
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - FILTER_NAME=decadeFilter
+      - OUTPUT_WORKER_QUEUE=decade-filter-output-queue
+      - OUTPUT_WORKER_QUEUE_TIMEOUT=5
+      - OUTPUT_WORKER_QUEUE_COUNT=1
+      - DIRECT_SUBSCRIBER_EXCHANGES=indie-filter-exchange
+      - DIRECT_SUBSCRIBER_QUEUE=decade-filter-input-queue
+      - DIRECT_SUBSCRIBER_KEYS=1 # Affects Top10
+      - END_SERVICE_COORDINATOR_QUEUE=decade-filter-control
+      - END_SERVICE_EXCHANGE=decade-exchange-control
+      - END_SERVICE_SUBSCRIBER_QUEUE=decade-peer-queue-2
+      - END_SERVICE_TIMEOUT=5
+      - LOGGER_LEVEL=info
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  coordinator_filter_decade:
+    container_name: coordinator_decade
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/coordinator
+    environment:
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - EXPECTED_GAMES=2
+      - EXPECTED_REVIEWS=0
+      - OUTPUT_TYPE=worker
+      - INPUT_WORKER_QUEUE=decade-filter-control
+      - INPUT_WORKER_QUEUE_TIMEOUT=5
+      - INPUT_WORKER_QUEUE_COUNT=1
+      - OUTPUT_WORKER_QUEUE=decade-filter-output-queue
+      - OUTPUT_WORKER_QUEUE_TIMEOUT=5
+      - OUTPUT_WORKER_QUEUE_COUNT=1
       - LOGGER_LEVEL=info
     networks:
       - rabbitmq_go_net
@@ -184,6 +307,66 @@ services:
       - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
       - DIRECT_SUBSCRIBER_QUEUE=positive-filter-input-queue
       - DIRECT_SUBSCRIBER_KEYS=review
+      - END_SERVICE_COORDINATOR_QUEUE=positive-filter-control
+      - END_SERVICE_EXCHANGE=positive-exchange-control
+      - END_SERVICE_SUBSCRIBER_QUEUE=positive-peer-queue-1
+      - END_SERVICE_TIMEOUT=5
+      - LOGGER_LEVEL=info
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  filter_positive_2:
+    container_name: filter_positive_2
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/filter
+    environment:
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - FILTER_NAME=positiveFilter
+      - DIRECT_PUBLISHER_EXCHANGE=positive-filter-exchange
+      - DIRECT_PUBLISHER_TIMEOUT=5
+      - OUTPUT_ROUTER_TAGS=1 # Affects Joinner Query 3
+      - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
+      - DIRECT_SUBSCRIBER_QUEUE=positive-filter-input-queue
+      - DIRECT_SUBSCRIBER_KEYS=review
+      - END_SERVICE_COORDINATOR_QUEUE=positive-filter-control
+      - END_SERVICE_EXCHANGE=positive-exchange-control
+      - END_SERVICE_SUBSCRIBER_QUEUE=positive-peer-queue-2
+      - END_SERVICE_TIMEOUT=5
+      - LOGGER_LEVEL=info
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  coordinator_filter_positive:
+    container_name: coordinator_positive
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/coordinator
+    environment:
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - EXPECTED_GAMES=0
+      - EXPECTED_REVIEWS=2
+      - OUTPUT_TYPE=direct
+      - INPUT_WORKER_QUEUE=positive-filter-control
+      - INPUT_WORKER_QUEUE_TIMEOUT=5
+      - INPUT_WORKER_QUEUE_COUNT=1
+      - DIRECT_PUBLISHER_EXCHANGE=positive-filter-exchange
+      - DIRECT_PUBLISHER_TIMEOUT=5
+      - OUTPUT_ROUTER_TAGS=1 # Affects Joinner Query 3
       - LOGGER_LEVEL=info
     networks:
       - rabbitmq_go_net
@@ -261,6 +444,66 @@ services:
       - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
       - DIRECT_SUBSCRIBER_QUEUE=action-genre-filter-input-queue
       - DIRECT_SUBSCRIBER_KEYS=game
+      - END_SERVICE_COORDINATOR_QUEUE=action-filter-control
+      - END_SERVICE_EXCHANGE=action-exchange-control
+      - END_SERVICE_SUBSCRIBER_QUEUE=action-peer-queue-1
+      - END_SERVICE_TIMEOUT=5
+      - LOGGER_LEVEL=info
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  filter_action_2:
+    container_name: filter_action_2
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/filter
+    environment:
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - FILTER_NAME=actionFilter
+      - DIRECT_PUBLISHER_EXCHANGE=action-filter-exchange
+      - DIRECT_PUBLISHER_TIMEOUT=5
+      - OUTPUT_ROUTER_TAGS=1 # Affects JoinnerQuery 4 and Joinner Query 5
+      - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
+      - DIRECT_SUBSCRIBER_QUEUE=action-genre-filter-input-queue
+      - DIRECT_SUBSCRIBER_KEYS=game
+      - END_SERVICE_COORDINATOR_QUEUE=action-filter-control
+      - END_SERVICE_EXCHANGE=action-exchange-control
+      - END_SERVICE_SUBSCRIBER_QUEUE=action-peer-queue-2
+      - END_SERVICE_TIMEOUT=5
+      - LOGGER_LEVEL=info
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  coordinator_filter_action:
+    container_name: coordinator_action
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/coordinator
+    environment:
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - EXPECTED_GAMES=2
+      - EXPECTED_REVIEWS=0
+      - OUTPUT_TYPE=direct
+      - INPUT_WORKER_QUEUE=action-filter-control
+      - INPUT_WORKER_QUEUE_TIMEOUT=5
+      - INPUT_WORKER_QUEUE_COUNT=1
+      - DIRECT_PUBLISHER_EXCHANGE=action-filter-exchange
+      - DIRECT_PUBLISHER_TIMEOUT=5
+      - OUTPUT_ROUTER_TAGS=1
       - LOGGER_LEVEL=info
     networks:
       - rabbitmq_go_net
@@ -287,6 +530,66 @@ services:
       - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
       - DIRECT_SUBSCRIBER_QUEUE=negative-filter-input-queue
       - DIRECT_SUBSCRIBER_KEYS=review
+      - END_SERVICE_COORDINATOR_QUEUE=negative-filter-control
+      - END_SERVICE_EXCHANGE=negative-exchange-control
+      - END_SERVICE_SUBSCRIBER_QUEUE=negative-peer-queue-1
+      - END_SERVICE_TIMEOUT=5
+      - LOGGER_LEVEL=info
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  filter_negative_2:
+    container_name: filter_negative_2
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/filter
+    environment:
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - FILTER_NAME=negativeFilter
+      - DIRECT_PUBLISHER_EXCHANGE=negative-filter-exchange
+      - DIRECT_PUBLISHER_TIMEOUT=5
+      - OUTPUT_ROUTER_TAGS=1 # Affect filter_english and JoinnerQuery5
+      - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
+      - DIRECT_SUBSCRIBER_QUEUE=negative-filter-input-queue
+      - DIRECT_SUBSCRIBER_KEYS=review
+      - END_SERVICE_COORDINATOR_QUEUE=negative-filter-control
+      - END_SERVICE_EXCHANGE=negative-exchange-control
+      - END_SERVICE_SUBSCRIBER_QUEUE=negative-peer-queue-2
+      - END_SERVICE_TIMEOUT=5
+      - LOGGER_LEVEL=info
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  coordinator_filter_negative:
+    container_name: coordinator_negative
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/coordinator
+    environment:
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - EXPECTED_GAMES=0
+      - EXPECTED_REVIEWS=2
+      - OUTPUT_TYPE=direct
+      - INPUT_WORKER_QUEUE=negative-filter-control
+      - INPUT_WORKER_QUEUE_TIMEOUT=5
+      - INPUT_WORKER_QUEUE_COUNT=1
+      - DIRECT_PUBLISHER_EXCHANGE=negative-filter-exchange
+      - DIRECT_PUBLISHER_TIMEOUT=5
+      - OUTPUT_ROUTER_TAGS=1 # Affects Joinner Query 3
       - LOGGER_LEVEL=info
     networks:
       - rabbitmq_go_net
@@ -313,6 +616,125 @@ services:
       - DIRECT_SUBSCRIBER_EXCHANGES=negative-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=english-filter-input-queue
       - DIRECT_SUBSCRIBER_KEYS=1
+      - END_SERVICE_COORDINATOR_QUEUE=english-filter-control
+      - END_SERVICE_EXCHANGE=english-exchange-control
+      - END_SERVICE_SUBSCRIBER_QUEUE=english-peer-queue-1
+      - END_SERVICE_TIMEOUT=5
+      - LOGGER_LEVEL=info
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  filter_english_2:
+    container_name: filter_english_2
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/filter
+    environment:
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - FILTER_NAME=englishFilter
+      - DIRECT_PUBLISHER_EXCHANGE=english-filter-exchange
+      - DIRECT_PUBLISHER_TIMEOUT=5
+      - OUTPUT_ROUTER_TAGS=1 # Affects JoinnerQuery4
+      - DIRECT_SUBSCRIBER_EXCHANGES=negative-filter-exchange
+      - DIRECT_SUBSCRIBER_QUEUE=english-filter-input-queue
+      - DIRECT_SUBSCRIBER_KEYS=1
+      - END_SERVICE_COORDINATOR_QUEUE=english-filter-control
+      - END_SERVICE_EXCHANGE=english-exchange-control
+      - END_SERVICE_SUBSCRIBER_QUEUE=english-peer-queue-2
+      - END_SERVICE_TIMEOUT=5
+      - LOGGER_LEVEL=info
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  filter_english_3:
+    container_name: filter_english_3
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/filter
+    environment:
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - FILTER_NAME=englishFilter
+      - DIRECT_PUBLISHER_EXCHANGE=english-filter-exchange
+      - DIRECT_PUBLISHER_TIMEOUT=5
+      - OUTPUT_ROUTER_TAGS=1 # Affects JoinnerQuery4
+      - DIRECT_SUBSCRIBER_EXCHANGES=negative-filter-exchange
+      - DIRECT_SUBSCRIBER_QUEUE=english-filter-input-queue
+      - DIRECT_SUBSCRIBER_KEYS=1
+      - END_SERVICE_COORDINATOR_QUEUE=english-filter-control
+      - END_SERVICE_EXCHANGE=english-exchange-control
+      - END_SERVICE_SUBSCRIBER_QUEUE=english-peer-queue-3
+      - END_SERVICE_TIMEOUT=5
+      - LOGGER_LEVEL=info
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  filter_english_4:
+    container_name: filter_english_4
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/filter
+    environment:
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - FILTER_NAME=englishFilter
+      - DIRECT_PUBLISHER_EXCHANGE=english-filter-exchange
+      - DIRECT_PUBLISHER_TIMEOUT=5
+      - OUTPUT_ROUTER_TAGS=1 # Affects JoinnerQuery4
+      - DIRECT_SUBSCRIBER_EXCHANGES=negative-filter-exchange
+      - DIRECT_SUBSCRIBER_QUEUE=english-filter-input-queue
+      - DIRECT_SUBSCRIBER_KEYS=1
+      - END_SERVICE_COORDINATOR_QUEUE=english-filter-control
+      - END_SERVICE_EXCHANGE=english-exchange-control
+      - END_SERVICE_SUBSCRIBER_QUEUE=english-peer-queue-4
+      - END_SERVICE_TIMEOUT=5
+      - LOGGER_LEVEL=info
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+
+  coordinator_filter_english:
+    container_name: coordinator_english
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/coordinator
+    environment:
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - EXPECTED_GAMES=0
+      - EXPECTED_REVIEWS=4
+      - OUTPUT_TYPE=direct
+      - INPUT_WORKER_QUEUE=english-filter-control
+      - INPUT_WORKER_QUEUE_TIMEOUT=5
+      - INPUT_WORKER_QUEUE_COUNT=1
+      - DIRECT_PUBLISHER_EXCHANGE=english-filter-exchange
+      - DIRECT_PUBLISHER_TIMEOUT=5
+      - OUTPUT_ROUTER_TAGS=1
       - LOGGER_LEVEL=info
     networks:
       - rabbitmq_go_net
@@ -363,7 +785,7 @@ services:
       - DIRECT_SUBSCRIBER_EXCHANGES=counter-5000-exchange
       - DIRECT_SUBSCRIBER_QUEUE=q4-joiner-output_queue
       - DIRECT_SUBSCRIBER_KEYS=1
-      - LOGGER_LEVEL=debug
+      - LOGGER_LEVEL=info
     networks:
       - rabbitmq_go_net
     depends_on:
@@ -413,7 +835,7 @@ services:
       - DIRECT_SUBSCRIBER_EXCHANGES=counter-percentil-exchange
       - DIRECT_SUBSCRIBER_QUEUE=percentil-input-queue
       - DIRECT_SUBSCRIBER_KEYS=1
-      - LOGGER_LEVEL=debug
+      - LOGGER_LEVEL=info
     networks:
       - rabbitmq_go_net
     depends_on:

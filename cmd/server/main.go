@@ -2,10 +2,11 @@ package main
 
 import (
 	"context"
+	"log/slog"
+
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/logging"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/client"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/utils"
-	"log/slog"
 
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/cmd/server/src"
 )
@@ -26,14 +27,19 @@ func main() {
 		return
 	}
 
-	ioManager := client.IOManager{}
-	if err = ioManager.Connect(client.NoneInput, client.OutputWorker); err != nil {
-		slog.Error("error connecting to IOManager", "error", err.Error())
+	inputManager := client.IOManager{}
+	if err := inputManager .Connect(client.InputWorker, client.NoneOutput); err != nil {
+		slog.Error("error connecting to Input Manager", "error", err.Error())
 		return
 	}
-	defer ioManager.Close()
-	
-	server, deleteServer := src.NewServer(serverConfig, &ioManager)
+
+	outputManager := client.IOManager{}
+	if err = outputManager.Connect(client.NoneInput, client.OutputWorker); err != nil {
+		slog.Error("error connecting to Output Manager", "error", err.Error())
+		return
+	}
+
+	server, deleteServer := src.NewServer(serverConfig, &inputManager, &outputManager)
 	defer deleteServer()
 
 	slog.Info("starting server")

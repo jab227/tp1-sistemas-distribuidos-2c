@@ -139,7 +139,6 @@ func (m Message) HasReviewData() bool {
 }
 
 func (m Message) GetQueryNumber() int {
-	utils.Assert(m.ExpectKind(Results), "the payload must be  data")
 	b := byte(m.messageType)
 	if (b & byte(Query1)) == byte(Query1) {
 		return 1

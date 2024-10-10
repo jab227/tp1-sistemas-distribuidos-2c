@@ -99,23 +99,32 @@ func (tg *TopGames) processGamesData(internalMsg protocol.Message) {
 func (tg *TopGames) writeResult(internalMsg protocol.Message) error {
 	listOfGames := tg.state.heapGames.TopNGames(tg.n)
 	slog.Debug("top10", "games", listOfGames)
-	buffer := protocol.NewPayloadBuffer(len(listOfGames))
 	for _, game := range listOfGames {
+		buffer := protocol.NewPayloadBuffer(1)
 		buffer.BeginPayloadElement()
 		buffer.WriteBytes([]byte(game.Name))
 		buffer.EndPayloadElement()
+		response := protocol.NewResultsMessage(protocol.Query2, buffer.Bytes(), protocol.MessageOptions{
+			MessageID: internalMsg.GetMessageID(),
+			ClientID:  internalMsg.GetClientID(),
+			RequestID: internalMsg.GetRequestID(),
+		})
+		if err := tg.iomanager.Write(response.Marshal(), ""); err != nil {
+			return fmt.Errorf("couldn't write query 2 output: %w", err)
+		}
 	}
 
-	response := protocol.NewResultsMessage(protocol.Query2, buffer.Bytes(), protocol.MessageOptions{
+	res := protocol.NewEndMessage(protocol.Games, protocol.MessageOptions{
 		MessageID: internalMsg.GetMessageID(),
 		ClientID:  internalMsg.GetClientID(),
 		RequestID: internalMsg.GetRequestID(),
 	})
-
-	if err := tg.iomanager.Write(response.Marshal(), ""); err != nil {
-		return fmt.Errorf("couldn't write query 2 output: %w", err)
+	// Tell it ends the query 2
+	res.SetQueryResult(protocol.Query2)
+	if err := tg.iomanager.Write(res.Marshal(), ""); err != nil {
+		return fmt.Errorf("couldn't write query 2 end: %w", err)
 	}
-	slog.Debug("query 2 results", "result", response, "state", listOfGames)
+	slog.Debug("query 2 results", "state", listOfGames)
 
 	// reset state
 	tg.state.heapGames = heap.NewHeapGames()
