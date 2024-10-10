@@ -126,17 +126,6 @@ func (f *Filter) Run(ctx context.Context) error {
 						MessageID: msg.GetMessageID(),
 					})
 
-				// TODO(fede) - Propagation of END
-				// if err := f.io.Write(newMsg.Marshal(), "1"); err != nil {
-				// 	return fmt.Errorf("couldn't write end message: %w", err)
-				// }
-
-				// slog.Info("Received End message",
-				// 	"clientId", msg.GetClientID(),
-				// 	"requestId", msg.GetRequestID(),
-				// 	"game", msg.HasGameData(),
-				// 	"review", msg.HasReviewData(),
-				// )
 				tx <- newMsg
 				delivery.Ack(false)
 			}
