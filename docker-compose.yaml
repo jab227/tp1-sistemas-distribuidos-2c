@@ -42,6 +42,34 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+  # Projection controllers
+  projection0:
+    container_name: projection0
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/projection
+    environment:
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - INPUT_WORKER_QUEUE=projection-input-queue
+      - INPUT_WORKER_QUEUE_TIMEOUT=5
+      - INPUT_WORKER_QUEUE_COUNT=1
+      - DIRECT_PUBLISHER_EXCHANGE=projection-output-exchange
+      - DIRECT_PUBLISHER_TIMEOUT=5
+      - LOGGER_LEVEL=debug
+      - END_SERVICE_COORDINATOR_QUEUE=projection-control
+      - END_SERVICE_EXCHANGE=projection-exchange-control
+      - END_SERVICE_SUBSCRIBER_QUEUE=projection-peer-queue-0
+      - END_SERVICE_TIMEOUT=5
+      - IS_PROJECTION=True      
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
   projection1:
     container_name: projection1
     build:
@@ -58,13 +86,159 @@ services:
       - INPUT_WORKER_QUEUE_COUNT=1
       - DIRECT_PUBLISHER_EXCHANGE=projection-output-exchange
       - DIRECT_PUBLISHER_TIMEOUT=5
-      - LOGGER_LEVEL=info
+      - LOGGER_LEVEL=debug
+      - END_SERVICE_COORDINATOR_QUEUE=projection-control
+      - END_SERVICE_EXCHANGE=projection-exchange-control
+      - END_SERVICE_SUBSCRIBER_QUEUE=projection-peer-queue-1
+      - END_SERVICE_TIMEOUT=5
+      - IS_PROJECTION=True      
     networks:
       - rabbitmq_go_net
     depends_on:
       rabbitmq:
         condition: service_healthy
 
+  projection2:
+    container_name: projection2
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/projection
+    environment:
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - INPUT_WORKER_QUEUE=projection-input-queue
+      - INPUT_WORKER_QUEUE_TIMEOUT=5
+      - INPUT_WORKER_QUEUE_COUNT=1
+      - DIRECT_PUBLISHER_EXCHANGE=projection-output-exchange
+      - DIRECT_PUBLISHER_TIMEOUT=5
+      - LOGGER_LEVEL=debug
+      - END_SERVICE_COORDINATOR_QUEUE=projection-control
+      - END_SERVICE_EXCHANGE=projection-exchange-control
+      - END_SERVICE_SUBSCRIBER_QUEUE=projection-peer-queue-2
+      - END_SERVICE_TIMEOUT=5
+      - IS_PROJECTION=True
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  projection3:
+    container_name: projection3
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/projection
+    environment:
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - INPUT_WORKER_QUEUE=projection-input-queue
+      - INPUT_WORKER_QUEUE_TIMEOUT=5
+      - INPUT_WORKER_QUEUE_COUNT=1
+      - DIRECT_PUBLISHER_EXCHANGE=projection-output-exchange
+      - DIRECT_PUBLISHER_TIMEOUT=5
+      - LOGGER_LEVEL=debug
+      - END_SERVICE_COORDINATOR_QUEUE=projection-control
+      - END_SERVICE_EXCHANGE=projection-exchange-control
+      - END_SERVICE_SUBSCRIBER_QUEUE=projection-peer-queue-3
+      - END_SERVICE_TIMEOUT=5
+      - IS_PROJECTION=True
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  projection4:
+    container_name: projection4
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/projection
+    environment:
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - INPUT_WORKER_QUEUE=projection-input-queue
+      - INPUT_WORKER_QUEUE_TIMEOUT=5
+      - INPUT_WORKER_QUEUE_COUNT=1
+      - DIRECT_PUBLISHER_EXCHANGE=projection-output-exchange
+      - DIRECT_PUBLISHER_TIMEOUT=5
+      - LOGGER_LEVEL=debug
+      - END_SERVICE_COORDINATOR_QUEUE=projection-control
+      - END_SERVICE_EXCHANGE=projection-exchange-control
+      - END_SERVICE_SUBSCRIBER_QUEUE=projection-peer-queue-4
+      - END_SERVICE_TIMEOUT=5
+      - IS_PROJECTION=True
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  projection5:
+    container_name: projection5
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/projection
+    environment:
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - INPUT_WORKER_QUEUE=projection-input-queue
+      - INPUT_WORKER_QUEUE_TIMEOUT=5
+      - INPUT_WORKER_QUEUE_COUNT=1
+      - DIRECT_PUBLISHER_EXCHANGE=projection-output-exchange
+      - DIRECT_PUBLISHER_TIMEOUT=5
+      - LOGGER_LEVEL=debug
+      - END_SERVICE_COORDINATOR_QUEUE=projection-control
+      - END_SERVICE_EXCHANGE=projection-exchange-control
+      - END_SERVICE_SUBSCRIBER_QUEUE=projection-peer-queue-5
+      - END_SERVICE_TIMEOUT=5
+      - IS_PROJECTION=True
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+        
+  coordinator_projection:
+    container_name: coordinator_projection
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/coordinator
+    environment:
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - EXPECTED_GAMES=6
+      - EXPECTED_REVIEWS=6
+      - OUTPUT_TYPE=direct
+      - INPUT_WORKER_QUEUE=projection-control
+      - INPUT_WORKER_QUEUE_TIMEOUT=5
+      - INPUT_WORKER_QUEUE_COUNT=1
+      - DIRECT_PUBLISHER_EXCHANGE=projection-output-exchange
+      - DIRECT_PUBLISHER_TIMEOUT=5
+      - OUTPUT_ROUTER_TAGS=1 # Affects filter_decade and JoinnerQuery3
+      - LOGGER_LEVEL=debug
+      - IS_PROJECTION=True      
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+        
 # Query 1 Controller
   os_counter_1:
     container_name: os_counter_1
@@ -713,8 +887,7 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
-
-
+        
   coordinator_filter_english:
     container_name: coordinator_english
     build:
