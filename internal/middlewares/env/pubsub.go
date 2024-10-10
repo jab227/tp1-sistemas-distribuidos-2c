@@ -2,20 +2,23 @@ package env
 
 import (
 	"fmt"
-	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/rabbitmq"
+	"log/slog"
 	"strings"
+
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/rabbitmq"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/utils"
 )
 
 const DirectPublisherExchange = "DIRECT_PUBLISHER_EXCHANGE"
 const DirectPublisherTimeout = "DIRECT_PUBLISHER_TIMEOUT"
 
 func GetDirectPublisherConfig() (*rabbitmq.DirectPublisherConfig, error) {
-	exchange, err := GetFromEnv(DirectPublisherExchange)
+	exchange, err := utils.GetFromEnv(DirectPublisherExchange)
 	if err != nil {
 		return nil, err
 	}
 
-	timeout, err := GetFromEnvUint(DirectPublisherTimeout)
+	timeout, err := utils.GetFromEnvUint(DirectPublisherTimeout)
 	if err != nil {
 		return nil, err
 	}
@@ -33,30 +36,41 @@ func GetDirectPublisherConfig() (*rabbitmq.DirectPublisherConfig, error) {
 	}, nil
 }
 
-const DirectSubscriberExchange = "DIRECT_SUBSCRIBER_EXCHANGE"
+const DirectSubscriberExchange = "DIRECT_SUBSCRIBER_EXCHANGES"
 const DirectSubscriberQueue = "DIRECT_SUBSCRIBER_QUEUE"
 const DirectSubscriberKeys = "DIRECT_SUBSCRIBER_KEYS"
+const DirectSubscriberPrefetchCount = "DIRECT_SUBSCRIBER_PREFETCH_COUNT"
 
 func GetDirectSubscriberConfig() (*rabbitmq.DirectSubscriberConfig, error) {
-	exchange, err := GetFromEnv(DirectSubscriberExchange)
+	exchange, err := utils.GetFromEnv(DirectSubscriberExchange)
 	if err != nil {
 		return nil, err
 	}
 
-	queue, err := GetFromEnv(DirectSubscriberQueue)
+	queue, err := utils.GetFromEnv(DirectSubscriberQueue)
 	if err != nil {
 		return nil, err
 	}
 
-	keys, err := GetFromEnv(DirectSubscriberKeys)
+	keys, err := utils.GetFromEnv(DirectSubscriberKeys)
 	if err != nil {
 		return nil, err
 	}
 
+	finalPrefetchCount := -1
+	prefetchCount, err := utils.GetFromEnvInt(DirectSubscriberPrefetchCount)
+	if err != nil {
+		slog.Info("No prefetch count specified")
+	} else {
+		finalPrefetchCount = int(*prefetchCount)
+	}
+
+	exchangeList := strings.Split(*exchange, ",")
 	keysList := strings.Split(*keys, ",")
 	return &rabbitmq.DirectSubscriberConfig{
-		Exchange: *exchange,
-		Queue:    *queue,
-		Keys:     keysList,
+		Exchange:      exchangeList,
+		Queue:         *queue,
+		Keys:          keysList,
+		PrefetchCount: finalPrefetchCount,
 	}, nil
 }

@@ -4,7 +4,7 @@ import "github.com/rabbitmq/amqp091-go"
 
 type InputHandler interface {
 	Connect(conn *Connection) error
-	Read() amqp091.Delivery
+	GetConsumer() <-chan amqp091.Delivery
 	Close() error
 }
 

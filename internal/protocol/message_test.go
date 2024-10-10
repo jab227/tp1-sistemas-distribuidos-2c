@@ -9,13 +9,17 @@ import (
 )
 
 func TestCreatingAnEndMessasge(t *testing.T) {
-	msg := protocol.NewEndMessage(protocol.MessageOptions{
+	msg := protocol.NewEndMessage(protocol.Games, protocol.MessageOptions{
 		MessageID: 8,
 		ClientID:  1,
 		RequestID: 1,
 	})
 	if !msg.ExpectKind(protocol.End) {
 		t.Error("expected message kind end")
+	}
+
+	if !msg.HasGameData() || msg.HasReviewData() {
+		t.Error("expected message has game data")
 	}
 }
 

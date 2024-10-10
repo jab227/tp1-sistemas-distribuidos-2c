@@ -2,19 +2,21 @@ package env
 
 import (
 	"fmt"
+
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/rabbitmq"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/utils"
 )
 
 const FanoutPublisherExchange = "FANOUT_PUBLISHER_EXCHANGE"
 const FanoutPublisherTimeout = "FANOUT_PUBLISHER_TIMEOUT"
 
 func GetFanoutPublisherConfig() (*rabbitmq.FanoutPublisherConfig, error) {
-	exchange, err := GetFromEnv(FanoutPublisherExchange)
+	exchange, err := utils.GetFromEnv(FanoutPublisherExchange)
 	if err != nil {
 		return nil, err
 	}
 
-	timeout, err := GetFromEnvUint(FanoutPublisherTimeout)
+	timeout, err := utils.GetFromEnvUint(FanoutPublisherTimeout)
 	if err != nil {
 		return nil, err
 	}
@@ -36,12 +38,12 @@ const FanoutSubscriberExchange = "FANOUT_SUBSCRIBER_EXCHANGE"
 const FanoutSubscriberQueueName = "FANOUT_SUBSCRIBER_QUEUE_NAME"
 
 func GetFanoutSubscriberConfig() (*rabbitmq.FanoutSubscriberConfig, error) {
-	exchange, err := GetFromEnv(FanoutSubscriberExchange)
+	exchange, err := utils.GetFromEnv(FanoutSubscriberExchange)
 	if err != nil {
 		return nil, err
 	}
 
-	name, err := GetFromEnv(FanoutSubscriberQueueName)
+	name, err := utils.GetFromEnv(FanoutSubscriberQueueName)
 	if err != nil {
 		return nil, err
 	}

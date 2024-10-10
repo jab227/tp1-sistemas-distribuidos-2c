@@ -75,10 +75,9 @@ type FanoutSubscriberConfig struct {
 }
 
 type FanoutSubscriber struct {
-	ch       *amqp091.Channel
-	q        *amqp091.Queue
-	Consumer <-chan amqp091.Delivery
-	Config   FanoutSubscriberConfig
+	ch     *amqp091.Channel
+	q      *amqp091.Queue
+	Config FanoutSubscriberConfig
 }
 
 func NewFanoutSubscriber(config FanoutSubscriberConfig) *FanoutSubscriber {
@@ -127,8 +126,15 @@ func (s *FanoutSubscriber) Connect(conn *Connection) error {
 		return fmt.Errorf("failed to bind queue: %w", err)
 	}
 
-	consumer, err := ch.Consume(
-		q.Name,
+	s.ch = ch
+	s.q = &q
+	return nil
+}
+
+// TODO(fede) - Handle panic
+func (s *FanoutSubscriber) GetConsumer() <-chan amqp091.Delivery {
+	consumer, err := s.ch.Consume(
+		s.q.Name,
 		"",
 		false,
 		false,
@@ -137,18 +143,10 @@ func (s *FanoutSubscriber) Connect(conn *Connection) error {
 		nil,
 	)
 	if err != nil {
-		return fmt.Errorf("failed to declare consumer: %w", err)
+		panic("failed to create consumer")
 	}
 
-	s.ch = ch
-	s.q = &q
-	s.Consumer = consumer
-	return nil
-}
-
-func (s *FanoutSubscriber) Read() amqp091.Delivery {
-	msg := <-s.Consumer
-	return msg
+	return consumer
 }
 
 func (s *FanoutSubscriber) Close() error {

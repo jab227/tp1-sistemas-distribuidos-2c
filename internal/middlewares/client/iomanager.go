@@ -1,9 +1,11 @@
 package client
 
 import (
+	"fmt"
+	"log/slog"
+
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/env"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/rabbitmq"
-	"github.com/rabbitmq/amqp091-go"
 )
 
 type InputType int
@@ -22,6 +24,7 @@ const (
 	OutputWorker
 	FanoutPublisher
 	DirectPublisher
+	Router
 )
 
 type IOManager struct {
@@ -87,6 +90,28 @@ func (m *IOManager) connectOutput(conn *rabbitmq.Connection, output OutputType) 
 			return err
 		}
 		m.Output = rabbitmq.NewDirectPublisher(*config)
+	case Router:
+		config, err := env.GetDirectPublisherConfig()
+		tags, err := env.GetRouterTags()
+
+		if err != nil {
+			return fmt.Errorf("couldn't get tags from env: %w", err)
+		}
+		isProjection, err := env.GetIsProjection()
+		if err != nil {
+			isProjection = false
+		}
+		var selector rabbitmq.RouteSelector
+		if isProjection {
+			slog.Debug("selected game review selector")
+			selector = rabbitmq.GameReviewRouter{}
+			tags = []string{"game", "review"}
+		} else {
+			slog.Debug("selected id selector")
+			selector = rabbitmq.NewIDRouter(len(tags))
+		}
+		router := rabbitmq.NewRouter(*config, tags, selector)
+		m.Output = &router
 	}
 
 	err := m.Output.Connect(conn)
@@ -108,20 +133,12 @@ func (m *IOManager) Connect(input InputType, output OutputType) error {
 	}
 	m.InputType = input
 
-	if err = m.connectOutput(conn, DirectPublisher); err != nil {
+	if err = m.connectOutput(conn, output); err != nil {
 		return err
 	}
 	m.OutputType = output
 
 	return nil
-}
-
-func (m *IOManager) Read() amqp091.Delivery {
-	if m.InputType == NoneInput {
-		panic("no input was configured")
-	}
-
-	return m.Input.Read()
 }
 
 func (m *IOManager) Write(msg []byte, tag string) error {

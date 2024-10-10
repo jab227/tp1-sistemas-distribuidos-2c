@@ -70,16 +70,16 @@ func (p *DirectPublisher) Close() error {
 }
 
 type DirectSubscriberConfig struct {
-	Exchange string
-	Queue    string
-	Keys     []string
+	Exchange      []string
+	Queue         string
+	Keys          []string
+	PrefetchCount int
 }
 
 type DirectSubscriber struct {
-	ch       *amqp091.Channel
-	q        *amqp091.Queue
-	Consumer <-chan amqp091.Delivery
-	Config   DirectSubscriberConfig
+	ch     *amqp091.Channel
+	q      *amqp091.Queue
+	Config DirectSubscriberConfig
 }
 
 func NewDirectSubscriber(config DirectSubscriberConfig) *DirectSubscriber {
@@ -92,24 +92,39 @@ func (s *DirectSubscriber) Connect(conn *Connection) error {
 		return fmt.Errorf("failed to open channel: %w", err)
 	}
 
-	err = ch.ExchangeDeclare(
-		s.Config.Exchange,
-		"direct",
-		true,
-		false,
-		false,
-		false,
-		nil,
-	)
-	if err != nil {
-		return fmt.Errorf("failed to declare exchange: %w", err)
+	// TODO(fede) - Allow this to be configurable - Improve it
+	if s.Config.PrefetchCount > 0 {
+		err = ch.Qos(
+			s.Config.PrefetchCount, // prefetch count
+			0,                      // prefetch size
+			false,                  // global
+		)
+		if err != nil {
+			return fmt.Errorf("failed to set QoS: %w", err)
+		}
+
+	}
+
+	for _, exchange := range s.Config.Exchange {
+		err = ch.ExchangeDeclare(
+			exchange,
+			"direct",
+			true,
+			false,
+			false,
+			false,
+			nil,
+		)
+		if err != nil {
+			return fmt.Errorf("failed to declare exchange %s: %w", exchange, err)
+		}
 	}
 
 	q, err := ch.QueueDeclare(
 		s.Config.Queue,
 		true,
 		false,
-		true,
+		false,
 		false,
 		nil,
 	)
@@ -118,20 +133,29 @@ func (s *DirectSubscriber) Connect(conn *Connection) error {
 	}
 
 	for _, key := range s.Config.Keys {
-		err = ch.QueueBind(
-			q.Name,
-			key,
-			s.Config.Exchange,
-			false,
-			nil,
-		)
-		if err != nil {
-			return fmt.Errorf("failed to bind queue: %w", err)
+		for _, exchange := range s.Config.Exchange {
+			err = ch.QueueBind(
+				q.Name,
+				key,
+				exchange,
+				false,
+				nil,
+			)
+			if err != nil {
+				return fmt.Errorf("failed to bind queue %s to exchange %s: %w", q.Name, exchange, err)
+			}
 		}
 	}
 
-	consumer, err := ch.Consume(
-		q.Name,
+	s.ch = ch
+	s.q = &q
+	return nil
+}
+
+// TODO(fede) - Handle panic
+func (s *DirectSubscriber) GetConsumer() <-chan amqp091.Delivery {
+	consumer, err := s.ch.Consume(
+		s.q.Name,
 		"",
 		false,
 		false,
@@ -140,18 +164,10 @@ func (s *DirectSubscriber) Connect(conn *Connection) error {
 		nil,
 	)
 	if err != nil {
-		return fmt.Errorf("failed to register consumer: %w", err)
+		panic("failed to create consumer")
 	}
 
-	s.ch = ch
-	s.q = &q
-	s.Consumer = consumer
-	return nil
-}
-
-func (s *DirectSubscriber) Read() amqp091.Delivery {
-	msg := <-s.Consumer
-	return msg
+	return consumer
 }
 
 func (s *DirectSubscriber) Close() error {
