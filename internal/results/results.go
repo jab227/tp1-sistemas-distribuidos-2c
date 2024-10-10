@@ -3,6 +3,7 @@ package results
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"slices"
 	"strings"
 
@@ -30,7 +31,7 @@ type query1 struct {
 // 	return buffer.Bytes()
 // }
 
-type query2 [10]string
+type query2 []string
 
 // func (q query2) Marshal() []byte {
 // 	buffer := protocol.NewPayloadBuffer(1)
@@ -132,6 +133,7 @@ func (r *ResultsService) Run(ctx context.Context) error {
 	for {
 		select {
 		case delivery := <-consumerCh:
+			slog.Debug("ENTRO A CONSUMIR")
 			msgBytes := delivery.Body
 			var msg protocol.Message
 			if err := msg.Unmarshal(msgBytes); err != nil {
@@ -142,6 +144,7 @@ func (r *ResultsService) Run(ctx context.Context) error {
 				elements := msg.Elements()
 				switch queryNumber {
 				case 1:
+					slog.Debug("query 1")
 					for _, element := range elements.Iter() {
 						r.res.q1 = query1{
 							windows: element.ReadUint32(),
@@ -158,22 +161,12 @@ func (r *ResultsService) Run(ctx context.Context) error {
 						return fmt.Errorf("couldn't write query 1: %w", err)
 					}
 				case 2:
+					slog.Debug("query 2")
 					for _, element := range elements.Iter() {
-						var q2 [10]string
-						for i := 0; i < len(q2); i++ {
-							q2[i] = string(element.ReadBytes())
-						}
-						r.res.q2 = q2
-					}
-					r.res.received |= query2Received
-
-					messageResult := &message.ResultMessageConfig{}
-					messageResult.ResultType = message.Query2
-					messageResult.Data = []byte(strings.Join(r.res.q2[:], "\n"))
-					if err := r.client.SendResultMessage(messageResult); err != nil {
-						return fmt.Errorf("couldn't write query 2: %w", err)
+						r.res.q5 = append(r.res.q5, string(element.ReadBytes()))
 					}
 				case 3:
+					slog.Debug("query 3")
 					for _, element := range elements.Iter() {
 						var q3 [5]string
 						for i := 0; i < len(q3); i++ {
@@ -202,7 +195,17 @@ func (r *ResultsService) Run(ctx context.Context) error {
 			} else if msg.ExpectKind(protocol.End) {
 				queryNumber := msg.GetQueryNumber()
 				switch queryNumber {
+				case 2:
+					slog.Debug("query 2")
+					r.res.received |= query2Received
+					messageResult := &message.ResultMessageConfig{}
+					messageResult.ResultType = message.Query2
+					messageResult.Data = []byte(strings.Join(r.res.q2[:], "\n"))
+					if err := r.client.SendResultMessage(messageResult); err != nil {
+						return fmt.Errorf("couldn't write query 2: %w", err)
+					}
 				case 4:
+					slog.Debug("query 4")
 					r.res.received |= query4Received
 					slices.Sort(r.res.q4)
 					r.res.received |= query3Received
@@ -213,6 +216,7 @@ func (r *ResultsService) Run(ctx context.Context) error {
 						return fmt.Errorf("couldn't write query 4: %w", err)
 					}
 				case 5:
+					slog.Debug("query 5")
 					r.res.received |= query5Received
 					slices.Sort(r.res.q5)
 					messageResult := &message.ResultMessageConfig{}

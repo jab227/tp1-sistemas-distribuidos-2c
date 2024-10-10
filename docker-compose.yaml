@@ -30,6 +30,9 @@ services:
       - OUTPUT_WORKER_QUEUE=projection-input-queue
       - OUTPUT_WORKER_QUEUE_TIMEOUT=5
       - OUTPUT_WORKER_QUEUE_COUNT=1
+      - INPUT_WORKER_QUEUE=output-queue
+      - INPUT_WORKER_QUEUE_TIMEOUT=5
+      - INPUT_WORKER_QUEUE_COUNT=1
       - SERVER_PORT=7070
       - LOGGER_LEVEL=info
     ports:
@@ -80,7 +83,7 @@ services:
       - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
       - DIRECT_SUBSCRIBER_QUEUE=os-counter-input-queue
       - DIRECT_SUBSCRIBER_KEYS=game
-      - LOGGER_LEVEL=info
+      - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
     depends_on:
@@ -157,7 +160,7 @@ services:
       - INPUT_WORKER_QUEUE=decade-filter-output-queue
       - INPUT_WORKER_QUEUE_TIMEOUT=5
       - INPUT_WORKER_QUEUE_COUNT=1
-      - LOGGER_LEVEL=info
+      - LOGGER_LEVEL=debug
       - N_VALUE=10
     networks:
       - rabbitmq_go_net
@@ -234,7 +237,7 @@ services:
       - DIRECT_SUBSCRIBER_EXCHANGES=top-5-exchange
       - DIRECT_SUBSCRIBER_QUEUE=top5-input-queue-1
       - DIRECT_SUBSCRIBER_KEYS=1
-      - LOGGER_LEVEL=info
+      - LOGGER_LEVEL=debug
       - N_VALUE=5
     networks:
       - rabbitmq_go_net
