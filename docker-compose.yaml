@@ -790,6 +790,7 @@ services:
       - DIRECT_SUBSCRIBER_EXCHANGES=negative-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=english-filter-input-queue
       - DIRECT_SUBSCRIBER_KEYS=1
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=1
       - END_SERVICE_COORDINATOR_QUEUE=english-filter-control
       - END_SERVICE_EXCHANGE=english-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=english-peer-queue-1
@@ -819,6 +820,7 @@ services:
       - DIRECT_SUBSCRIBER_EXCHANGES=negative-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=english-filter-input-queue
       - DIRECT_SUBSCRIBER_KEYS=1
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=1
       - END_SERVICE_COORDINATOR_QUEUE=english-filter-control
       - END_SERVICE_EXCHANGE=english-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=english-peer-queue-2
@@ -848,6 +850,7 @@ services:
       - DIRECT_SUBSCRIBER_EXCHANGES=negative-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=english-filter-input-queue
       - DIRECT_SUBSCRIBER_KEYS=1
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=1
       - END_SERVICE_COORDINATOR_QUEUE=english-filter-control
       - END_SERVICE_EXCHANGE=english-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=english-peer-queue-3
@@ -877,9 +880,130 @@ services:
       - DIRECT_SUBSCRIBER_EXCHANGES=negative-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=english-filter-input-queue
       - DIRECT_SUBSCRIBER_KEYS=1
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=1
       - END_SERVICE_COORDINATOR_QUEUE=english-filter-control
       - END_SERVICE_EXCHANGE=english-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=english-peer-queue-4
+      - END_SERVICE_TIMEOUT=5
+      - LOGGER_LEVEL=info
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  filter_english_5:
+    container_name: filter_english_5
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/filter
+    environment:
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - FILTER_NAME=englishFilter
+      - DIRECT_PUBLISHER_EXCHANGE=english-filter-exchange
+      - DIRECT_PUBLISHER_TIMEOUT=5
+      - OUTPUT_ROUTER_TAGS=1 # Affects JoinnerQuery4
+      - DIRECT_SUBSCRIBER_EXCHANGES=negative-filter-exchange
+      - DIRECT_SUBSCRIBER_QUEUE=english-filter-input-queue
+      - DIRECT_SUBSCRIBER_KEYS=1
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=1
+      - END_SERVICE_COORDINATOR_QUEUE=english-filter-control
+      - END_SERVICE_EXCHANGE=english-exchange-control
+      - END_SERVICE_SUBSCRIBER_QUEUE=english-peer-queue-5
+      - END_SERVICE_TIMEOUT=5
+      - LOGGER_LEVEL=info
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  filter_english_6:
+    container_name: filter_english_6
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/filter
+    environment:
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - FILTER_NAME=englishFilter
+      - DIRECT_PUBLISHER_EXCHANGE=english-filter-exchange
+      - DIRECT_PUBLISHER_TIMEOUT=5
+      - OUTPUT_ROUTER_TAGS=1 # Affects JoinnerQuery4
+      - DIRECT_SUBSCRIBER_EXCHANGES=negative-filter-exchange
+      - DIRECT_SUBSCRIBER_QUEUE=english-filter-input-queue
+      - DIRECT_SUBSCRIBER_KEYS=1
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=1
+      - END_SERVICE_COORDINATOR_QUEUE=english-filter-control
+      - END_SERVICE_EXCHANGE=english-exchange-control
+      - END_SERVICE_SUBSCRIBER_QUEUE=english-peer-queue-6
+      - END_SERVICE_TIMEOUT=5
+      - LOGGER_LEVEL=info
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  filter_english_7:
+    container_name: filter_english_7
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/filter
+    environment:
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - FILTER_NAME=englishFilter
+      - DIRECT_PUBLISHER_EXCHANGE=english-filter-exchange
+      - DIRECT_PUBLISHER_TIMEOUT=5
+      - OUTPUT_ROUTER_TAGS=1 # Affects JoinnerQuery4
+      - DIRECT_SUBSCRIBER_EXCHANGES=negative-filter-exchange
+      - DIRECT_SUBSCRIBER_QUEUE=english-filter-input-queue
+      - DIRECT_SUBSCRIBER_KEYS=1
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=1
+      - END_SERVICE_COORDINATOR_QUEUE=english-filter-control
+      - END_SERVICE_EXCHANGE=english-exchange-control
+      - END_SERVICE_SUBSCRIBER_QUEUE=english-peer-queue-7
+      - END_SERVICE_TIMEOUT=5
+      - LOGGER_LEVEL=info
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  filter_english_8:
+    container_name: filter_english_8
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/filter
+    environment:
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - FILTER_NAME=englishFilter
+      - DIRECT_PUBLISHER_EXCHANGE=english-filter-exchange
+      - DIRECT_PUBLISHER_TIMEOUT=5
+      - OUTPUT_ROUTER_TAGS=1 # Affects JoinnerQuery4
+      - DIRECT_SUBSCRIBER_EXCHANGES=negative-filter-exchange
+      - DIRECT_SUBSCRIBER_QUEUE=english-filter-input-queue
+      - DIRECT_SUBSCRIBER_KEYS=1
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=1
+      - END_SERVICE_COORDINATOR_QUEUE=english-filter-control
+      - END_SERVICE_EXCHANGE=english-exchange-control
+      - END_SERVICE_SUBSCRIBER_QUEUE=english-peer-queue-8
       - END_SERVICE_TIMEOUT=5
       - LOGGER_LEVEL=info
     networks:
@@ -900,7 +1024,7 @@ services:
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
       - EXPECTED_GAMES=0
-      - EXPECTED_REVIEWS=4
+      - EXPECTED_REVIEWS=7
       - OUTPUT_TYPE=direct
       - INPUT_WORKER_QUEUE=english-filter-control
       - INPUT_WORKER_QUEUE_TIMEOUT=5

@@ -70,9 +70,10 @@ func (p *DirectPublisher) Close() error {
 }
 
 type DirectSubscriberConfig struct {
-	Exchange []string
-	Queue    string
-	Keys     []string
+	Exchange      []string
+	Queue         string
+	Keys          []string
+	PrefetchCount int
 }
 
 type DirectSubscriber struct {
@@ -89,6 +90,19 @@ func (s *DirectSubscriber) Connect(conn *Connection) error {
 	ch, err := conn.GetConnection().Channel()
 	if err != nil {
 		return fmt.Errorf("failed to open channel: %w", err)
+	}
+
+	// TODO(fede) - Allow this to be configurable - Improve it
+	if s.Config.PrefetchCount > 0 {
+		err = ch.Qos(
+			s.Config.PrefetchCount, // prefetch count
+			0,                      // prefetch size
+			false,                  // global
+		)
+		if err != nil {
+			return fmt.Errorf("failed to set QoS: %w", err)
+		}
+
 	}
 
 	for _, exchange := range s.Config.Exchange {
