@@ -73,8 +73,9 @@ func (wq *WorkerQueue) Write(p []byte, tag string) error {
 		false,
 		false,
 		amqp091.Publishing{
-			ContentType: "text/plain",
-			Body:        p,
+			DeliveryMode: amqp091.Persistent,
+			ContentType:  "text/plain",
+			Body:         p,
 		},
 	)
 	if err != nil {

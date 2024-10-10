@@ -28,17 +28,16 @@ func main() {
 	}
 
 	inputManager := client.IOManager{}
-	if err := inputManager.Connect(client.InputWorker, client.NoneOutput); err != nil {
+	if err := inputManager .Connect(client.InputWorker, client.NoneOutput); err != nil {
 		slog.Error("error connecting to Input Manager", "error", err.Error())
 		return
 	}
-	defer inputManager.Close()
+
 	outputManager := client.IOManager{}
 	if err = outputManager.Connect(client.NoneInput, client.OutputWorker); err != nil {
 		slog.Error("error connecting to Output Manager", "error", err.Error())
 		return
 	}
-	defer outputManager.Close()
 
 	server, deleteServer := src.NewServer(serverConfig, &inputManager, &outputManager)
 	defer deleteServer()

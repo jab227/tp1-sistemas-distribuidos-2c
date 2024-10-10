@@ -37,12 +37,12 @@ func NewHeap() *Heap {
 }
 
 func (hg *Heap) TopN(n int) []Value {
-	top := make([]Value, n)
+	top := make([]Value, 0, n)
 	nmin := min(n, hg.Len())
 	for i := 0; i < nmin; i++ {
 		value, _ := heap.Pop(hg).(Value)
 		slog.Debug("top value", "value", value)
-		top[i] = value
+		top = append(top, value)
 	}
 	return top
 }

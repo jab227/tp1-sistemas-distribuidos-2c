@@ -101,23 +101,31 @@ func (tr *TopReviews) writeResult(internalMsg protocol.Message) error {
 
 	results := h.TopN(int(tr.n))
 	slog.Debug("topn results", "results", results)
-	buffer := protocol.NewPayloadBuffer(len(results))
 	for _, value := range results {
+		buffer := protocol.NewPayloadBuffer(len(results))
 		buffer.BeginPayloadElement()
 		buffer.WriteBytes([]byte(value.Name))
 		buffer.EndPayloadElement()
+		response := protocol.NewResultsMessage(protocol.Query3, buffer.Bytes(), protocol.MessageOptions{
+			MessageID: internalMsg.GetMessageID(),
+			ClientID:  internalMsg.GetClientID(),
+			RequestID: internalMsg.GetRequestID(),
+		})
+		if err := tr.iomanager.Write(response.Marshal(), ""); err != nil {
+			return fmt.Errorf("couldn't write query 3 output: %w", err)
+		}
 	}
-
-	response := protocol.NewResultsMessage(protocol.Query3, buffer.Bytes(), protocol.MessageOptions{
+	res := protocol.NewEndMessage(protocol.Games, protocol.MessageOptions{
 		MessageID: internalMsg.GetMessageID(),
 		ClientID:  internalMsg.GetClientID(),
 		RequestID: internalMsg.GetRequestID(),
 	})
-
-	if err := tr.iomanager.Write(response.Marshal(), ""); err != nil {
-		return fmt.Errorf("couldn't write query 3 output: %w", err)
+	// Tell it ends the query 3
+	res.SetQueryResult(protocol.Query3)
+	if err := tr.iomanager.Write(res.Marshal(), ""); err != nil {
+		return fmt.Errorf("couldn't write query 5 end: %w", err)
 	}
-	slog.Debug("query 3 results", "result", response, "state", *tr.state)
+	slog.Debug("query 3 results", "result", res, "state", *tr.state)
 
 	// reset state
 	tr.state.appByReviewScore = make(map[string]int)

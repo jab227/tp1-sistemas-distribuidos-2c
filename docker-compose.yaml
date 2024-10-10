@@ -34,7 +34,7 @@ services:
       - INPUT_WORKER_QUEUE_TIMEOUT=5
       - INPUT_WORKER_QUEUE_COUNT=1
       - SERVER_PORT=7070
-      - LOGGER_LEVEL=info
+      - LOGGER_LEVEL=debug
     ports:
       - "7070:7070/tcp"
     networks:

@@ -20,68 +20,13 @@ type query1 struct {
 	linux   uint32
 }
 
-// func (q query1) Marshal() []byte {
-// 	buffer := protocol.NewPayloadBuffer(1)
-// 	buffer.BeginPayloadElement()
-// 	buffer.WriteByte(1)
-// 	buffer.WriteUint32(q.windows)
-// 	buffer.WriteUint32(q.mac)
-// 	buffer.WriteUint32(q.linux)
-// 	buffer.EndPayloadElement()
-// 	return buffer.Bytes()
-// }
-
 type query2 []string
 
-// func (q query2) Marshal() []byte {
-// 	buffer := protocol.NewPayloadBuffer(1)
-// 	buffer.BeginPayloadElement()
-// 	buffer.WriteByte(2)
-// 	for _, s := range q {
-// 		buffer.WriteBytes([]byte(s))
-// 	}
-// 	buffer.EndPayloadElement()
-// 	return buffer.Bytes()
-// }
-
-type query3 [5]string
-
-// func (q query3) Marshal() []byte {
-// 	buffer := protocol.NewPayloadBuffer(1)
-// 	buffer.BeginPayloadElement()
-// 	buffer.WriteByte(3)
-// 	for _, s := range q {
-// 		buffer.WriteBytes([]byte(s))
-// 	}
-// 	buffer.EndPayloadElement()
-// 	return buffer.Bytes()
-// }
+type query3 []string
 
 type query4 []string
 
-// func (q query4) Marshal() []byte {
-// 	buffer := protocol.NewPayloadBuffer(1)
-// 	buffer.BeginPayloadElement()
-// 	buffer.WriteByte(4)
-// 	for _, s := range q {
-// 		buffer.WriteBytes([]byte(s))
-// 	}
-// 	buffer.EndPayloadElement()
-// 	return buffer.Bytes()
-// }
-
 type query5 []string
-
-// func (q query5) Marshal() []byte {
-// 	buffer := protocol.NewPayloadBuffer(1)
-// 	buffer.BeginPayloadElement()
-// 	buffer.WriteByte(5)
-// 	for _, s := range q {
-// 		buffer.WriteBytes([]byte(s))
-// 	}
-// 	buffer.EndPayloadElement()
-// 	return buffer.Bytes()
-// }
 
 type receivedQuerys uint8
 
@@ -133,7 +78,6 @@ func (r *ResultsService) Run(ctx context.Context) error {
 	for {
 		select {
 		case delivery := <-consumerCh:
-			slog.Debug("ENTRO A CONSUMIR")
 			msgBytes := delivery.Body
 			var msg protocol.Message
 			if err := msg.Unmarshal(msgBytes); err != nil {
@@ -161,25 +105,12 @@ func (r *ResultsService) Run(ctx context.Context) error {
 						return fmt.Errorf("couldn't write query 1: %w", err)
 					}
 				case 2:
-					slog.Debug("query 2")
 					for _, element := range elements.Iter() {
-						r.res.q5 = append(r.res.q5, string(element.ReadBytes()))
+						r.res.q2 = append(r.res.q2, string(element.ReadBytes()))
 					}
 				case 3:
-					slog.Debug("query 3")
 					for _, element := range elements.Iter() {
-						var q3 [5]string
-						for i := 0; i < len(q3); i++ {
-							q3[i] = string(element.ReadBytes())
-						}
-						r.res.q3 = q3
-					}
-					r.res.received |= query3Received
-					messageResult := &message.ResultMessageConfig{}
-					messageResult.ResultType = message.Query3
-					messageResult.Data = []byte(strings.Join(r.res.q3[:], "\n"))
-					if err := r.client.SendResultMessage(messageResult); err != nil {
-						return fmt.Errorf("couldn't write query 3: %w", err)
+						r.res.q3 = append(r.res.q3, string(element.ReadBytes()))
 					}
 				case 4:
 					for _, element := range elements.Iter() {
@@ -203,6 +134,15 @@ func (r *ResultsService) Run(ctx context.Context) error {
 					messageResult.Data = []byte(strings.Join(r.res.q2[:], "\n"))
 					if err := r.client.SendResultMessage(messageResult); err != nil {
 						return fmt.Errorf("couldn't write query 2: %w", err)
+					}
+				case 3:
+					slog.Debug("query 3")					
+					r.res.received |= query3Received
+					messageResult := &message.ResultMessageConfig{}
+					messageResult.ResultType = message.Query3
+					messageResult.Data = []byte(strings.Join(r.res.q3[:], "\n"))
+					if err := r.client.SendResultMessage(messageResult); err != nil {
+						return fmt.Errorf("couldn't write query 3: %w", err)
 					}
 				case 4:
 					slog.Debug("query 4")
@@ -231,8 +171,12 @@ func (r *ResultsService) Run(ctx context.Context) error {
 			} else {
 				return fmt.Errorf("unexpected message type: %s", msg.GetMessageType())
 			}
-
+			slog.Debug("sent acknowledge")
+			if err := delivery.Ack(false); err != nil {
+				slog.Error("acknowledge error", "error", err)
+			}
 			if r.res.received == allQuerysReceived {
+				slog.Debug("all querys received")				
 				return nil
 			}
 		case <-ctx.Done():
