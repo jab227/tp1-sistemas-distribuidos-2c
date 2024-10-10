@@ -14,10 +14,9 @@ type WorkerQueueConfig struct {
 }
 
 type WorkerQueue struct {
-	ch       *amqp091.Channel
-	q        *amqp091.Queue
-	Consumer <-chan amqp091.Delivery
-	Config   WorkerQueueConfig
+	ch     *amqp091.Channel
+	q      *amqp091.Queue
+	Config WorkerQueueConfig
 }
 
 func NewWorkerQueue(config WorkerQueueConfig) *WorkerQueue {
@@ -40,22 +39,8 @@ func (wq *WorkerQueue) Connect(conn *Connection) error {
 		return fmt.Errorf("failed to set QoS: %w", err)
 	}
 
-	consumer, err := ch.Consume(
-		q.Name,
-		"",
-		false,
-		false,
-		false,
-		false,
-		nil,
-	)
-	if err != nil {
-		return fmt.Errorf("failed to create consumer: %w", err)
-	}
-
 	wq.ch = ch
 	wq.q = &q
-	wq.Consumer = consumer
 	return nil
 }
 
@@ -85,13 +70,22 @@ func (wq *WorkerQueue) Write(p []byte, tag string) error {
 	return nil
 }
 
+// TODO(fede) - Handle panic
 func (wq *WorkerQueue) GetConsumer() <-chan amqp091.Delivery {
-	return wq.Consumer
-}
+	consumer, err := wq.ch.Consume(
+		wq.q.Name,
+		"",
+		false,
+		false,
+		false,
+		false,
+		nil,
+	)
+	if err != nil {
+		panic("failed to create consumer")
+	}
 
-func (wq *WorkerQueue) Read() amqp091.Delivery {
-	msg := <-wq.Consumer
-	return msg
+	return consumer
 }
 
 func (wq *WorkerQueue) Close() error {

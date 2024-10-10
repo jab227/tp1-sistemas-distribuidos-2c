@@ -76,10 +76,9 @@ type DirectSubscriberConfig struct {
 }
 
 type DirectSubscriber struct {
-	ch       *amqp091.Channel
-	q        *amqp091.Queue
-	Consumer <-chan amqp091.Delivery
-	Config   DirectSubscriberConfig
+	ch     *amqp091.Channel
+	q      *amqp091.Queue
+	Config DirectSubscriberConfig
 }
 
 func NewDirectSubscriber(config DirectSubscriberConfig) *DirectSubscriber {
@@ -134,8 +133,15 @@ func (s *DirectSubscriber) Connect(conn *Connection) error {
 		}
 	}
 
-	consumer, err := ch.Consume(
-		q.Name,
+	s.ch = ch
+	s.q = &q
+	return nil
+}
+
+// TODO(fede) - Handle panic
+func (s *DirectSubscriber) GetConsumer() <-chan amqp091.Delivery {
+	consumer, err := s.ch.Consume(
+		s.q.Name,
 		"",
 		false,
 		false,
@@ -144,22 +150,10 @@ func (s *DirectSubscriber) Connect(conn *Connection) error {
 		nil,
 	)
 	if err != nil {
-		return fmt.Errorf("failed to register consumer: %w", err)
+		panic("failed to create consumer")
 	}
 
-	s.ch = ch
-	s.q = &q
-	s.Consumer = consumer
-	return nil
-}
-
-func (s *DirectSubscriber) Read() amqp091.Delivery {
-	msg := <-s.Consumer
-	return msg
-}
-
-func (s *DirectSubscriber) GetConsumer() <-chan amqp091.Delivery {
-	return s.Consumer
+	return consumer
 }
 
 func (s *DirectSubscriber) Close() error {

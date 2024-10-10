@@ -5,7 +5,6 @@ import (
 
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/env"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/rabbitmq"
-	"github.com/rabbitmq/amqp091-go"
 )
 
 type InputType int
@@ -125,14 +124,6 @@ func (m *IOManager) Connect(input InputType, output OutputType) error {
 	m.OutputType = output
 
 	return nil
-}
-
-func (m *IOManager) Read() amqp091.Delivery {
-	if m.InputType == NoneInput {
-		panic("no input was configured")
-	}
-
-	return m.Input.Read()
 }
 
 func (m *IOManager) Write(msg []byte, tag string) error {
