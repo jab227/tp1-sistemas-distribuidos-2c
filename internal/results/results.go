@@ -148,7 +148,6 @@ func (r *ResultsService) Run(ctx context.Context) error {
 					slog.Debug("query 4")
 					r.res.received |= query4Received
 					slices.Sort(r.res.q4)
-					r.res.received |= query3Received
 					messageResult := &message.ResultMessageConfig{}
 					messageResult.ResultType = message.Query4
 					messageResult.Data = []byte(strings.Join(r.res.q4, "\n"))

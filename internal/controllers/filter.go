@@ -153,7 +153,6 @@ func (f *Filter) handleGameFunc(receivedMsg protocol.Message) error {
 	if err != nil {
 		return fmt.Errorf("couldn't filter game: %w", err)
 	}
-	slog.Debug("games passed", "games", gamesPassed)
 	for _, game := range gamesPassed {
 		payloadBuffer := protocol.NewPayloadBuffer(1)
 		payloadBuffer.BeginPayloadElement()
@@ -182,7 +181,6 @@ func (f *Filter) handleReviewFunc(receivedMsg protocol.Message) error {
 	if err != nil {
 		return fmt.Errorf("couldn't filter reviews: %w", err)
 	}
-	slog.Debug("reviews passed", "reviews", reviewsPassed)
 	for _, review := range reviewsPassed {
 		payloadBuffer := protocol.NewPayloadBuffer(1)
 		payloadBuffer.BeginPayloadElement()

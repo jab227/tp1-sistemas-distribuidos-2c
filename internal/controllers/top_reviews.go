@@ -102,7 +102,7 @@ func (tr *TopReviews) writeResult(internalMsg protocol.Message) error {
 	results := h.TopN(int(tr.n))
 	slog.Debug("topn results", "results", results)
 	for _, value := range results {
-		buffer := protocol.NewPayloadBuffer(len(results))
+		buffer := protocol.NewPayloadBuffer(1)
 		buffer.BeginPayloadElement()
 		buffer.WriteBytes([]byte(value.Name))
 		buffer.EndPayloadElement()
