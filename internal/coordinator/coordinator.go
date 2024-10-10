@@ -114,7 +114,7 @@ func (c *EndCoordinator) Run(ctx context.Context) error {
 	}
 }
 
-func (c *EndCoordinator) Done() <-chan struct{} {
+func (c *EndCoordinator) GetDone() <-chan struct{} {
 	return c.done
 }
 
