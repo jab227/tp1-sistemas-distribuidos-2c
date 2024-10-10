@@ -7,6 +7,7 @@ import (
 
 	filter2 "github.com/jab227/tp1-sistemas-distribuidos-2c/internal/filter"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/client"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/end"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/protocol"
 	"github.com/pemistahl/lingua-go"
 )
@@ -81,7 +82,12 @@ func (f *Filter) Done() <-chan struct{} {
 func (f *Filter) Run(ctx context.Context) error {
 	consumerCh := f.io.Input.GetConsumer()
 	defer func() { f.done <- struct{}{} }()
-
+	options, err := end.GetServiceOptionsFromEnv()
+	if err != nil {
+		return err
+	}
+	service, err := end.NewService(options)
+	tx, rx := service.Run(ctx)
 	for {
 		select {
 		case delivery := <-consumerCh:
@@ -121,17 +127,21 @@ func (f *Filter) Run(ctx context.Context) error {
 					})
 
 				// TODO(fede) - Propagation of END
-				if err := f.io.Write(newMsg.Marshal(), "1"); err != nil {
-					return fmt.Errorf("couldn't write end message: %w", err)
-				}
+				// if err := f.io.Write(newMsg.Marshal(), "1"); err != nil {
+				// 	return fmt.Errorf("couldn't write end message: %w", err)
+				// }
+
+				// slog.Info("Received End message",
+				// 	"clientId", msg.GetClientID(),
+				// 	"requestId", msg.GetRequestID(),
+				// 	"game", msg.HasGameData(),
+				// 	"review", msg.HasReviewData(),
+				// )
+				tx <- newMsg
 				delivery.Ack(false)
-				slog.Info("Received End message",
-					"clientId", msg.GetClientID(),
-					"requestId", msg.GetRequestID(),
-					"game", msg.HasGameData(),
-					"review", msg.HasReviewData(),
-				)
 			}
+		case <-rx:
+			slog.Info("END received")
 		case <-ctx.Done():
 			return nil
 		}
