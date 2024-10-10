@@ -136,7 +136,7 @@ func (r *ResultsService) Run(ctx context.Context) error {
 						return fmt.Errorf("couldn't write query 2: %w", err)
 					}
 				case 3:
-					slog.Debug("query 3")					
+					slog.Debug("query 3")
 					r.res.received |= query3Received
 					messageResult := &message.ResultMessageConfig{}
 					messageResult.ResultType = message.Query3
@@ -171,12 +171,11 @@ func (r *ResultsService) Run(ctx context.Context) error {
 			} else {
 				return fmt.Errorf("unexpected message type: %s", msg.GetMessageType())
 			}
-			slog.Debug("sent acknowledge")
 			if err := delivery.Ack(false); err != nil {
 				slog.Error("acknowledge error", "error", err)
 			}
 			if r.res.received == allQuerysReceived {
-				slog.Debug("all querys received")				
+				slog.Debug("all querys received")
 				return nil
 			}
 		case <-ctx.Done():

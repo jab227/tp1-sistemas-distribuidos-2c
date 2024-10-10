@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/client"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/protocol"
+	"log/slog"
 )
 
 type EndCoordinator struct {
@@ -61,6 +62,7 @@ func (c *EndCoordinator) Run(ctx context.Context) error {
 
 					// Sum counter
 					c.GamesEndCounter += 1
+					slog.Info("Received Game END", "counter", c.GamesEndCounter)
 					if c.GamesEndCounter >= c.expectedGamesEnd {
 						endMsg := protocol.NewEndMessage(protocol.Games, protocol.MessageOptions{
 							MessageID: msg.GetMessageID(),
@@ -68,6 +70,7 @@ func (c *EndCoordinator) Run(ctx context.Context) error {
 							RequestID: msg.GetRequestID(),
 						})
 
+						slog.Info("Propagating END", "counter", c.GamesEndCounter)
 						// Hardcoded tag porque no nos importa a donde lo routee
 						if err := c.io.Write(endMsg.Marshal(), "1"); err != nil {
 							return fmt.Errorf("couldn't write end message: %w", err)
@@ -84,6 +87,7 @@ func (c *EndCoordinator) Run(ctx context.Context) error {
 
 					// Sum counter
 					c.ReviewsEndCounter += 1
+					slog.Info("Received Review END", "counter", c.ReviewsEndCounter)
 					if c.ReviewsEndCounter >= c.expectedReviewsEnd {
 						endMsg := protocol.NewEndMessage(protocol.Reviews, protocol.MessageOptions{
 							MessageID: msg.GetMessageID(),
@@ -91,6 +95,7 @@ func (c *EndCoordinator) Run(ctx context.Context) error {
 							RequestID: msg.GetRequestID(),
 						})
 
+						slog.Info("Propagating END", "counter", c.ReviewsEndCounter)
 						// Hardcoded tag porque no nos importa a donde lo routee
 						if err := c.io.Write(endMsg.Marshal(), "1"); err != nil {
 							return fmt.Errorf("couldn't write end message: %w", err)
