@@ -74,6 +74,8 @@ func (c *EndCoordinator) Run(ctx context.Context) error {
 						}
 					}
 
+					// ACK of the MSg
+					delivery.Ack(false)
 				} else if msg.HasReviewData() {
 					//. Check if its expects reviews
 					if c.expectedReviewsEnd <= 0 {
@@ -95,6 +97,8 @@ func (c *EndCoordinator) Run(ctx context.Context) error {
 						}
 					}
 
+					// ACK of the MSg
+					delivery.Ack(false)
 				} else {
 					return fmt.Errorf("unexpected end type, should be game or review, got: %v", msg)
 				}
@@ -108,4 +112,12 @@ func (c *EndCoordinator) Run(ctx context.Context) error {
 			return ctx.Err()
 		}
 	}
+}
+
+func (c *EndCoordinator) Done() <-chan struct{} {
+	return c.done
+}
+
+func (c *EndCoordinator) Close() {
+	c.io.Close()
 }
