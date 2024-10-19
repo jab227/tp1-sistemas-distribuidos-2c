@@ -22,7 +22,7 @@ func NewIDRouter(idCount int) IDRouter {
 
 func (r IDRouter) Select(key string) int {
 	r.hasher.Write([]byte(key))
-	return int(r.hasher.Sum64()) % r.idCount
+	return int(r.hasher.Sum64() % uint64(r.idCount))
 }
 
 type GameReviewRouter struct {
