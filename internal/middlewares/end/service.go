@@ -12,9 +12,9 @@ import (
 )
 
 type Service struct {
-	fanoutPub          *rabbitmq.FanoutPublisher
-	fanoutSub          *rabbitmq.FanoutSubscriber
-	coordinator        *rabbitmq.WorkerQueue
+	fanoutPub   *rabbitmq.FanoutPublisher
+	fanoutSub   *rabbitmq.FanoutSubscriber
+	coordinator *rabbitmq.WorkerQueue
 }
 
 type ServiceOptions struct {
@@ -92,9 +92,9 @@ func NewService(opts *ServiceOptions) (*Service, error) {
 	}
 
 	return &Service{
-		fanoutPub:          fanoutPub,
-		fanoutSub:          fanoutSub,
-		coordinator:        coordinator,
+		fanoutPub:   fanoutPub,
+		fanoutSub:   fanoutSub,
+		coordinator: coordinator,
 	}, nil
 }
 
@@ -104,9 +104,9 @@ func (s *Service) Destroy() {
 	s.coordinator.Close()
 }
 
-func (s *Service) Run(ctx context.Context) (chan<- protocol.Message, <-chan struct{}) {
+func (s *Service) Run(ctx context.Context) (chan<- protocol.Message, <-chan protocol.DataType) {
 	tx := make(chan protocol.Message, 1)
-	rx := make(chan struct{}, 1)
+	rx := make(chan protocol.DataType, 1)
 	go func() {
 		consumerCh := s.fanoutSub.GetConsumer()
 		for {
@@ -128,10 +128,16 @@ func (s *Service) Run(ctx context.Context) (chan<- protocol.Message, <-chan stru
 					continue
 				}
 				utils.Assert(msg.ExpectKind(protocol.End), "must be an END message")
-				// Notify I received END
-				s.coordinator.Write(msg.Marshal(), "")
 				// Notify that I received an END
-				rx <- struct{}{}
+				var t protocol.DataType
+				if msg.HasGameData() {
+					t = protocol.Games
+				} else if msg.HasReviewData() {
+					t = protocol.Reviews
+				} else {
+					utils.Assert(false, "unreachable")
+				}
+				rx <- t
 				// Acknowledge
 				delivery.Ack(false)
 			case <-ctx.Done():
@@ -141,4 +147,9 @@ func (s *Service) Run(ctx context.Context) (chan<- protocol.Message, <-chan stru
 		}
 	}()
 	return tx, rx
+}
+
+func (s *Service) NotifyCoordinator(d protocol.DataType, opts protocol.MessageOptions) {
+	msg := protocol.NewEndMessage(d, opts)
+	s.coordinator.Write(msg.Marshal(), "")
 }

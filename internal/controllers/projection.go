@@ -17,6 +17,8 @@ import (
 type Projection struct {
 	iomanager client.IOManager
 	done      chan struct{}
+	clientID  uint32
+	requestID uint32
 }
 
 func NewProjection() (*Projection, error) {
@@ -28,7 +30,7 @@ func NewProjection() (*Projection, error) {
 
 	done := make(chan struct{}, 1)
 
-	return &Projection{ioManager, done}, nil
+	return &Projection{iomanager: ioManager, done: done}, nil
 }
 
 func (p *Projection) GetDone() <-chan struct{} {
@@ -51,7 +53,6 @@ func (p *Projection) Run(ctx context.Context) error {
 		return err
 	}
 	tx, rx := service.Run(ctx)
-	ends := 2
 	for {
 		select {
 		case msg := <-consumerChan:
@@ -59,11 +60,14 @@ func (p *Projection) Run(ctx context.Context) error {
 			if err != nil {
 				return err
 			}
-
 			msg.Ack(false)
-		case <-rx:
-			ends--
-			slog.Info("END received", "ends", ends)
+		case t := <-rx:
+			service.NotifyCoordinator(t, protocol.MessageOptions{
+				MessageID: 0,
+				ClientID:  p.clientID,
+				RequestID: p.requestID,
+			})
+			slog.Info("END received")
 		case <-ctx.Done():
 			return ctx.Err()
 		}
@@ -78,6 +82,9 @@ func (p *Projection) handleMessage(msg amqp091.Delivery, tx chan<- protocol.Mess
 	if err != nil {
 		return err
 	}
+	p.clientID = internalMsg.GetClientID()
+	p.requestID = internalMsg.GetRequestID()
+
 	if internalMsg.ExpectKind(protocol.Data) {
 		var res *protocol.Message
 		var tag string

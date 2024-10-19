@@ -70,22 +70,12 @@ func (j *Joiner) Run(ctx context.Context) error {
 					continue
 				}
 
-				tuples := join.Join(j.s.games, j.s.reviews)
 				// NOTE(juan): This would be more
 				// efficient with batching but for now
 				// it's okay
-				for _, tuple := range tuples {
-					game := tuple.X
-					builder := protocol.NewPayloadBuffer(1)
-					game.BuildPayload(builder)
-					res := protocol.NewDataMessage(protocol.Games, builder.Bytes(), protocol.MessageOptions{
-						MessageID: msg.GetMessageID(),
-						ClientID:  msg.GetClientID(),
-						RequestID: msg.GetRequestID(),
-					})
-					if err := j.io.Write(res.Marshal(), game.AppID); err != nil {
-						return fmt.Errorf("couldn't write query 1 output: %w", err)
-					}
+				err := joinAndSend(j, msg)
+				if err != nil {
+					return err
 				}
 				// TODO: Send end and handle sync
 				res := protocol.NewEndMessage(protocol.Games, protocol.MessageOptions{
@@ -106,6 +96,25 @@ func (j *Joiner) Run(ctx context.Context) error {
 			return ctx.Err()
 		}
 	}
+}
+
+func joinAndSend(j *Joiner, msg protocol.Message) error {
+	tuples := join.Join(j.s.games, j.s.reviews)
+
+	for _, tuple := range tuples {
+		game := tuple.X
+		builder := protocol.NewPayloadBuffer(1)
+		game.BuildPayload(builder)
+		res := protocol.NewDataMessage(protocol.Games, builder.Bytes(), protocol.MessageOptions{
+			MessageID: msg.GetMessageID(),
+			ClientID:  msg.GetClientID(),
+			RequestID: msg.GetRequestID(),
+		})
+		if err := j.io.Write(res.Marshal(), game.AppID); err != nil {
+			return fmt.Errorf("couldn't write query 1 output: %w", err)
+		}
+	}
+	return nil
 }
 
 func (j *Joiner) handleDataMessage(msg protocol.Message, elements *protocol.PayloadElements) error {

@@ -21,7 +21,9 @@ type Filter struct {
 
 	detector *lingua.LanguageDetector
 
-	done chan struct{}
+	done      chan struct{}
+	clientID  uint32
+	requestID uint32
 }
 
 func NewFilter(filter string) (Filter, error) {
@@ -97,6 +99,8 @@ func (f *Filter) Run(ctx context.Context) error {
 				return fmt.Errorf("couldn't unmarshal protocol message: %w", err)
 			}
 
+			f.requestID = msg.GetRequestID()
+			f.clientID = msg.GetClientID()
 			// Detect type
 			if msg.ExpectKind(protocol.Data) {
 				// Handle filter
@@ -129,8 +133,13 @@ func (f *Filter) Run(ctx context.Context) error {
 				tx <- newMsg
 				delivery.Ack(false)
 			}
-		case <-rx:
+		case t := <-rx:
 			slog.Info("END received")
+			service.NotifyCoordinator(t, protocol.MessageOptions{
+				MessageID: 0,
+				ClientID:  f.clientID,
+				RequestID: f.requestID,
+			})
 		case <-ctx.Done():
 			return nil
 		}
