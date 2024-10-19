@@ -15,6 +15,7 @@ type Service struct {
 	fanoutPub   *rabbitmq.FanoutPublisher
 	fanoutSub   *rabbitmq.FanoutSubscriber
 	coordinator *rabbitmq.WorkerQueue
+	notify      chan protocol.Message
 }
 
 type ServiceOptions struct {
@@ -95,6 +96,7 @@ func NewService(opts *ServiceOptions) (*Service, error) {
 		fanoutPub:   fanoutPub,
 		fanoutSub:   fanoutSub,
 		coordinator: coordinator,
+		notify:      make(chan protocol.Message),
 	}, nil
 }
 
@@ -140,6 +142,8 @@ func (s *Service) Run(ctx context.Context) (chan<- protocol.Message, <-chan prot
 				rx <- t
 				// Acknowledge
 				delivery.Ack(false)
+			case msg := <-s.notify:
+				s.coordinator.Write(msg.Marshal(), "")
 			case <-ctx.Done():
 				slog.Error("context error", "error", ctx.Err())
 				return
@@ -151,5 +155,5 @@ func (s *Service) Run(ctx context.Context) (chan<- protocol.Message, <-chan prot
 
 func (s *Service) NotifyCoordinator(d protocol.DataType, opts protocol.MessageOptions) {
 	msg := protocol.NewEndMessage(d, opts)
-	s.coordinator.Write(msg.Marshal(), "")
+	s.notify <- msg
 }

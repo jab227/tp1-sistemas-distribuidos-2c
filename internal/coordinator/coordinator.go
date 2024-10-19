@@ -70,7 +70,7 @@ func (c *EndCoordinator) Run(ctx context.Context) error {
 							RequestID: msg.GetRequestID(),
 						})
 
-						slog.Info("Propagating END", "counter", c.GamesEndCounter)
+						slog.Info("Propagating END games", "counter", c.GamesEndCounter)
 						if err := c.io.Write(endMsg.Marshal(), "game"); err != nil {
 							return fmt.Errorf("couldn't write end message: %w", err)
 						}
@@ -94,7 +94,7 @@ func (c *EndCoordinator) Run(ctx context.Context) error {
 							RequestID: msg.GetRequestID(),
 						})
 
-						slog.Info("Propagating END", "counter", c.ReviewsEndCounter)
+						slog.Info("Propagating END reviews", "counter", c.ReviewsEndCounter)
 						if err := c.io.Write(endMsg.Marshal(), "review"); err != nil {
 							return fmt.Errorf("couldn't write end message: %w", err)
 						}

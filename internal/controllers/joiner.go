@@ -77,7 +77,7 @@ func (j *Joiner) Run(ctx context.Context) error {
 			}
 			delivery.Ack(false)
 		case t := <-rx:
-			slog.Debug("received end", "node", "joiner")
+			slog.Debug("received end", "node", "joiner", "type", t)
 			j.s.ends--
 			if j.s.ends != 0 {
 				continue
@@ -87,11 +87,13 @@ func (j *Joiner) Run(ctx context.Context) error {
 				ClientID:  j.s.clientID,
 				RequestID: j.s.requestID,
 			}
+			slog.Debug("join and send data")
 			err := joinAndSend(j, opts)
 			if err != nil {
 				return err
 			}
-			service.NotifyCoordinator(t, opts)
+			slog.Debug("notifying coordinator")
+			service.NotifyCoordinator(protocol.Reviews, opts)
 		case <-ctx.Done():
 			return ctx.Err()
 		}
