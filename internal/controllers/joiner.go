@@ -7,14 +7,17 @@ import (
 
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/join"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/client"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/end"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/model"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/protocol"
 )
 
 type joinerState struct {
-	games   []models.Game
-	reviews []models.Review
-	ends    int
+	games     []models.Game
+	reviews   []models.Review
+	ends      int
+	clientID  uint32
+	requestID uint32
 }
 
 type Joiner struct {
@@ -48,7 +51,12 @@ func (j *Joiner) Run(ctx context.Context) error {
 	defer func() {
 		j.done <- struct{}{}
 	}()
-
+	options, err := end.GetServiceOptionsFromEnv()
+	if err != nil {
+		return err
+	}
+	service, err := end.NewService(options)
+	tx, rx := service.Run(ctx)
 	for {
 		select {
 		case delivery := <-consumerCh:
@@ -63,53 +71,41 @@ func (j *Joiner) Run(ctx context.Context) error {
 					return err
 				}
 			} else if msg.ExpectKind(protocol.End) {
-				// reset state
-				slog.Debug("received end", "node", "joiner")
-				j.s.ends--
-				if j.s.ends != 0 {
-					continue
-				}
-
-				// NOTE(juan): This would be more
-				// efficient with batching but for now
-				// it's okay
-				err := joinAndSend(j, msg)
-				if err != nil {
-					return err
-				}
-				// TODO: Send end and handle sync
-				res := protocol.NewEndMessage(protocol.Games, protocol.MessageOptions{
-					MessageID: msg.GetMessageID(),
-					ClientID:  msg.GetClientID(),
-					RequestID: msg.GetRequestID(),
-				})
-				// TODO(fede) - Handle end sync - Replace hardcoded 1
-				if err := j.io.Write(res.Marshal(), "1"); err != nil {
-					return fmt.Errorf("couldn't write query 1 output: %w", err)
-				}
-				j.s = joinerState{}
+				tx <- msg
 			} else {
 				return fmt.Errorf("unexpected message type: %s", msg.GetMessageType())
 			}
 			delivery.Ack(false)
+		case t := <-rx:
+			slog.Debug("received end", "node", "joiner")
+			j.s.ends--
+			if j.s.ends != 0 {
+				continue
+			}
+			opts := protocol.MessageOptions{
+				MessageID: 0,
+				ClientID:  j.s.clientID,
+				RequestID: j.s.requestID,
+			}
+			err := joinAndSend(j, opts)
+			if err != nil {
+				return err
+			}
+			service.NotifyCoordinator(t, opts)
 		case <-ctx.Done():
 			return ctx.Err()
 		}
 	}
 }
 
-func joinAndSend(j *Joiner, msg protocol.Message) error {
+func joinAndSend(j *Joiner, opts protocol.MessageOptions) error {
 	tuples := join.Join(j.s.games, j.s.reviews)
 
 	for _, tuple := range tuples {
 		game := tuple.X
 		builder := protocol.NewPayloadBuffer(1)
 		game.BuildPayload(builder)
-		res := protocol.NewDataMessage(protocol.Games, builder.Bytes(), protocol.MessageOptions{
-			MessageID: msg.GetMessageID(),
-			ClientID:  msg.GetClientID(),
-			RequestID: msg.GetRequestID(),
-		})
+		res := protocol.NewDataMessage(protocol.Games, builder.Bytes(), opts)
 		if err := j.io.Write(res.Marshal(), game.AppID); err != nil {
 			return fmt.Errorf("couldn't write query 1 output: %w", err)
 		}
