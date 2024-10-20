@@ -5,16 +5,17 @@
   "TaskQueueSize": 10,
   "ReviewsBatch": {
     "DataType": 0,
-    "Path": "/Users/framos/Desktop/tp1-sistemas-distribuidos-2c/.data/reviewsQuarter.csv",
+    "Path": ".data/",
     "NlinesFromDisk": 100,
     "BatchSize": 100,
     "MaxBytes": 8192
   },
   "GamesBatch": {
     "DataType": 1,
-    "Path": "/Users/framos/Desktop/tp1-sistemas-distribuidos-2c/.data/gamesQuarter.csv",
+    "Path": ".data/",
     "NlinesFromDisk": 100,
     "BatchSize": 50,
     "MaxBytes": 8192
-  }
+  },
+  "OutputFile": "output/"
 }

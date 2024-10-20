@@ -3,10 +3,11 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/logging"
 	"io/ioutil"
 	"log/slog"
 	"os"
+
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/logging"
 
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/cmd/client/src"
 )
@@ -47,6 +48,19 @@ func main() {
 		"ReviewsBatch", clientConfig.ReviewsBatch,
 		"GamesBatch", clientConfig.GamesBatch,
 	)
+
+	games_file := ""
+	reviews_file := ""
+	output_file := ""
+	fmt.Println("Enter the game's file name:")
+	fmt.Scanln(&games_file)
+	clientConfig.GamesBatch.Path += games_file
+	fmt.Println("Enter the review's file name:")
+	fmt.Scanln(&reviews_file)
+	clientConfig.ReviewsBatch.Path += reviews_file
+	fmt.Println("Enter the output's file name:")
+	fmt.Scanln(&output_file)
+	clientConfig.OutputFile += output_file
 
 	client, deleteClient := src.NewClient(clientConfig)
 	defer deleteClient()

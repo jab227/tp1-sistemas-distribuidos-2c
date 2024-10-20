@@ -27,7 +27,13 @@ func (r *Receiver) Run(join chan error) {
 }
 
 func (r *Receiver) receive() error {
-	var received int
+	file, err := os.OpenFile(r.clientConfig.OutputFile, os.O_CREATE|os.O_WRONLY, 0664)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	received := 0
 	for received < 5 {
 		result, err := r.protocol.RecvResultMessage()
 		if err != nil {
@@ -39,47 +45,47 @@ func (r *Receiver) receive() error {
 			windows := query1[0]
 			mac := query1[1]
 			linux := query1[2]
-			fmt.Fprintf(os.Stdout, "===========\n")
-			fmt.Fprintf(os.Stdout, "Query 1:\n")
-			fmt.Fprintf(os.Stdout, "===========\n")
-			fmt.Fprintf(os.Stdout, "windows: %s\n", windows)
-			fmt.Fprintf(os.Stdout, "mac: %s\n", mac)
-			fmt.Fprintf(os.Stdout, "linux: %s\n", linux)
+			fmt.Fprintf(file, "===========\n")
+			fmt.Fprintf(file, "Query 1:\n")
+			fmt.Fprintf(file, "===========\n")
+			fmt.Fprintf(file, "windows: %s\n", windows)
+			fmt.Fprintf(file, "mac: %s\n", mac)
+			fmt.Fprintf(file, "linux: %s\n", linux)
 			received += 1
 		} else if result.Payload.Header.Type == uint8(message.Query2) {
 			query2 := strings.Split(string(result.Payload.Payload.Data), "\n")
-			fmt.Fprintf(os.Stdout, "===========\n")
-			fmt.Fprintf(os.Stdout, "Query 2:\n")
-			fmt.Fprintf(os.Stdout, "===========\n")
+			fmt.Fprintf(file, "===========\n")
+			fmt.Fprintf(file, "Query 2:\n")
+			fmt.Fprintf(file, "===========\n")
 			for i, s := range query2 {
-				fmt.Fprintf(os.Stdout, "%d: %s\n", i+1, s)
+				fmt.Fprintf(file, "%d: %s\n", i+1, s)
 			}
 			received += 1
 		} else if result.Payload.Header.Type == uint8(message.Query3) {
 			query3 := strings.Split(string(result.Payload.Payload.Data), "\n")
-			fmt.Fprintf(os.Stdout, "===========\n")
-			fmt.Fprintf(os.Stdout, "Query 3:\n")
-			fmt.Fprintf(os.Stdout, "===========\n")
+			fmt.Fprintf(file, "===========\n")
+			fmt.Fprintf(file, "Query 3:\n")
+			fmt.Fprintf(file, "===========\n")
 			for i, s := range query3 {
-				fmt.Fprintf(os.Stdout, "%d: %s\n", i+1, s)
+				fmt.Fprintf(file, "%d: %s\n", i+1, s)
 			}
 			received += 1
 		} else if result.Payload.Header.Type == uint8(message.Query4) {
 			query4 := strings.Split(string(result.Payload.Payload.Data), "\n")
-			fmt.Fprintf(os.Stdout, "===========\n")
-			fmt.Fprintf(os.Stdout, "Query 4:\n")
-			fmt.Fprintf(os.Stdout, "===========\n")
+			fmt.Fprintf(file, "===========\n")
+			fmt.Fprintf(file, "Query 4:\n")
+			fmt.Fprintf(file, "===========\n")
 			for i, s := range query4 {
-				fmt.Fprintf(os.Stdout, "%d: %s\n", i+1, s)
+				fmt.Fprintf(file, "%d: %s\n", i+1, s)
 			}
 			received += 1
 		} else if result.Payload.Header.Type == uint8(message.Query5) {
 			query5 := strings.Split(string(result.Payload.Payload.Data), "\n")
-			fmt.Fprintf(os.Stdout, "===========\n")
-			fmt.Fprintf(os.Stdout, "Query 5:\n")
-			fmt.Fprintf(os.Stdout, "===========\n")
+			fmt.Fprintf(file, "===========\n")
+			fmt.Fprintf(file, "Query 5:\n")
+			fmt.Fprintf(file, "===========\n")
 			for i, s := range query5 {
-				fmt.Fprintf(os.Stdout, "%d: %s\n", i+1, s)
+				fmt.Fprintf(file, "%d: %s\n", i+1, s)
 			}
 			received += 1
 		} else {

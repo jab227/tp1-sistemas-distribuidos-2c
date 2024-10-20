@@ -15,6 +15,7 @@ type ClientConfig struct {
 	TaskQueueSize int              `json:"TaskQueueSize"`
 	ReviewsBatch  *BatchFileConfig `json:"ReviewsBatch"`
 	GamesBatch    *BatchFileConfig `json:"GamesBatch"`
+	OutputFile    string           `json:"OutputFile"`
 }
 
 type Client struct {

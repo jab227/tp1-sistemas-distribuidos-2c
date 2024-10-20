@@ -1,0 +1,437 @@
+===========
+Query 1:
+===========
+windows: 97258
+mac: 17717
+linux: 12320
+===========
+Query 2:
+===========
+1: Relive
+2: 拯救大魔王2 Rescue the Great Demon 2
+3: Out of the Park Baseball 20
+4: 时之回廊/Corridor of time
+5: Clicker Heroes 2
+6: Time of Dragons
+7: Project AURA
+8: Midas Gold Plus
+9: Beasts of Bermuda
+10: Rust
+===========
+Query 5:
+===========
+1: 7 Days to Die
+2: 8BitMMO
+3: APB Reloaded
+4: ARK: Survival Evolved
+5: ARK: Survival Of The Fittest
+6: ARMA: Cold War Assault
+7: Abyss Odyssey
+8: Ace Combat Assault Horizon - Enhanced Edition
+9: AdventureQuest 3D
+10: AirMech Strike
+11: Alan Wake
+12: Alan Wake's American Nightmare
+13: Alice: Madness Returns
+14: Alien Swarm
+15: Alien: Isolation
+16: Aliens vs. Predator™
+17: Aliens: Colonial Marines Collection
+18: Alpha Protocol™
+19: America's Army 3
+20: America's Army: Proving Grounds
+21: Amnesia: A Machine for Pigs
+22: Amnesia: The Dark Descent
+23: Among the Sleep - Enhanced Edition
+24: ArcheBlade™
+25: Arma 2: Operation Arrowhead
+26: Arma 3
+27: Assassin's Creed 2
+28: Assassin's Creed® Syndicate
+29: Assassin's Creed® Unity
+30: Assassin's Creed™: Director's Cut Edition
+31: Assassin’s Creed® Brotherhood
+32: Awesomenauts - the 2D moba
+33: BLOCKADE 3D
+34: BRINK
+35: Bastion
+36: Batman™: Arkham Knight
+37: Batman™: Arkham Origins
+38: Batman™: Arkham Origins Blackgate - Deluxe Edition
+39: BattleBlock Theater®
+40: Battleborn
+41: Battlefield: Bad Company™ 2
+42: Battlerite
+43: BioShock™ 2 Remastered
+44: BioShock™ Remastered
+45: Blacklight: Retribution
+46: Blade Symphony
+47: Block N Load
+48: Blockland
+49: Bloons TD Battles
+50: Borderlands 2
+51: Borderlands: The Pre-Sequel
+52: Bound By Flame
+53: BrainBread 2
+54: Brawlhalla
+55: Brick-Force
+56: Brothers - A Tale of Two Sons
+57: Brutal Legend
+58: Bully: Scholarship Edition
+59: Call of Duty: World at War
+60: Call of Duty®: Black Ops
+61: Call of Duty®: Black Ops II
+62: Call of Duty®: Black Ops III
+63: Call of Duty®: Ghosts
+64: Call of Duty®: Infinite Warfare
+65: Call of Duty®: Modern Warfare® 2 (2009)
+66: Call of Duty®: Modern Warfare® 3
+67: Call to Arms
+68: Canyon Capers
+69: Castle Crashers®
+70: CastleMiner Z
+71: Castlevania: Lords of Shadow – Ultimate Edition
+72: Chivalry: Medieval Warfare
+73: Codename CURE
+74: Contagion
+75: Counter-Strike
+76: Counter-Strike Nexon: Studio
+77: Counter-Strike: Source
+78: Crash Time 2
+79: Cry of Fear
+80: Crysis
+81: Cubic Castles
+82: DARK SOULS™ II: Scholar of the First Sin
+83: DARK SOULS™ III
+84: DARK SOULS™: Prepare To Die™ Edition
+85: DC Universe™ Online
+86: DEAD OR ALIVE 5 Last Round: Core Fighters
+87: DOOM
+88: DRAGON BALL XENOVERSE
+89: DRAGON BALL XENOVERSE 2
+90: DYNASTY WARRIORS 8: Xtreme Legends Complete Edition
+91: Darksiders™
+92: Day of Defeat: Source
+93: DayZ
+94: Daylight
+95: Dead Bits
+96: Dead Realm
+97: Dead Rising 3 Apocalypse Edition
+98: Dead Rising® 2
+99: Dead Space
+100: Dead by Daylight
+101: Deadlight
+102: Deadly Premonition: The Director's Cut
+103: Defiance
+104: Depth
+105: Despair
+106: Deus Ex: Human Revolution - Director's Cut
+107: Deus Ex: Mankind Divided
+108: Deus Ex: The Fall
+109: Devil May Cry® 3 Special Edition
+110: Digger Online
+111: Digimon Masters Online
+112: Dino D-Day
+113: Dirty Bomb®
+114: Dishonored
+115: Dishonored 2
+116: Doom 3: BFG Edition
+117: Dota 2
+118: Down To One
+119: Dragon's Dogma: Dark Arisen
+120: Drift Streets Japan
+121: Duke Nukem Forever
+122: Dungeon Defenders
+123: Dungeon Defenders Eternity
+124: Dungeon Defenders II
+125: Dungeon Siege III
+126: Dust: An Elysian Tail
+127: Dying Light
+128: Edge of Space
+129: Elite Dangerous
+130: Elsword
+131: Enclave
+132: Enemy Front
+133: Enforcer: Police Crime Action
+134: Enter the Gungeon
+135: Evolve Stage 2
+136: F.E.A.R. 3
+137: FINAL FANTASY TYPE-0™ HD
+138: FORCED: Slightly Better Edition
+139: Fallout: New Vegas
+140: Far Cry 3
+141: Far Cry 3 - Blood Dragon
+142: Far Cry® 2
+143: Far Cry® 4
+144: Far Cry® Primal
+145: Fistful of Frags
+146: Five Nights at Freddy's 4
+147: Freestyle 2: Street Basketball
+148: GASP
+149: GRAV
+150: Gang Beasts
+151: Gauntlet™ Slayer Edition
+152: Gear Up
+153: Gems of War - Puzzle RPG
+154: Genesis Online
+155: Geometry Dash
+156: God Mode
+157: Gotham City Impostors Free to Play
+158: Grand Theft Auto IV: The Complete Edition
+159: Grand Theft Auto V
+160: Grand Theft Auto: Episodes from Liberty City
+161: Grand Theft Auto: San Andreas
+162: Grim Dawn
+163: Guardians of Middle-earth
+164: Guncraft
+165: Guns of Icarus Online
+166: HITMAN™
+167: Half-Life 2: Lost Coast
+168: Half-Life: Source
+169: Halo: Spartan Assault
+170: Hammerwatch
+171: Hatred
+172: Hero Siege
+173: Heroes & Generals
+174: Hitman: Absolution™
+175: Homefront
+176: Homefront®: The Revolution
+177: Hotline Miami
+178: How to Survive
+179: How to Survive 2
+180: Hurtworld
+181: I Am Alive
+182: I Am Bread
+183: Infestation: The New Z
+184: Injustice: Gods Among Us Ultimate Edition
+185: Insurgency
+186: Jet Set Radio
+187: Just Cause 2
+188: Just Cause 2: Multiplayer Mod
+189: KUBOOM
+190: Kane & Lynch 2: Dog Days
+191: Kenshi
+192: Killing Floor
+193: Killing Floor 2
+194: Kinetic Void
+195: King Arthur's Gold
+196: Kingdoms Rise
+197: Knight Online
+198: LIMBO
+199: LOST PLANET® 3
+200: Left 4 Dead 2
+201: Legendary
+202: Lichdom: Battlemage
+203: Lifeless Planet Premier Edition
+204: Lords Of The Fallen™
+205: Lucius
+206: METAL GEAR SOLID V: GROUND ZEROES
+207: METAL GEAR SOLID V: THE PHANTOM PAIN
+208: Mad Max
+209: Mafia II (Classic)
+210: Mafia III: Definitive Edition
+211: Magicite
+212: Magicka
+213: Magicka 2
+214: MapleStory
+215: Max Payne 3
+216: McPixel
+217: MechWarrior Online™ Solaris 7
+218: Medal of Honor™
+219: Medieval Engineers
+220: Men of War: Assault Squad 2
+221: Mercenary Kings: Reloaded Edition
+222: Metro 2033 Redux
+223: Metro: Last Light Redux
+224: Mirror's Edge™
+225: Miscreated
+226: Monaco: What's Yours Is Mine
+227: Mortal Kombat X
+228: Mortal Online
+229: Mount & Blade: Warband
+230: Mount & Blade: With Fire & Sword
+231: Murdered: Soul Suspect
+232: NARUTO SHIPPUDEN: Ultimate Ninja STORM 3 Full Burst HD
+233: NARUTO SHIPPUDEN: Ultimate Ninja STORM 4
+234: Navy Field 2 : Conqueror of the Ocean
+235: Nether: Resurrected
+236: Never Alone (Kisima Ingitchuna)
+237: No Man's Sky
+238: No More Room in Hell
+239: ORION: Prelude
+240: Orcs Must Die! Unchained
+241: Osiris: New Dawn
+242: Outlast
+243: Overcast - Walden and the Werewolf
+244: PAYDAY 2
+245: PAYDAY™ The Heist
+246: POSTAL 2
+247: Paladins®
+248: Panzar
+249: Path of Exile
+250: Planet Coaster
+251: Planet Explorers
+252: PlanetSide 2
+253: Planetary Annihilation: TITANS
+254: Polarity
+255: Portal 2
+256: Postal III
+257: Primal Carnage
+258: Primal Carnage: Extinction
+259: Prime World
+260: Prototype 2
+261: Quake Live™
+262: RWBY: Grimm Eclipse
+263: Realm of the Mad God Exalt
+264: Rebel Galaxy
+265: Receiver
+266: Red Faction Guerrilla Steam Edition
+267: Red Faction®: Armageddon™
+268: Red Orchestra 2: Heroes of Stalingrad with Rising Storm
+269: Reign Of Kings
+270: Remember Me
+271: Resident Evil 4
+272: Resident Evil 6
+273: Resident Evil Revelations 2
+274: Resident Evil: Operation Raccoon City
+275: Rise of the Tomb Raider™
+276: Rise of the Triad
+277: Risk of Rain
+278: Robocraft
+279: Rocket League®
+280: Rogue Legacy
+281: Rust
+282: Ryse: Son of Rome
+283: S.K.I.L.L. - Special Force 2 (Shooter)
+284: STAR WARS™ - The Force Unleashed™ Ultimate Sith Edition
+285: STAR WARS™: The Force Unleashed™ II
+286: SUPERHOT
+287: SURVIVAL: Postapocalypse Now
+288: Sacred 3
+289: Saints Row IV
+290: Saints Row: Gat out of Hell
+291: Sanctum 2
+292: Savage Lands
+293: Scrap Mechanic
+294: Secret World Legends
+295: Serious Sam 3: BFE
+296: Shadow Warrior
+297: Shadow Warrior 2
+298: ShellShock Live
+299: Sir, You Are Being Hunted
+300: Skullgirls 2nd Encore
+301: Sleeping Dogs: Definitive Edition
+302: Sniper Elite 3
+303: Sniper: Ghost Warrior
+304: Sniper: Ghost Warrior 2
+305: Sonic Adventure 2
+306: Space Engineers
+307: Space Hulk: Deathwing
+308: Spec Ops: The Line
+309: SpeedRunners
+310: Spooky's Jump Scare Mansion
+311: Squad
+312: Star Conflict
+313: StarMade
+314: Starbound
+315: Starpoint Gemini 2
+316: State of Decay
+317: State of Decay: YOSE
+318: Street Fighter V
+319: Strife®
+320: Strike Vector
+321: Super Crate Box
+322: Super Hexagon
+323: Surgeon Simulator
+324: Survarium
+325: TOXIKK™
+326: Takedown: Red Sabre
+327: Team Fortress 2
+328: TerraTech
+329: Terraria
+330: The Binding of Isaac
+331: The Binding of Isaac: Rebirth
+332: The Bureau: XCOM Declassified
+333: The Crew™
+334: The Culling
+335: The Culling Of The Cows
+336: The Elder Scrolls® Online
+337: The Escapists
+338: The Evil Within
+339: The Forest
+340: The Forgotten Ones
+341: The Hat Man: Shadow Ward
+342: The Incredible Adventures of Van Helsing
+343: The Isle
+344: The Lord of the Rings Online™
+345: The Mean Greens - Plastic Warfare
+346: The Ship: Murder Party
+347: The Witcher: Enhanced Edition Director's Cut
+348: Thief
+349: Titan Souls
+350: Tom Clancy's Ghost Recon: Future Soldier™
+351: Tom Clancy's Rainbow Six® Siege
+352: Tom Clancy’s Splinter Cell Blacklist
+353: Tom Clancy’s The Division™
+354: Tomb Raider
+355: Torchlight II
+356: Toribash
+357: Total War: WARHAMMER
+358: Transistor
+359: Tribes: Ascend
+360: Trine 3: The Artifacts of Power
+361: Trove
+362: Ultra Street Fighter® IV
+363: Valkyria Chronicles™
+364: Vanguard Princess
+365: Velvet Assassin
+366: Verdun
+367: Viking: Battle for Asgard
+368: WAKFU
+369: WARMODE
+370: War Thunder
+371: War Trigger 3
+372: Warface
+373: Warframe
+374: Warhammer 40,000: Eternal Crusade
+375: Warhammer: End Times - Vermintide
+376: Watch_Dogs® 2
+377: Watch_Dogs™
+378: Who's Your Daddy?!
+379: Wolfenstein: The New Order
+380: Wreckfest
+381: X Rebirth
+382: Yet Another Zombie Defense
+383: Z1 Battle Royale
+384: theHunter Classic
+385: theHunter: Primal
+===========
+Query 3:
+===========
+1: Terraria
+2: Rust
+3: Rocket League®
+4: Undertale
+5: Starbound
+===========
+Query 4:
+===========
+1: APB Reloaded
+2: ARK: Survival Evolved
+3: Batman™: Arkham Knight
+4: Call of Duty®: Black Ops III
+5: DayZ
+6: Dead by Daylight
+7: Dota 2
+8: Evolve Stage 2
+9: Grand Theft Auto IV: The Complete Edition
+10: Grand Theft Auto V
+11: Heroes & Generals
+12: Nether: Resurrected
+13: No Man's Sky
+14: PAYDAY 2
+15: Robocraft
+16: Rust
+17: Tom Clancy’s The Division™
+18: Z1 Battle Royale
+19: theHunter Classic

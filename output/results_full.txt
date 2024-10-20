@@ -1,0 +1,63 @@
+===========
+Query 1:
+===========
+windows: 92534
+mac: 17703
+linux: 12307
+===========
+Query 2:
+===========
+1: Relive
+2: 拯救大魔王2 Rescue the Great Demon 2
+3: Out of the Park Baseball 20
+4: 时之回廊/Corridor of time
+5: Clicker Heroes 2
+6: Time of Dragons
+7: Project AURA
+8: Midas Gold Plus
+9: Beasts of Bermuda
+10: Rust
+===========
+Query 3:
+===========
+1: Terraria
+2: Rust
+3: Rocket League®
+4: Undertale
+5: Starbound
+===========
+Query 4:
+===========
+1: Dota 2
+2: Grand Theft Auto IV: The Complete Edition
+3: APB Reloaded
+4: Batman™: Arkham Knight
+5: Starbound
+6: PAYDAY 2
+7: DayZ
+8: Heroes & Generals
+9: Nether: Resurrected
+10: Rust
+11: theHunter Classic
+12: Grand Theft Auto V
+13: Evolve Stage 2
+14: No Man's Sky
+15: Robocraft
+16: Call of Duty®: Black Ops III
+17: ARK: Survival Evolved
+18: Tom Clancy’s The Division™
+19: Dead by Daylight
+20: Z1 Battle Royale
+===========
+Query 5:
+===========
+1: Counter-Strike
+2: Counter-Strike: Source
+3: Half-Life: Source
+4: Half-Life 2: Lost Coast
+5: Team Fortress 2
+6: Left 4 Dead 2
+7: Dota 2
+8: Portal 2
+9: Killing Floor
+10: The Ship: Murder Party
