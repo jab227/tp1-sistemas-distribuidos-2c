@@ -41,7 +41,7 @@ def main():
 
     for k in client_results.keys():
         diff_result  = difflib.ndiff(client_results[k], pandas_results[k])
-        print(f"{k}\n {''.join(diff_result)}")
+        print(f"{k}\n{''.join(diff_result)}")
         
 if "__main__" == __name__:
     main()
