@@ -4,10 +4,10 @@ import difflib
 
 def parse_filename_from_args() -> Tuple[str, str]:
     arg_parser = ArgumentParser()
-    arg_parser.add_argument("--client", type=str, help="client query results file path", required=True, metavar="client")
-    arg_parser.add_argument("--pandas", type=str, help="pandas query results file path", required=True, metavar="pandas")    
+    arg_parser.add_argument("--first", type=str, help="first query results path", required=True, metavar="first")
+    arg_parser.add_argument("--second", type=str, help="second query results path", required=True, metavar="second")    
     args = arg_parser.parse_args()
-    return args.client, args.pandas
+    return args.first, args.second
 
 def parse_querys(lines: list[str]) -> dict[str, str]:
     results = dict()    
@@ -25,22 +25,22 @@ def parse_querys(lines: list[str]) -> dict[str, str]:
     return results
         
 def main():
-    client_filename, pandas_filename = parse_filename_from_args()
-    with open(client_filename, "r") as f:
-        client_lines = f.readlines()
+    first_filename, second_filename = parse_filename_from_args()
+    with open(first_filename, "r") as f:
+        first_lines = f.readlines()
 
-    client_results = parse_querys(client_lines)
+    first_results = parse_querys(first_lines)
     
-    with open(pandas_filename, "r") as f:
-        pandas_lines = f.readlines()
+    with open(second_filename, "r") as f:
+        second_lines = f.readlines()
 
-    pandas_results = parse_querys(pandas_lines)
+    second_results = parse_querys(second_lines)
 
     # Expensive but worth it
-    assert set(client_results.keys()) == set(pandas_results.keys())
+    assert set(first_results.keys()) == set(second_results.keys())
 
-    for k in client_results.keys():
-        diff_result  = difflib.ndiff(client_results[k], pandas_results[k])
+    for k in first_results.keys():
+        diff_result  = difflib.ndiff(first_results[k], second_results[k])
         print(f"{k}\n{''.join(diff_result)}")
         
 if "__main__" == __name__:
