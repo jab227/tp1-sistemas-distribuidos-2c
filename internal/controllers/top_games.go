@@ -9,6 +9,7 @@ import (
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/client"
 	models "github.com/jab227/tp1-sistemas-distribuidos-2c/internal/model"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/protocol"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/store"
 )
 
 type topGamesState struct {
@@ -18,7 +19,6 @@ type topGamesState struct {
 type TopGames struct {
 	iomanager client.IOManager
 	done      chan struct{}
-	state     *topGamesState
 	n         uint64
 }
 
@@ -32,7 +32,6 @@ func NewTopGames(n uint64) (*TopGames, error) {
 	return &TopGames{
 		iomanager: ioManager,
 		done:      make(chan struct{}, 1),
-		state:     &topGamesState{heapGames: heap.NewHeapGames()},
 		n:         n,
 	}, nil
 }
@@ -47,6 +46,7 @@ func (tg *TopGames) Run(ctx context.Context) error {
 		tg.done <- struct{}{}
 	}()
 
+	topGamesStateStore := store.NewStore[*topGamesState]()
 	for {
 		select {
 		case msg := <-consumerChan:
@@ -56,15 +56,23 @@ func (tg *TopGames) Run(ctx context.Context) error {
 				return fmt.Errorf("couldn't unmarshal protocol message: %w", err)
 			}
 
+			clientID := internalMsg.GetClientID()
+			state, ok := topGamesStateStore.Get(clientID)
+			if !ok {
+				state = &topGamesState{heapGames: heap.NewHeapGames()}
+				topGamesStateStore.Set(clientID, state)
+			}
+
 			if internalMsg.ExpectKind(protocol.Data) {
 				if !internalMsg.HasGameData() {
 					return fmt.Errorf("wrong type: expected game data")
 				}
-				tg.processGamesData(internalMsg)
+				tg.processGamesData(state, internalMsg)
 			} else if internalMsg.ExpectKind(protocol.End) {
-				if err := tg.writeResult(internalMsg); err != nil {
+				if err := tg.writeResult(state, internalMsg); err != nil {
 					return err
 				}
+				topGamesStateStore.Delete(clientID)
 			} else {
 				return fmt.Errorf("unexpected message type: %s", internalMsg.GetMessageType())
 			}
@@ -76,8 +84,8 @@ func (tg *TopGames) Run(ctx context.Context) error {
 	}
 }
 
-func (tg *TopGames) processGamesData(internalMsg protocol.Message) {
-	heapGames := tg.state.heapGames
+func (tg *TopGames) processGamesData(state *topGamesState, internalMsg protocol.Message) {
+	heapGames := state.heapGames
 	elements := internalMsg.Elements()
 
 	for _, element := range elements.Iter() {
@@ -96,8 +104,8 @@ func (tg *TopGames) processGamesData(internalMsg protocol.Message) {
 	}
 }
 
-func (tg *TopGames) writeResult(internalMsg protocol.Message) error {
-	listOfGames := tg.state.heapGames.TopNGames(tg.n)
+func (tg *TopGames) writeResult(state *topGamesState, internalMsg protocol.Message) error {
+	listOfGames := state.heapGames.TopNGames(tg.n)
 	slog.Debug("top10", "games", listOfGames)
 	for _, game := range listOfGames {
 		buffer := protocol.NewPayloadBuffer(1)
@@ -125,8 +133,5 @@ func (tg *TopGames) writeResult(internalMsg protocol.Message) error {
 		return fmt.Errorf("couldn't write query 2 end: %w", err)
 	}
 	slog.Debug("query 2 results", "state", listOfGames)
-
-	// reset state
-	tg.state.heapGames = heap.NewHeapGames()
 	return nil
 }

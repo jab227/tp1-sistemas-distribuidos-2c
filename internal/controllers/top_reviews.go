@@ -10,6 +10,7 @@ import (
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/client"
 	models "github.com/jab227/tp1-sistemas-distribuidos-2c/internal/model"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/protocol"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/store"
 )
 
 type topReviewsState struct {
@@ -19,7 +20,6 @@ type topReviewsState struct {
 type TopReviews struct {
 	iomanager client.IOManager
 	done      chan struct{}
-	state     *topReviewsState
 	n         int
 }
 
@@ -33,7 +33,6 @@ func NewTopReviews(n int) (*TopReviews, error) {
 	return &TopReviews{
 		iomanager: ioManager,
 		done:      make(chan struct{}, 1),
-		state:     &topReviewsState{make(map[string]int)},
 		n:         n,
 	}, nil
 }
@@ -48,6 +47,7 @@ func (tr *TopReviews) Run(ctx context.Context) error {
 		tr.done <- struct{}{}
 	}()
 
+	topReviewsStateStore := store.NewStore[*topReviewsState]()
 	for {
 		select {
 		case delivery := <-consumerCh:
@@ -57,16 +57,24 @@ func (tr *TopReviews) Run(ctx context.Context) error {
 				return fmt.Errorf("couldn't unmarshal protocol message: %w", err)
 			}
 
+			clientID := msg.GetClientID()
+			state, ok := topReviewsStateStore.Get(clientID)
+			if !ok {
+				state = &topReviewsState{make(map[string]int)}
+				topReviewsStateStore.Set(clientID, state)
+			}
+
 			if msg.ExpectKind(protocol.Data) {
 				if !msg.HasGameData() {
 					return fmt.Errorf("wrong type: expected game data")
 				}
-				tr.processReviewsData(msg)
+				tr.processReviewsData(state, msg)
 			} else if msg.ExpectKind(protocol.End) {
 				slog.Debug("received end", "game", msg.HasGameData())
-				if err := tr.writeResult(msg); err != nil {
+				if err := tr.writeResult(state, msg); err != nil {
 					return err
 				}
+				topReviewsStateStore.Delete(clientID)
 			} else {
 				return fmt.Errorf("unexpected message type: %s", msg.GetMessageType())
 			}
@@ -77,19 +85,19 @@ func (tr *TopReviews) Run(ctx context.Context) error {
 	}
 }
 
-func (tr *TopReviews) processReviewsData(internalMsg protocol.Message) {
+func (tr *TopReviews) processReviewsData(state *topReviewsState, internalMsg protocol.Message) {
 	elements := internalMsg.Elements()
 	for _, element := range elements.Iter() {
 		game := models.ReadGame(&element)
 		slog.Debug("received game", "game", game)
 		key := fmt.Sprintf("%s||%s", game.AppID, game.Name)
-		tr.state.appByReviewScore[key] += 1
+		state.appByReviewScore[key] += 1
 	}
 }
 
-func (tr *TopReviews) writeResult(internalMsg protocol.Message) error {
-	values := make([]heap.Value, 0, len(tr.state.appByReviewScore))
-	for k, v := range tr.state.appByReviewScore {
+func (tr *TopReviews) writeResult(state *topReviewsState, internalMsg protocol.Message) error {
+	values := make([]heap.Value, 0, len(state.appByReviewScore))
+	for k, v := range state.appByReviewScore {
 		name := strings.Split(k, "||")[1]
 		count := v
 		values = append(values, heap.Value{name, count})
@@ -125,10 +133,8 @@ func (tr *TopReviews) writeResult(internalMsg protocol.Message) error {
 	if err := tr.iomanager.Write(res.Marshal(), ""); err != nil {
 		return fmt.Errorf("couldn't write query 5 end: %w", err)
 	}
-	slog.Debug("query 3 results", "result", res, "state", *tr.state)
+	slog.Debug("query 3 results", "result", res, "state", *state)
 
-	// reset state
-	tr.state.appByReviewScore = make(map[string]int)
 	return nil
 }
 
