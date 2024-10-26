@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/utils"
 )
 
 type OperationType byte
@@ -17,12 +18,17 @@ const (
 	End
 )
 
-type FileType byte
+type ContentType byte
 
 const (
-	None FileType = iota
+	None ContentType = iota
 	Games
 	Reviews
+	Query1
+	Query2
+	Query3
+	Query4
+	Query5
 )
 
 // TODO(fede) - Replace with unsafe
@@ -30,7 +36,7 @@ const HeaderSize = 26
 
 type Header struct {
 	OpType      OperationType
-	FileType    FileType
+	ContentType ContentType
 	ClientId    uint64
 	RequestId   uint64
 	PayloadSize uint64
@@ -45,7 +51,7 @@ func (h *Header) Marshal() []byte {
 	buffer := bytes.Buffer{}
 
 	buffer.WriteByte(byte(h.OpType))
-	buffer.WriteByte(byte(h.FileType))
+	buffer.WriteByte(byte(h.ContentType))
 
 	clientIdBuf := make([]byte, 8)
 	binary.BigEndian.PutUint64(clientIdBuf, h.ClientId)
@@ -68,7 +74,7 @@ func (h *Header) Unmarshal(b []byte) error {
 	}
 
 	h.OpType = OperationType(b[0])
-	h.FileType = FileType(b[1])
+	h.ContentType = ContentType(b[1])
 
 	h.ClientId = binary.BigEndian.Uint64(b[2:10])
 	h.RequestId = binary.BigEndian.Uint64(b[10:18])
@@ -85,7 +91,7 @@ func NewSyncMessage() *Message {
 	payload := []byte{1}
 	header := Header{
 		OpType:      Sync,
-		FileType:    None,
+		ContentType: None,
 		ClientId:    0,
 		RequestId:   0,
 		PayloadSize: uint64(len(payload)),
@@ -101,7 +107,7 @@ func NewAckSyncMessage(clientId uint64, requestId uint64) *Message {
 	payload := []byte{1}
 	header := Header{
 		OpType:      SyncAck,
-		FileType:    None,
+		ContentType: None,
 		ClientId:    clientId,
 		RequestId:   requestId,
 		PayloadSize: uint64(len(payload)),
@@ -113,11 +119,11 @@ func NewAckSyncMessage(clientId uint64, requestId uint64) *Message {
 	}
 }
 
-func NewStartMessage(fileType FileType, clientId uint64, requestId uint64) *Message {
+func NewStartMessage(contentType ContentType, clientId uint64, requestId uint64) *Message {
 	payload := []byte{1}
 	header := Header{
 		OpType:      Start,
-		FileType:    fileType,
+		ContentType: contentType,
 		ClientId:    clientId,
 		RequestId:   requestId,
 		PayloadSize: uint64(len(payload)),
@@ -129,11 +135,11 @@ func NewStartMessage(fileType FileType, clientId uint64, requestId uint64) *Mess
 	}
 }
 
-func NewEndMessage(fileType FileType, clientId uint64, requestId uint64) *Message {
+func NewEndMessage(contentType ContentType, clientId uint64, requestId uint64) *Message {
 	payload := []byte{1}
 	header := Header{
 		OpType:      End,
-		FileType:    fileType,
+		ContentType: contentType,
 		ClientId:    clientId,
 		RequestId:   requestId,
 		PayloadSize: uint64(len(payload)),
@@ -145,10 +151,27 @@ func NewEndMessage(fileType FileType, clientId uint64, requestId uint64) *Messag
 	}
 }
 
-func NewDataMessage(fileType FileType, clientId uint64, requestId uint64, payload []byte) *Message {
+func NewDataMessage(contentType ContentType, clientId uint64, requestId uint64, payload []byte) *Message {
 	header := Header{
 		OpType:      Data,
-		FileType:    fileType,
+		ContentType: contentType,
+		ClientId:    clientId,
+		RequestId:   requestId,
+		PayloadSize: uint64(len(payload)),
+	}
+
+	return &Message{
+		Header:  header,
+		Payload: payload,
+	}
+}
+
+func NewResultMessage(contentType ContentType, clientId uint64, requestId uint64, payload []byte) *Message {
+	utils.Assert(contentType != None && contentType != Games && contentType != Reviews, "expected a result")
+
+	header := Header{
+		OpType:      Result,
+		ContentType: contentType,
 		ClientId:    clientId,
 		RequestId:   requestId,
 		PayloadSize: uint64(len(payload)),
@@ -196,9 +219,9 @@ func (m *Message) IsEnd() bool {
 }
 
 func (m *Message) IsGamesMsg() bool {
-	return m.Header.FileType == Games
+	return m.Header.ContentType == Games
 }
 
 func (m *Message) IsReviewsMsg() bool {
-	return m.Header.FileType == Reviews
+	return m.Header.ContentType == Reviews
 }

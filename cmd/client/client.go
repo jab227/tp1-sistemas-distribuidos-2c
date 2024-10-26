@@ -6,7 +6,6 @@ import (
 	internalClient "github.com/jab227/tp1-sistemas-distribuidos-2c/internal/client"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/logging"
 	"io"
-	"log"
 	"log/slog"
 	"os"
 )
@@ -36,8 +35,6 @@ func main() {
 		fmt.Println(err)
 		return
 	}
-
-	log.Printf("%v", clientConfig)
 
 	if err := logging.InitLoggerWithString(clientConfig.LoggerLevel); err != nil {
 		fmt.Println(err)

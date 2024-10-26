@@ -33,7 +33,7 @@ func ReadFromSocket(connection net.Conn, buffer *[]byte, size int) error {
 	for recvData < size {
 		bytesRecv, err := connection.Read(internalBuffer[recvData:])
 		if err != nil {
-			return fmt.Errorf("failed to recv message of size: %v", size)
+			return fmt.Errorf("failed to recv message of size: %v - err %s", size, err)
 		}
 
 		recvData += bytesRecv

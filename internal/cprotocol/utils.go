@@ -1,6 +1,7 @@
 package cprotocol
 
 import (
+	"errors"
 	"fmt"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/utils"
 	"net"
@@ -24,8 +25,8 @@ func SendAckSyncMsg(conn net.Conn, clientId uint64, requestId uint64) error {
 	return nil
 }
 
-func SendStartMsg(conn net.Conn, fileType FileType, clientId uint64, requestId uint64) error {
-	msg := NewStartMessage(fileType, clientId, requestId)
+func SendStartMsg(conn net.Conn, contentType ContentType, clientId uint64, requestId uint64) error {
+	msg := NewStartMessage(contentType, clientId, requestId)
 	if err := utils.WriteToSocket(conn, msg.Marshal()); err != nil {
 		return err
 	}
@@ -33,8 +34,8 @@ func SendStartMsg(conn net.Conn, fileType FileType, clientId uint64, requestId u
 	return nil
 }
 
-func SendEndMsg(conn net.Conn, fileType FileType, clientId uint64, requestId uint64) error {
-	msg := NewEndMessage(fileType, clientId, requestId)
+func SendEndMsg(conn net.Conn, contentType ContentType, clientId uint64, requestId uint64) error {
+	msg := NewEndMessage(contentType, clientId, requestId)
 	if err := utils.WriteToSocket(conn, msg.Marshal()); err != nil {
 		return err
 	}
@@ -42,8 +43,17 @@ func SendEndMsg(conn net.Conn, fileType FileType, clientId uint64, requestId uin
 	return nil
 }
 
-func SendDataMsg(conn net.Conn, fileType FileType, clientId uint64, requestId uint64, data []byte) error {
-	msg := NewDataMessage(fileType, clientId, requestId, data)
+func SendDataMsg(conn net.Conn, contentType ContentType, clientId uint64, requestId uint64, data []byte) error {
+	msg := NewDataMessage(contentType, clientId, requestId, data)
+	if err := utils.WriteToSocket(conn, msg.Marshal()); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func SendResultMsg(conn net.Conn, contentType ContentType, clientId uint64, requestId uint64, data []byte) error {
+	msg := NewResultMessage(contentType, clientId, requestId, data)
 	if err := utils.WriteToSocket(conn, msg.Marshal()); err != nil {
 		return err
 	}
@@ -68,6 +78,32 @@ func ReadMsg(conn net.Conn) (Message, error) {
 	}
 
 	return Message{Header: msgHeader, Payload: payloadBuf}, nil
+}
+
+func ReadDataMsg(conn net.Conn) (Message, error) {
+	msg, err := ReadMsg(conn)
+	if err != nil {
+		return Message{}, err
+	}
+
+	if !msg.IsData() {
+		return Message{}, errors.New("msg isn't of type Data")
+	}
+
+	return msg, nil
+}
+
+func ReadResultMsg(conn net.Conn) (Message, error) {
+	msg, err := ReadMsg(conn)
+	if err != nil {
+		return Message{}, err
+	}
+
+	if !msg.IsResult() {
+		return Message{}, errors.New("msg isn't of type Result")
+	}
+
+	return msg, nil
 }
 
 func ReadSyncMsg(conn net.Conn) (Message, error) {

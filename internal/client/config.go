@@ -11,9 +11,9 @@ type Config struct {
 }
 
 type FileBatcherConfig struct {
-	FileType       cprotocol.FileType `json:"FileType"`
-	Path           string             `json:"Path"`
-	NLinesFromDisk int                `json:"NLinesFromDisk"`
-	MaxElements    int                `json:"MaxElements"`
-	MaxBytes       int                `json:"MaxBytes"`
+	FileType       cprotocol.ContentType `json:"ContentType"`
+	Path           string                `json:"Path"`
+	NLinesFromDisk int                   `json:"NLinesFromDisk"`
+	MaxElements    int                   `json:"MaxElements"`
+	MaxBytes       int                   `json:"MaxBytes"`
 }

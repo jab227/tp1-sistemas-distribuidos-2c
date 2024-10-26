@@ -1,6 +1,7 @@
 package boundary
 
 import (
+	"context"
 	"fmt"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/cprotocol"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/client"
@@ -54,6 +55,21 @@ func (b *Boundary) handleErrors(errorsCh <-chan error) {
 func (b *Boundary) handleClient(conn net.Conn, errorsCh chan<- error) {
 	defer conn.Close()
 
+	resultsService := NewResultsService(conn, b.ioManager)
+	if err := b.handleClientMsgs(conn); err != nil {
+		errorsCh <- err
+		return
+	}
+
+	// TODO(fede) - handle context
+	if err := resultsService.Run(context.Background()); err != nil {
+		slog.Error(err.Error())
+		errorsCh <- err
+		return
+	}
+}
+
+func (b *Boundary) handleClientMsgs(conn net.Conn) error {
 	endCounter := 0
 	clientAddr := conn.RemoteAddr().String()
 
@@ -65,14 +81,12 @@ func (b *Boundary) handleClient(conn net.Conn, errorsCh chan<- error) {
 	// Wait for SyncMsg
 	_, err := cprotocol.ReadSyncMsg(conn)
 	if err != nil {
-		errorsCh <- fmt.Errorf("client: %s - could not read sync message: %v", clientAddr, err)
-		return
+		return fmt.Errorf("client: %s - could not read sync message: %v", clientAddr, err)
 	}
 
 	// Response with AckSync
 	if err := cprotocol.SendAckSyncMsg(conn, clientId, requestId); err != nil {
-		errorsCh <- fmt.Errorf("client: %s - could not send ack: %v", clientAddr, err)
-		return
+		return fmt.Errorf("client: %s - could not send ack: %v", clientAddr, err)
 	}
 
 	for {
@@ -83,20 +97,18 @@ func (b *Boundary) handleClient(conn net.Conn, errorsCh chan<- error) {
 
 		msg, err := cprotocol.ReadMsg(conn)
 		if err != nil {
-			errorsCh <- fmt.Errorf("client: %s - could not read message: %v", clientAddr, err)
-			return
+			return fmt.Errorf("client: %s - could not read message: %v", clientAddr, err)
 		}
 
 		if msg.IsStart() {
 			slog.Info("received start message",
-				"type", msg.Header.FileType,
+				"type", msg.Header.ContentType,
 				"requestId", msg.Header.RequestId,
 				"clientId", msg.Header.ClientId,
 			)
 		} else if msg.IsData() {
 			if err := b.handleRecvData(msg, messageId); err != nil {
-				errorsCh <- fmt.Errorf("client: %s - %v", clientAddr, err)
-				return
+				return fmt.Errorf("client: %s - %v", clientAddr, err)
 			}
 
 		} else if msg.IsEnd() {
@@ -107,12 +119,13 @@ func (b *Boundary) handleClient(conn net.Conn, errorsCh chan<- error) {
 			)
 
 			if err := b.handleRecvEnd(msg); err != nil {
-				errorsCh <- fmt.Errorf("client: %s - %v", clientAddr, err)
-				return
+				return fmt.Errorf("client: %s - %v", clientAddr, err)
 			}
 			endCounter += 1
 		}
 	}
+
+	return nil
 }
 
 // TODO(fede) - Better handle messageId
