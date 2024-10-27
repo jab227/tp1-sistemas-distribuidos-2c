@@ -53,15 +53,20 @@ func (p *Projection) Run(ctx context.Context) error {
 		return err
 	}
 	tx, rx := service.Run(ctx)
+	end := 2
 	for {
 		select {
 		case msg := <-consumerChan:
+			if end <= 0 {
+				slog.Debug("received data after end")
+			}
 			err := p.handleMessage(msg, tx)
 			if err != nil {
 				return err
 			}
 			msg.Ack(false)
 		case t := <-rx:
+			end--
 			service.NotifyCoordinator(t, protocol.MessageOptions{
 				MessageID: 0,
 				ClientID:  p.clientID,

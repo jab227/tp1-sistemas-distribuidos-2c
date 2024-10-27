@@ -65,11 +65,15 @@ func (r *Percentile) Run(ctx context.Context) error {
 	defer func() {
 		r.done <- struct{}{}
 	}()
+	end := false
 	for {
 		select {
 		case delivery := <-consumerCh:
 			msgBytes := delivery.Body
 			var msg protocol.Message
+			if end {
+				slog.Debug("received data after end percentile")
+			}
 			if err := msg.Unmarshal(msgBytes); err != nil {
 				return fmt.Errorf("couldn't unmarshal protocol message: %w", err)
 			}
@@ -85,6 +89,7 @@ func (r *Percentile) Run(ctx context.Context) error {
 				}
 			} else if msg.ExpectKind(protocol.End) {
 				// reset state
+				end = true
 				slog.Debug("received end", "node", "percentile", "game end", msg.HasGameData(), "review end", msg.HasReviewData())
 
 				// Compute percentile

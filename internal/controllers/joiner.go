@@ -57,9 +57,13 @@ func (j *Joiner) Run(ctx context.Context) error {
 	}
 	service, err := end.NewService(options)
 	tx, rx := service.Run(ctx)
+	end := false
 	for {
 		select {
 		case delivery := <-consumerCh:
+			if end {
+				slog.Debug("received message after end")
+			}
 			msgBytes := delivery.Body
 			var msg protocol.Message
 			if err := msg.Unmarshal(msgBytes); err != nil {
@@ -82,6 +86,7 @@ func (j *Joiner) Run(ctx context.Context) error {
 			if j.s.ends != 0 {
 				continue
 			}
+			end = true
 			opts := protocol.MessageOptions{
 				MessageID: 0,
 				ClientID:  j.s.clientID,

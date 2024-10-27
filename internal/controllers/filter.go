@@ -119,14 +119,13 @@ func (f *Filter) Run(ctx context.Context) error {
 				}
 				delivery.Ack(false)
 			} else if msg.ExpectKind(protocol.End) {
-				end = true
 				var msgType protocol.DataType
 				if msg.HasGameData() {
 					msgType = protocol.Games
 				} else if msg.HasReviewData() {
 					msgType = protocol.Reviews
 				}
-
+				slog.Debug("received end message")
 				newMsg := protocol.NewEndMessage(
 					msgType,
 					protocol.MessageOptions{
@@ -139,7 +138,8 @@ func (f *Filter) Run(ctx context.Context) error {
 				delivery.Ack(false)
 			}
 		case t := <-rx:
-			slog.Info("END received")
+			slog.Info("END received from peer")
+			end = true
 			service.NotifyCoordinator(t, protocol.MessageOptions{
 				MessageID: 0,
 				ClientID:  f.clientID,
