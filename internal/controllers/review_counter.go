@@ -101,8 +101,8 @@ func (r *ReviewCounter) Run(ctx context.Context) error {
 						return fmt.Errorf("couldn't write query 4 output: %w", err)
 					}
 					slog.Debug("query 4 results", "result", result.name)
-					r.s = reviewCounterState(make(map[string]inner))
 				}
+				r.s = reviewCounterState(make(map[string]inner))				
 				res := protocol.NewEndMessage(protocol.Games, protocol.MessageOptions{
 					MessageID: msg.GetMessageID(),
 					ClientID:  msg.GetClientID(),
