@@ -12,6 +12,7 @@ import (
 
 type Boundary struct {
 	config Config
+	state  State
 
 	// TODO(fede) - Add sync for multiple processes accessing to this
 	ioManager *client.IOManager
@@ -20,6 +21,7 @@ type Boundary struct {
 func NewBoundary(config *Config, ioManager *client.IOManager) *Boundary {
 	return &Boundary{
 		config:    *config,
+		state:     *NewState(),
 		ioManager: ioManager,
 	}
 }
@@ -74,9 +76,8 @@ func (b *Boundary) handleClientMsgs(conn net.Conn) error {
 	clientAddr := conn.RemoteAddr().String()
 
 	// TODO(fede) - Replace hardcoded Ids
-	clientId := uint64(1)
-	requestId := uint64(1)
-	messageId := uint32(1)
+	clientId := b.state.GetNewClientId()
+	requestId := b.state.GetClientNewRequestId(clientId)
 
 	// Wait for SyncMsg
 	_, err := cprotocol.ReadSyncMsg(conn)
@@ -107,7 +108,7 @@ func (b *Boundary) handleClientMsgs(conn net.Conn) error {
 				"clientId", msg.Header.ClientId,
 			)
 		} else if msg.IsData() {
-			if err := b.handleRecvData(msg, messageId); err != nil {
+			if err := b.handleRecvData(msg); err != nil {
 				return fmt.Errorf("client: %s - %v", clientAddr, err)
 			}
 
@@ -115,7 +116,7 @@ func (b *Boundary) handleClientMsgs(conn net.Conn) error {
 			slog.Info("received end message",
 				"clientId", msg.Header.ClientId,
 				"requestId", msg.Header.RequestId,
-				"messageId", messageId,
+				"messageId", b.state.GetClientNewMessageId(clientId),
 			)
 
 			if err := b.handleRecvEnd(msg); err != nil {
@@ -128,8 +129,7 @@ func (b *Boundary) handleClientMsgs(conn net.Conn) error {
 	return nil
 }
 
-// TODO(fede) - Better handle messageId
-func (b *Boundary) handleRecvData(msg cprotocol.Message, messageId uint32) error {
+func (b *Boundary) handleRecvData(msg cprotocol.Message) error {
 	payloadBuffer := protocol.NewPayloadBuffer(1)
 	payloadBuffer.BeginPayloadElement()
 	payloadBuffer.WriteBytes(msg.Payload)
@@ -147,7 +147,7 @@ func (b *Boundary) handleRecvData(msg cprotocol.Message, messageId uint32) error
 		protocol.MessageOptions{
 			ClientID:  uint32(msg.Header.ClientId),
 			RequestID: uint32(msg.Header.RequestId),
-			MessageID: messageId,
+			MessageID: b.state.GetClientNewMessageId(msg.Header.ClientId),
 		},
 	)
 
