@@ -7,6 +7,10 @@ import (
 	"net"
 )
 
+func SendMsg(conn net.Conn, msg Message) error {
+	return utils.WriteToSocket(conn, msg.Marshal())
+}
+
 func SendSyncMsg(conn net.Conn) error {
 	msg := NewSyncMessage()
 	if err := utils.WriteToSocket(conn, msg.Marshal()); err != nil {

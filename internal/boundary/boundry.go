@@ -38,13 +38,25 @@ func (b *Boundary) Run() error {
 		return fmt.Errorf("could not listen to %s:%d: %v", b.config.ServiceHost, b.config.ServicePort, err)
 	}
 
-	go b.handleErrors()
+	// Results recv goroutine
+	resultService := NewResultsService(b.ioManager, &b.state)
+	go func() {
+		//TODO(fede) - Handle context
+		if err := resultService.Run(context.Background()); err != nil {
+			slog.Error("error running results goroutine")
+			b.errorsCh <- err
+			return
+		}
+	}()
 
+	// Error logger goroutine
+	go b.handleErrors()
 	// Sender goroutine to handle message send
 	go b.senderGoroutine()
 
 	for {
 		conn, err := listenerSock.Accept()
+		slog.Info("accepted new connection", "addr", conn.RemoteAddr())
 		if err != nil {
 			return fmt.Errorf("could not accept connection: %v", err)
 		}
@@ -76,36 +88,24 @@ func (b *Boundary) handleErrors() {
 func (b *Boundary) handleClient(conn net.Conn) {
 	defer conn.Close()
 
-	resultsService := NewResultsService(conn, b.ioManager)
-	if err := b.handleClientMsgs(conn); err != nil {
-		b.errorsCh <- err
-		return
-	}
-
-	// TODO(fede) - handle context
-	if err := resultsService.Run(context.Background()); err != nil {
-		slog.Error(err.Error())
-		b.errorsCh <- err
-		return
-	}
-}
-
-func (b *Boundary) handleClientMsgs(conn net.Conn) error {
 	endCounter := 0
 	clientAddr := conn.RemoteAddr().String()
 
 	clientId := b.state.GetNewClientId()
 	requestId := b.state.GetClientNewRequestId(clientId)
+	resultsCh := b.state.GetClientCh(clientId)
 
 	// Wait for SyncMsg
 	_, err := cprotocol.ReadSyncMsg(conn)
 	if err != nil {
-		return fmt.Errorf("client: %s - could not read sync message: %v", clientAddr, err)
+		b.errorsCh <- fmt.Errorf("client: %s - could not read sync message: %v", clientAddr, err)
+		return
 	}
 
 	// Response with AckSync
 	if err := cprotocol.SendAckSyncMsg(conn, clientId, requestId); err != nil {
-		return fmt.Errorf("client: %s - could not send ack: %v", clientAddr, err)
+		b.errorsCh <- fmt.Errorf("client: %s - could not send ack: %v", clientAddr, err)
+		return
 	}
 
 	for {
@@ -116,7 +116,8 @@ func (b *Boundary) handleClientMsgs(conn net.Conn) error {
 
 		msg, err := cprotocol.ReadMsg(conn)
 		if err != nil {
-			return fmt.Errorf("client: %s - could not read message: %v", clientAddr, err)
+			b.errorsCh <- fmt.Errorf("client: %s - could not read message: %v", clientAddr, err)
+			return
 		}
 
 		if msg.IsStart() {
@@ -127,7 +128,8 @@ func (b *Boundary) handleClientMsgs(conn net.Conn) error {
 			)
 		} else if msg.IsData() {
 			if err := b.handleRecvData(msg); err != nil {
-				return fmt.Errorf("client: %s - %v", clientAddr, err)
+				b.errorsCh <- fmt.Errorf("client: %s - %v", clientAddr, err)
+				return
 			}
 
 		} else if msg.IsEnd() {
@@ -138,13 +140,19 @@ func (b *Boundary) handleClientMsgs(conn net.Conn) error {
 			)
 
 			if err := b.handleRecvEnd(msg); err != nil {
-				return fmt.Errorf("client: %s - %v", clientAddr, err)
+				b.errorsCh <- fmt.Errorf("client: %s - %v", clientAddr, err)
+				return
 			}
 			endCounter += 1
 		}
 	}
 
-	return nil
+	for result := range resultsCh {
+		if err := cprotocol.SendMsg(conn, result); err != nil {
+			b.errorsCh <- err
+			return
+		}
+	}
 }
 
 func (b *Boundary) handleRecvData(msg cprotocol.Message) error {
