@@ -31,7 +31,6 @@ const (
 	Query5
 )
 
-// TODO(fede) - Replace with unsafe
 const HeaderSize = 26
 
 type Header struct {

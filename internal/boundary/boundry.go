@@ -14,14 +14,19 @@ type Boundary struct {
 	config Config
 	state  State
 
-	// TODO(fede) - Add sync for multiple processes accessing to this
+	senderCh chan protocol.Message
+	errorsCh chan error
+
 	ioManager *client.IOManager
 }
 
 func NewBoundary(config *Config, ioManager *client.IOManager) *Boundary {
 	return &Boundary{
-		config:    *config,
-		state:     *NewState(),
+		config: *config,
+		state:  *NewState(),
+
+		senderCh:  make(chan protocol.Message),
+		errorsCh:  make(chan error),
 		ioManager: ioManager,
 	}
 }
@@ -33,9 +38,10 @@ func (b *Boundary) Run() error {
 		return fmt.Errorf("could not listen to %s:%d: %v", b.config.ServiceHost, b.config.ServicePort, err)
 	}
 
-	// Error goroutine to handle errors
-	errorsCh := make(chan error)
-	go b.handleErrors(errorsCh)
+	go b.handleErrors()
+
+	// Sender goroutine to handle message send
+	go b.senderGoroutine()
 
 	for {
 		conn, err := listenerSock.Accept()
@@ -43,30 +49,43 @@ func (b *Boundary) Run() error {
 			return fmt.Errorf("could not accept connection: %v", err)
 		}
 
-		go b.handleClient(conn, errorsCh)
+		go b.handleClient(conn)
 	}
 }
 
-func (b *Boundary) handleErrors(errorsCh <-chan error) {
+func (b *Boundary) senderGoroutine() {
 	for {
-		errMsg := <-errorsCh
+		select {
+		case msg := <-b.senderCh:
+			if err := b.ioManager.Write(msg.Marshal(), ""); err != nil {
+				slog.Error("error with sender goroutine")
+				b.errorsCh <- err
+				return
+			}
+		}
+	}
+}
+
+func (b *Boundary) handleErrors() {
+	for {
+		errMsg := <-b.errorsCh
 		slog.Error(errMsg.Error())
 	}
 }
 
-func (b *Boundary) handleClient(conn net.Conn, errorsCh chan<- error) {
+func (b *Boundary) handleClient(conn net.Conn) {
 	defer conn.Close()
 
 	resultsService := NewResultsService(conn, b.ioManager)
 	if err := b.handleClientMsgs(conn); err != nil {
-		errorsCh <- err
+		b.errorsCh <- err
 		return
 	}
 
 	// TODO(fede) - handle context
 	if err := resultsService.Run(context.Background()); err != nil {
 		slog.Error(err.Error())
-		errorsCh <- err
+		b.errorsCh <- err
 		return
 	}
 }
@@ -75,7 +94,6 @@ func (b *Boundary) handleClientMsgs(conn net.Conn) error {
 	endCounter := 0
 	clientAddr := conn.RemoteAddr().String()
 
-	// TODO(fede) - Replace hardcoded Ids
 	clientId := b.state.GetNewClientId()
 	requestId := b.state.GetClientNewRequestId(clientId)
 
@@ -151,10 +169,7 @@ func (b *Boundary) handleRecvData(msg cprotocol.Message) error {
 		},
 	)
 
-	if err := b.ioManager.Write(internalMsg.Marshal(), ""); err != nil {
-		return fmt.Errorf("cannot send data to projection: %w - %v", err, internalMsg)
-	}
-
+	b.senderCh <- internalMsg
 	return nil
 }
 
@@ -172,9 +187,6 @@ func (b *Boundary) handleRecvEnd(msg cprotocol.Message) error {
 		RequestID: uint32(msg.Header.RequestId),
 	})
 
-	if err := b.ioManager.Write(internalMsg.Marshal(), ""); err != nil {
-		return fmt.Errorf("cannot send END msg to projection: %w", err)
-	}
-
+	b.senderCh <- internalMsg
 	return nil
 }
