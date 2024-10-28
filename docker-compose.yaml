@@ -482,6 +482,7 @@ services:
       - OUTPUT_ROUTER_TAGS=1 # Affects Joinner Query 3
       - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
       - DIRECT_SUBSCRIBER_QUEUE=positive-filter-input-queue
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=1
       - DIRECT_SUBSCRIBER_KEYS=review
       - END_SERVICE_COORDINATOR_QUEUE=positive-filter-control
       - END_SERVICE_EXCHANGE=positive-exchange-control
@@ -512,6 +513,7 @@ services:
       - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
       - DIRECT_SUBSCRIBER_QUEUE=positive-filter-input-queue
       - DIRECT_SUBSCRIBER_KEYS=review
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=1
       - END_SERVICE_COORDINATOR_QUEUE=positive-filter-control
       - END_SERVICE_EXCHANGE=positive-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=positive-peer-queue-2
@@ -706,6 +708,7 @@ services:
       - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
       - DIRECT_SUBSCRIBER_QUEUE=negative-filter-input-queue
       - DIRECT_SUBSCRIBER_KEYS=review
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=1
       - END_SERVICE_COORDINATOR_QUEUE=negative-filter-control
       - END_SERVICE_EXCHANGE=negative-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=negative-peer-queue-1
@@ -735,6 +738,7 @@ services:
       - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
       - DIRECT_SUBSCRIBER_QUEUE=negative-filter-input-queue
       - DIRECT_SUBSCRIBER_KEYS=review
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=1
       - END_SERVICE_COORDINATOR_QUEUE=negative-filter-control
       - END_SERVICE_EXCHANGE=negative-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=negative-peer-queue-2
