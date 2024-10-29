@@ -16,12 +16,12 @@ services:
     networks:
       - rabbitmq_go_net
 
-  server:
-    container_name: server
+  boundary:
+    container_name: boundary
     build:
       context: ./
       dockerfile: cmd/Dockerfile
-    entrypoint: /cmd/server
+    entrypoint: /cmd/boundary
     environment:
       - RABBITMQ_HOSTNAME=rabbitmq
       - RABBITMQ_PORT=5672
@@ -34,6 +34,7 @@ services:
       - INPUT_WORKER_QUEUE_TIMEOUT=5
       - INPUT_WORKER_QUEUE_COUNT=1
       - SERVER_PORT=7070
+      - SERVER_HOST=0.0.0.0
       - LOGGER_LEVEL=debug
     ports:
       - "7070:7070/tcp"
@@ -42,6 +43,7 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+
   # Projection controllers
   projection0:
     container_name: projection0
@@ -485,6 +487,7 @@ services:
       - OUTPUT_ROUTER_TAGS=1,2,3 # Affects Joinner Query 3
       - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
       - DIRECT_SUBSCRIBER_QUEUE=positive-filter-input-queue
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=1
       - DIRECT_SUBSCRIBER_KEYS=review
       - DIRECT_SUBSCRIBER_PREFETCH_COUNT=1      
       - END_SERVICE_COORDINATOR_QUEUE=positive-filter-control
