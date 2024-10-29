@@ -88,7 +88,7 @@ func (f *Filter) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	service, err := end.NewService(options)
+	service, err := end.NewWorkerQueueService(options)
 	tx, rx := service.Run(ctx)
 	end := false
 	for {

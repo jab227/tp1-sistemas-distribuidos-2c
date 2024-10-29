@@ -11,11 +11,9 @@ import (
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/utils"
 )
 
-type Service struct {
-	fanoutPub   *rabbitmq.FanoutPublisher
-	fanoutSub   *rabbitmq.FanoutSubscriber
-	coordinator *rabbitmq.WorkerQueue
-	notify      chan protocol.Message
+type MessageInfo struct {
+	DataType protocol.DataType
+	Options  protocol.MessageOptions
 }
 
 type ServiceOptions struct {
@@ -23,6 +21,13 @@ type ServiceOptions struct {
 	SubscriberQueue  string
 	CoordinatorQueue string
 	Timeout          uint8
+}
+
+type WorkerQueueService struct {
+	fanoutPub   *rabbitmq.FanoutPublisher
+	fanoutSub   *rabbitmq.FanoutSubscriber
+	coordinator *rabbitmq.WorkerQueue
+	notify      chan protocol.Message
 }
 
 func GetServiceOptionsFromEnv() (*ServiceOptions, error) {
@@ -61,7 +66,7 @@ func GetServiceOptionsFromEnv() (*ServiceOptions, error) {
 	}, nil
 }
 
-func NewService(opts *ServiceOptions) (*Service, error) {
+func NewWorkerQueueService(opts *ServiceOptions) (*WorkerQueueService, error) {
 	conn, err := env.GetConnection()
 	if err != nil {
 		return nil, err
@@ -92,7 +97,7 @@ func NewService(opts *ServiceOptions) (*Service, error) {
 		return nil, fmt.Errorf("end service: couldn't create fanout subscriber queue: %w", err)
 	}
 
-	return &Service{
+	return &WorkerQueueService{
 		fanoutPub:   fanoutPub,
 		fanoutSub:   fanoutSub,
 		coordinator: coordinator,
@@ -100,18 +105,13 @@ func NewService(opts *ServiceOptions) (*Service, error) {
 	}, nil
 }
 
-func (s *Service) Destroy() {
+func (s *WorkerQueueService) Destroy() {
 	s.fanoutPub.Close()
 	s.fanoutSub.Close()
 	s.coordinator.Close()
 }
 
-type MessageInfo struct {
-	DataType protocol.DataType
-	Options  protocol.MessageOptions
-}
-
-func (s *Service) Run(ctx context.Context) (chan<- protocol.Message, <-chan MessageInfo) {
+func (s *WorkerQueueService) Run(ctx context.Context) (chan<- protocol.Message, <-chan MessageInfo) {
 	tx := make(chan protocol.Message, 1)
 	rx := make(chan MessageInfo, 1)
 	go func() {
@@ -163,7 +163,50 @@ func (s *Service) Run(ctx context.Context) (chan<- protocol.Message, <-chan Mess
 	return tx, rx
 }
 
-func (s *Service) NotifyCoordinator(d protocol.DataType, opts protocol.MessageOptions) {
+func (s *WorkerQueueService) NotifyCoordinator(d protocol.DataType, opts protocol.MessageOptions) {
 	msg := protocol.NewEndMessage(d, opts)
 	s.notify <- msg
+}
+
+type RouterService struct {
+	coordinator *rabbitmq.WorkerQueue
+	notify      chan protocol.Message
+}
+
+func NewRouterService(opts *ServiceOptions) (*RouterService, error) {
+	conn, err := env.GetConnection()
+	if err != nil {
+		return nil, err
+	}
+
+	coordinator := rabbitmq.NewWorkerQueue(rabbitmq.WorkerQueueConfig{
+		Name:          opts.CoordinatorQueue,
+		Timeout:       opts.Timeout,
+		PrefetchCount: 1,
+	})
+	if err := coordinator.Connect(conn); err != nil {
+		return nil, fmt.Errorf("end service: couldn't create coordinator queue: %w", err)
+	}
+	return &RouterService{
+		coordinator: coordinator,
+		notify:      make(chan protocol.Message),
+	}, nil
+}
+
+func (r *RouterService) Run(ctx context.Context) {
+	go func() {
+		for {
+			select {
+			case msg := <-r.notify:
+				r.coordinator.Write(msg.Marshal(), "")
+			case <-ctx.Done():
+				slog.Error("context error", "message", ctx.Err())
+			}
+		}
+	}()
+}
+
+func (r *RouterService) NotifyCoordinator(d protocol.DataType, opts protocol.MessageOptions) {
+	msg := protocol.NewEndMessage(d, opts)
+	r.notify <- msg
 }
