@@ -11,6 +11,7 @@ import (
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/client"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/model"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/protocol"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/store"
 )
 
 type innerPercentile struct {
@@ -65,6 +66,9 @@ func (r *Percentile) Run(ctx context.Context) error {
 	defer func() {
 		r.done <- struct{}{}
 	}()
+
+	percentileStateStore := store.NewStore[percentileState]()
+
 	for {
 		select {
 		case delivery := <-consumerCh:
@@ -78,51 +82,33 @@ func (r *Percentile) Run(ctx context.Context) error {
 				if !msg.HasGameData() {
 					return fmt.Errorf("couldn't wrong type: expected game data")
 				}
+				clientID := msg.GetClientID()
 				elements := msg.Elements()
+				state, ok := percentileStateStore.Get(clientID)
+				if !ok {
+					// the map behaves like a ptr
+					state = make(map[string]innerPercentile)
+					percentileStateStore.Set(clientID, state)
+				}
 				for _, element := range elements.Iter() {
 					game := models.ReadGame(&element)
-					r.s.insertOrUpdate(game)
+					state.insertOrUpdate(game)
 				}
 			} else if msg.ExpectKind(protocol.End) {
+				clientID := msg.GetClientID()
 				// reset state
 				slog.Debug("received end", "node", "percentile", "game end", msg.HasGameData(), "review end", msg.HasReviewData())
-
 				// Compute percentile
-				results := make([]innerPercentile, 0, len(r.s))
-				for _, v := range r.s {
-					results = append(results, v)
-				}
-				slices.SortFunc(results, func(a, b innerPercentile) int {
-					return cmp.Compare(a.counter, b.counter)
-				})
-				idx := percentilIndex(len(results), 90)
+				s, _ := percentileStateStore.Get(clientID)
+				results := computePercentile(s)
 				// NOTE: This should be batched instead of being sent one by one
-				slog.Debug("query 5 results", "result", results[idx:])
-				for _, result := range results[idx:] {
-					builder := protocol.NewPayloadBuffer(1)
-					builder.BeginPayloadElement()
-					builder.WriteBytes([]byte(result.name))
-					builder.EndPayloadElement()
-					res := protocol.NewResultsMessage(protocol.Query5, builder.Bytes(), protocol.MessageOptions{
-						MessageID: msg.GetMessageID(),
-						ClientID:  msg.GetClientID(),
-						RequestID: msg.GetRequestID(),
-					})
-					if err := r.io.Write(res.Marshal(), ""); err != nil {
-						return fmt.Errorf("couldn't write query 5 output: %w", err)
-					}
-				}
-				r.s = percentileState(make(map[string]innerPercentile))				
-				res := protocol.NewEndMessage(protocol.Games, protocol.MessageOptions{
-					MessageID: msg.GetMessageID(),
-					ClientID:  msg.GetClientID(),
-					RequestID: msg.GetRequestID(),
-				})
+				slog.Debug("query 5 results", "result", results, "state", s)
 				// Tell it ends the query 5
-				res.SetQueryResult(protocol.Query5)
-				if err := r.io.Write(res.Marshal(), ""); err != nil {
-					return fmt.Errorf("couldn't write query 5 end: %w", err)
+
+				if err := marshalAndSendPercentileResults(results, msg, r); err != nil {
+					return err
 				}
+				percentileStateStore.Delete(clientID)
 			} else {
 				return fmt.Errorf("unexpected message type: %s", msg.GetMessageType())
 			}
@@ -132,6 +118,47 @@ func (r *Percentile) Run(ctx context.Context) error {
 		}
 	}
 	return nil
+}
+
+func marshalAndSendPercentileResults(results []innerPercentile, msg protocol.Message, r *Percentile) error {
+	for _, result := range results {
+		builder := protocol.NewPayloadBuffer(1)
+		builder.BeginPayloadElement()
+		builder.WriteBytes([]byte(result.name))
+		builder.EndPayloadElement()
+		res := protocol.NewResultsMessage(protocol.Query5, builder.Bytes(), protocol.MessageOptions{
+			MessageID: msg.GetMessageID(),
+			ClientID:  msg.GetClientID(),
+			RequestID: msg.GetRequestID(),
+		})
+		if err := r.io.Write(res.Marshal(), ""); err != nil {
+			return fmt.Errorf("couldn't write query 5 output: %w", err)
+		}
+
+	}
+	res := protocol.NewEndMessage(protocol.Games, protocol.MessageOptions{
+		MessageID: msg.GetMessageID(),
+		ClientID:  msg.GetClientID(),
+		RequestID: msg.GetRequestID(),
+	})
+
+	res.SetQueryResult(protocol.Query5)
+	if err := r.io.Write(res.Marshal(), ""); err != nil {
+		return fmt.Errorf("couldn't write query 5 end: %w", err)
+	}
+	return nil
+}
+
+func computePercentile(s percentileState) []innerPercentile {
+	results := make([]innerPercentile, 0, len(s))
+	for _, v := range s {
+		results = append(results, v)
+	}
+	slices.SortFunc(results, func(a, b innerPercentile) int {
+		return cmp.Compare(a.counter, b.counter)
+	})
+	idx := percentilIndex(len(results), 90)
+	return results[idx:]
 }
 
 func (r *Percentile) Close() {

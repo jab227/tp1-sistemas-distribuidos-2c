@@ -8,10 +8,17 @@ import (
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/client"
 	models "github.com/jab227/tp1-sistemas-distribuidos-2c/internal/model"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/protocol"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/store"
 )
 
 type osState struct {
 	windows, mac, linux uint
+}
+
+func (o *osState) Update(state osState) {
+	o.windows += state.windows
+	o.mac += state.mac
+	o.linux += state.linux
 }
 
 type OSCounter struct {
@@ -39,7 +46,7 @@ func (o *OSCounter) Run(ctx context.Context) error {
 	defer func() {
 		o.done <- struct{}{}
 	}()
-	var s osState
+	osStateStore := store.NewStore[osState]()
 	for {
 		select {
 		case delivery := <-consumerCh:
@@ -54,6 +61,8 @@ func (o *OSCounter) Run(ctx context.Context) error {
 				}
 
 				elements := msg.Elements()
+				clientID := msg.GetClientID()
+				var s osState
 				for _, element := range elements.Iter() {
 					game := models.ReadGame(&element)
 					if game.SupportedOS.IsWindowsSupported() {
@@ -66,25 +75,27 @@ func (o *OSCounter) Run(ctx context.Context) error {
 						s.linux += 1
 					}
 				}
+
+				state, ok := osStateStore.Get(clientID)
+				if ok {
+					s.Update(state)
+				}
+				osStateStore.Set(clientID, s)
 			} else if msg.ExpectKind(protocol.End) {
 				// reset state
+				clientID := msg.GetClientID()
 				slog.Info("received end", "node", "os_counter")
-				builder := protocol.NewPayloadBuffer(1)
-				builder.BeginPayloadElement()
-				builder.WriteUint32(uint32(s.windows))
-				builder.WriteUint32(uint32(s.mac))
-				builder.WriteUint32(uint32(s.linux))
-				builder.EndPayloadElement()
-				res := protocol.NewResultsMessage(protocol.Query1, builder.Bytes(), protocol.MessageOptions{
+				result := marshalResults(osStateStore[clientID])
+				res := protocol.NewResultsMessage(protocol.Query1, result, protocol.MessageOptions{
 					MessageID: msg.GetMessageID(),
-					ClientID:  msg.GetClientID(),
+					ClientID:  clientID,
 					RequestID: msg.GetRequestID(),
 				})
 				if err := o.io.Write(res.Marshal(), ""); err != nil {
 					return fmt.Errorf("couldn't write query 1 output: %w", err)
 				}
-				slog.Debug("query 1 results", "result", res, "state", s)
-				s = osState{}
+				slog.Debug("query 1 results", "result", res, "state", osStateStore[clientID])
+				osStateStore.Delete(clientID)
 			} else {
 				return fmt.Errorf("unexpected message type: %s", msg.GetMessageType())
 			}
@@ -93,6 +104,16 @@ func (o *OSCounter) Run(ctx context.Context) error {
 			return ctx.Err()
 		}
 	}
+}
+
+func marshalResults(s osState) []byte {
+	builder := protocol.NewPayloadBuffer(1)
+	builder.BeginPayloadElement()
+	builder.WriteUint32(uint32(s.windows))
+	builder.WriteUint32(uint32(s.mac))
+	builder.WriteUint32(uint32(s.linux))
+	builder.EndPayloadElement()
+	return builder.Bytes()
 }
 
 func (o *OSCounter) Close() {

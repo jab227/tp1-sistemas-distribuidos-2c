@@ -8,6 +8,7 @@ import (
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/client"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/model"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/protocol"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/store"
 )
 
 type inner struct {
@@ -29,7 +30,6 @@ func (r reviewCounterState) insertOrUpdate(game models.Game) {
 type ReviewCounter struct {
 	io   client.IOManager
 	done chan struct{}
-	s    reviewCounterState
 }
 
 func NewReviewCounter() (*ReviewCounter, error) {
@@ -40,7 +40,6 @@ func NewReviewCounter() (*ReviewCounter, error) {
 	return &ReviewCounter{
 		io:   io,
 		done: make(chan struct{}),
-		s:    reviewCounterState(make(map[string]inner)),
 	}, nil
 }
 
@@ -57,6 +56,7 @@ func (r *ReviewCounter) Run(ctx context.Context) error {
 	defer func() {
 		r.done <- struct{}{}
 	}()
+	reviewCounterStateStore := store.NewStore[reviewCounterState]()
 	for {
 		select {
 		case delivery := <-consumerCh:
@@ -65,48 +65,30 @@ func (r *ReviewCounter) Run(ctx context.Context) error {
 			if err := msg.Unmarshal(msgBytes); err != nil {
 				return fmt.Errorf("couldn't unmarshal protocol message: %w", err)
 			}
-
+			clientID := msg.GetClientID()
 			if msg.ExpectKind(protocol.Data) {
 				if !msg.HasGameData() {
 					return fmt.Errorf("couldn't wrong type: expected game data")
 				}
 				elements := msg.Elements()
+				state, ok := reviewCounterStateStore.Get(clientID)
+				if !ok {
+					// the map behaves like a ptr
+					state = make(map[string]inner)
+					reviewCounterStateStore.Set(clientID, state)
+				}
 				for _, element := range elements.Iter() {
 					game := models.ReadGame(&element)
-					r.s.insertOrUpdate(game)
+					state.insertOrUpdate(game)
 				}
 			} else if msg.ExpectKind(protocol.End) {
 				slog.Debug("received end", "node", "review_counter")
-				// NOTE: This should be batched instead of being sent one by one
-				for _, result := range r.s {
-					if result.counter < 5000 {
-						continue
-					}
-					builder := protocol.NewPayloadBuffer(1)
-					builder.BeginPayloadElement()
-					builder.WriteBytes([]byte(result.name))
-					builder.EndPayloadElement()
-					res := protocol.NewResultsMessage(protocol.Query4, builder.Bytes(), protocol.MessageOptions{
-						MessageID: msg.GetMessageID(),
-						ClientID:  msg.GetClientID(),
-						RequestID: msg.GetRequestID(),
-					})
-					if err := r.io.Write(res.Marshal(), ""); err != nil {
-						return fmt.Errorf("couldn't write query 4 output: %w", err)
-					}
-					slog.Debug("query 4 results", "result", result.name)
+				// It should exist or if doesn't exist we send empty results
+				state, _ := reviewCounterStateStore.Get(clientID)
+				if err := marshalAndSendResults(r, state, msg); err != nil {
+					return err
 				}
-				r.s = reviewCounterState(make(map[string]inner))				
-				res := protocol.NewEndMessage(protocol.Games, protocol.MessageOptions{
-					MessageID: msg.GetMessageID(),
-					ClientID:  msg.GetClientID(),
-					RequestID: msg.GetRequestID(),
-				})
-				// Tell it ends the query 4
-				res.SetQueryResult(protocol.Query4)
-				if err := r.io.Write(res.Marshal(), ""); err != nil {
-					return fmt.Errorf("couldn't write query 4 end: %w", err)
-				}
+				reviewCounterStateStore.Delete(clientID)
 			} else {
 				return fmt.Errorf("unexpected message type: %s", msg.GetMessageType())
 			}
@@ -114,6 +96,38 @@ func (r *ReviewCounter) Run(ctx context.Context) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		}
+	}
+	return nil
+}
+
+func marshalAndSendResults(r *ReviewCounter, s reviewCounterState, msg protocol.Message) error {
+	for _, result := range s {
+		if result.counter < 5000 {
+			continue
+		}
+		builder := protocol.NewPayloadBuffer(1)
+		builder.BeginPayloadElement()
+		builder.WriteBytes([]byte(result.name))
+		builder.EndPayloadElement()
+		res := protocol.NewResultsMessage(protocol.Query4, builder.Bytes(), protocol.MessageOptions{
+			MessageID: msg.GetMessageID(),
+			ClientID:  msg.GetClientID(),
+			RequestID: msg.GetRequestID(),
+		})
+		if err := r.io.Write(res.Marshal(), ""); err != nil {
+			return fmt.Errorf("couldn't write query 4 output: %w", err)
+		}
+		slog.Debug("query 4 results", "result", result.name)
+	}
+	res := protocol.NewEndMessage(protocol.Games, protocol.MessageOptions{
+		MessageID: msg.GetMessageID(),
+		ClientID:  msg.GetClientID(),
+		RequestID: msg.GetRequestID(),
+	})
+
+	res.SetQueryResult(protocol.Query4)
+	if err := r.io.Write(res.Marshal(), ""); err != nil {
+		return fmt.Errorf("couldn't write query 4 end: %w", err)
 	}
 	return nil
 }
