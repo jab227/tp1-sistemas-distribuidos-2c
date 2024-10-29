@@ -25,8 +25,8 @@ func NewBoundary(config *Config, ioManager *client.IOManager) *Boundary {
 		config: *config,
 		state:  *NewState(),
 
-		senderCh:  make(chan protocol.Message),
-		errorsCh:  make(chan error),
+		senderCh:  make(chan protocol.Message, 1),
+		errorsCh:  make(chan error, 1),
 		ioManager: ioManager,
 	}
 }
@@ -93,6 +93,7 @@ func (b *Boundary) handleClient(conn net.Conn) {
 
 	clientId := b.state.GetNewClientId()
 	requestId := b.state.GetClientNewRequestId(clientId)
+	slog.Debug("client", "ID", clientId)
 	resultsCh := b.state.GetClientCh(clientId)
 
 	// Wait for SyncMsg
@@ -146,8 +147,9 @@ func (b *Boundary) handleClient(conn net.Conn) {
 			endCounter += 1
 		}
 	}
-
+	slog.Debug("waiting for results...")
 	for result := range resultsCh {
+		slog.Debug("receveived results")		
 		if err := cprotocol.SendMsg(conn, result); err != nil {
 			b.errorsCh <- err
 			return

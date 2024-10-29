@@ -76,6 +76,7 @@ func (c *EndCoordinator) Run(ctx context.Context) error {
 						if err := c.io.Write(endMsg.Marshal(), "game"); err != nil {
 							return fmt.Errorf("couldn't write end message: %w", err)
 						}
+						c.GamesEndCounter = 0
 					}
 
 					// ACK of the MSg
@@ -100,6 +101,7 @@ func (c *EndCoordinator) Run(ctx context.Context) error {
 						if err := c.io.Write(endMsg.Marshal(), "review"); err != nil {
 							return fmt.Errorf("couldn't write end message: %w", err)
 						}
+						c.ReviewsEndCounter = 0
 					}
 
 					// ACK of the MSg

@@ -57,13 +57,9 @@ func (r *ReviewCounter) Run(ctx context.Context) error {
 	defer func() {
 		r.done <- struct{}{}
 	}()
-	end := false
 	for {
 		select {
 		case delivery := <-consumerCh:
-			if end {
-				slog.Debug("received message after end")
-			}
 			msgBytes := delivery.Body
 			var msg protocol.Message
 			if err := msg.Unmarshal(msgBytes); err != nil {
@@ -80,8 +76,6 @@ func (r *ReviewCounter) Run(ctx context.Context) error {
 					r.s.insertOrUpdate(game)
 				}
 			} else if msg.ExpectKind(protocol.End) {
-				// reset state
-				end = true
 				slog.Debug("received end", "node", "review_counter")
 				// NOTE: This should be batched instead of being sent one by one
 				for _, result := range r.s {

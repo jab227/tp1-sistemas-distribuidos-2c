@@ -54,11 +54,10 @@ func (j *Joiner) Run(ctx context.Context) error {
 	}
 	service, err := end.NewService(options)
 	tx, rx := service.Run(ctx)
-	end := false
 	for {
 		select {
 		case delivery := <-consumerCh:
-			if end {
+			if j.s.ends <= 0 {
 				slog.Debug("received message after end")
 			}
 			msgBytes := delivery.Body
@@ -82,7 +81,6 @@ func (j *Joiner) Run(ctx context.Context) error {
 			if j.s.ends != 0 {
 				continue
 			}
-			end = true
 			slog.Debug("join and send data")
 			err := joinAndSend(j, msgInfo.Options)
 			if err != nil {
@@ -90,6 +88,7 @@ func (j *Joiner) Run(ctx context.Context) error {
 			}
 			slog.Debug("notifying coordinator")
 			service.NotifyCoordinator(protocol.Reviews, msgInfo.Options)
+			j.s = joinerState{ends: 2}
 		case <-ctx.Done():
 			return ctx.Err()
 		}

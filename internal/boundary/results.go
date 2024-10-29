@@ -130,8 +130,10 @@ func (r *ResultsService) Run(ctx context.Context) error {
 			if err := msg.Unmarshal(msgBytes); err != nil {
 				return fmt.Errorf("couldn't unmarshal protocol message: %w", err)
 			}
+			slog.Debug("received message", "clientID", msg.GetClientID())
 			if msg.ExpectKind(protocol.Results) {
 				queryNumber := msg.GetQueryNumber()
+				slog.Debug("received query result", "query number", queryNumber)
 				elements := msg.Elements()
 				switch queryNumber {
 				case 1:
@@ -261,10 +263,10 @@ func (r *ResultsService) Run(ctx context.Context) error {
 			if r.res.hasClientAllResults(msg.GetClientID()) {
 				slog.Debug("all querys received")
 				close(r.boundaryState.GetClientCh(uint64(msg.GetClientID())))
-				return nil
 			}
 		case <-ctx.Done():
 			return ctx.Err()
 		}
 	}
+	return nil
 }
