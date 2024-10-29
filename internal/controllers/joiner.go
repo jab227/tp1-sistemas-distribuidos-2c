@@ -77,7 +77,6 @@ func (j *Joiner) Run(ctx context.Context) error {
 			} else if msg.ExpectKind(protocol.End) {
 				j.s.ends--
 				if j.s.ends != 0 {
-					delivery.Ack(false)
 					continue
 				}
 				end = true
