@@ -46,7 +46,7 @@ func (p *Projection) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	service, err := end.NewWorkerQueueService(options)
+	service, err := end.NewService(options)
 	if err != nil {
 		return err
 	}

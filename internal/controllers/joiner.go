@@ -6,7 +6,7 @@ import (
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/join"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/client"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/end"
-	models "github.com/jab227/tp1-sistemas-distribuidos-2c/internal/model"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/model"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/protocol"
 	"log/slog"
 )
@@ -52,11 +52,8 @@ func (j *Joiner) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	service, err := end.NewRouterService(options)
-	if err != nil {
-		return err
-	}
-	service.Run(ctx)
+	service, err := end.NewService(options)
+	tx, rx := service.Run(ctx)
 	end := false
 	for {
 		select {
@@ -75,27 +72,24 @@ func (j *Joiner) Run(ctx context.Context) error {
 					return err
 				}
 			} else if msg.ExpectKind(protocol.End) {
-				j.s.ends--
-				if j.s.ends != 0 {
-					continue
-				}
-				end = true
-				slog.Debug("join and send data")
-				options := protocol.MessageOptions{
-					MessageID: msg.GetMessageID(),
-					ClientID:  msg.GetClientID(),
-					RequestID: msg.GetRequestID(),
-				}
-				err := joinAndSend(j, options)
-				if err != nil {
-					return err
-				}
-				slog.Debug("notifying coordinator")
-				service.NotifyCoordinator(protocol.Reviews, options)
+				tx <- msg
 			} else {
 				return fmt.Errorf("unexpected message type: %s", msg.GetMessageType())
 			}
 			delivery.Ack(false)
+		case msgInfo := <-rx:
+			j.s.ends--
+			if j.s.ends != 0 {
+				continue
+			}
+			end = true
+			slog.Debug("join and send data")
+			err := joinAndSend(j, msgInfo.Options)
+			if err != nil {
+				return err
+			}
+			slog.Debug("notifying coordinator")
+			service.NotifyCoordinator(protocol.Reviews, msgInfo.Options)
 		case <-ctx.Done():
 			return ctx.Err()
 		}
