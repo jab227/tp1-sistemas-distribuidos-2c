@@ -2,19 +2,18 @@
   "ServerName": "localhost",
   "ServerPort": 7070,
   "LoggerLevel": "debug",
-  "TaskQueueSize": 10,
-  "ReviewsBatch": {
-    "DataType": 0,
-    "Path": "/Users/framos/Desktop/tp1-sistemas-distribuidos-2c/.data/reviewsQuarter.csv",
+  "GamesConfig": {
+    "FileType": 1,
+    "Path": "/home/wave/dev/tp1-sistemas-distribuidos-2c/.data/gamesQuarter.csv",
     "NlinesFromDisk": 100,
-    "BatchSize": 100,
+    "MaxElements": 50,
     "MaxBytes": 8192
   },
-  "GamesBatch": {
-    "DataType": 1,
-    "Path": "/Users/framos/Desktop/tp1-sistemas-distribuidos-2c/.data/gamesQuarter.csv",
+  "ReviewsConfig": {
+    "FileType": 2,
+    "Path": "/home/wave/dev/tp1-sistemas-distribuidos-2c/.data/reviewsQuarter.csv",
     "NlinesFromDisk": 100,
-    "BatchSize": 50,
+    "MaxElements": 100,
     "MaxBytes": 8192
   }
 }

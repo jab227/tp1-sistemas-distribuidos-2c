@@ -31,6 +31,18 @@ const (
 	Reviews
 )
 
+func (d DataType) String() string {
+	switch d {
+	case Games:
+		return "game data"
+	case Reviews:
+		return "review data"
+	default:
+		utils.Assertf(false, "unexpected protocol.DataType: %#v", d)
+		return "[unknown message]"
+	}
+}
+
 const (
 	End     MessageType = 0 // 0b00
 	Data    MessageType = 1 // 0b01

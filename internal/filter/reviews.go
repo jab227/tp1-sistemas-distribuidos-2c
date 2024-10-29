@@ -55,7 +55,6 @@ func FilterByNegativeScore(msg protocol.Message, detector *lingua.LanguageDetect
 	elements := msg.Elements()
 	for _, element := range elements.Iter() {
 		review := models.ReadReview(&element)
-		slog.Debug("read review", "review", review)
 		if review.Score == models.Negative {
 			listOfPassed = append(listOfPassed, review)
 		}

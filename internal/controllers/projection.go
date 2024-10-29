@@ -28,7 +28,7 @@ func NewProjection() (*Projection, error) {
 
 	done := make(chan struct{}, 1)
 
-	return &Projection{ioManager, done}, nil
+	return &Projection{iomanager: ioManager, done: done}, nil
 }
 
 func (p *Projection) GetDone() <-chan struct{} {
@@ -51,7 +51,6 @@ func (p *Projection) Run(ctx context.Context) error {
 		return err
 	}
 	tx, rx := service.Run(ctx)
-	ends := 2
 	for {
 		select {
 		case msg := <-consumerChan:
@@ -59,11 +58,10 @@ func (p *Projection) Run(ctx context.Context) error {
 			if err != nil {
 				return err
 			}
-
 			msg.Ack(false)
-		case <-rx:
-			ends--
-			slog.Info("END received", "ends", ends)
+		case msgInfo := <-rx:
+			service.NotifyCoordinator(msgInfo.DataType, msgInfo.Options)
+			slog.Info("END received")
 		case <-ctx.Done():
 			return ctx.Err()
 		}
