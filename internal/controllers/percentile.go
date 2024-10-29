@@ -65,12 +65,15 @@ func (r *Percentile) Run(ctx context.Context) error {
 	defer func() {
 		r.done <- struct{}{}
 	}()
-
+	end := false
 	for {
 		select {
 		case delivery := <-consumerCh:
 			msgBytes := delivery.Body
 			var msg protocol.Message
+			if end {
+				slog.Debug("received data after end percentile")
+			}
 			if err := msg.Unmarshal(msgBytes); err != nil {
 				return fmt.Errorf("couldn't unmarshal protocol message: %w", err)
 			}
@@ -86,7 +89,8 @@ func (r *Percentile) Run(ctx context.Context) error {
 				}
 			} else if msg.ExpectKind(protocol.End) {
 				// reset state
-				slog.Debug("received end", "node", "review_counter")
+				end = true
+				slog.Debug("received end", "node", "percentile", "game end", msg.HasGameData(), "review end", msg.HasReviewData())
 
 				// Compute percentile
 				results := make([]innerPercentile, 0, len(r.s))
@@ -98,7 +102,7 @@ func (r *Percentile) Run(ctx context.Context) error {
 				})
 				idx := percentilIndex(len(results), 90)
 				// NOTE: This should be batched instead of being sent one by one
-				slog.Debug("query 5 results", "result", results[idx:], "state", r.s)
+				slog.Debug("query 5 results", "result", results[idx:])
 				for _, result := range results[idx:] {
 					builder := protocol.NewPayloadBuffer(1)
 					builder.BeginPayloadElement()
@@ -112,9 +116,8 @@ func (r *Percentile) Run(ctx context.Context) error {
 					if err := r.io.Write(res.Marshal(), ""); err != nil {
 						return fmt.Errorf("couldn't write query 5 output: %w", err)
 					}
-
-					r.s = percentileState(make(map[string]innerPercentile))
 				}
+				r.s = percentileState(make(map[string]innerPercentile))				
 				res := protocol.NewEndMessage(protocol.Games, protocol.MessageOptions{
 					MessageID: msg.GetMessageID(),
 					ClientID:  msg.GetClientID(),

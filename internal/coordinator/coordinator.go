@@ -3,9 +3,11 @@ package coordinator
 import (
 	"context"
 	"fmt"
+	"log/slog"
+	"time"
+
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/client"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/protocol"
-	"log/slog"
 )
 
 type EndCoordinator struct {
@@ -69,8 +71,8 @@ func (c *EndCoordinator) Run(ctx context.Context) error {
 							ClientID:  msg.GetClientID(),
 							RequestID: msg.GetRequestID(),
 						})
-
-						slog.Info("Propagating END", "counter", c.GamesEndCounter)
+						<-time.After(15 * time.Second)
+						slog.Info("Propagating END games", "counter", c.GamesEndCounter)
 						if err := c.io.Write(endMsg.Marshal(), "game"); err != nil {
 							return fmt.Errorf("couldn't write end message: %w", err)
 						}
@@ -93,8 +95,8 @@ func (c *EndCoordinator) Run(ctx context.Context) error {
 							ClientID:  msg.GetClientID(),
 							RequestID: msg.GetRequestID(),
 						})
-
-						slog.Info("Propagating END", "counter", c.ReviewsEndCounter)
+						<-time.After(15 * time.Second)
+						slog.Info("Propagating END reviews", "counter", c.ReviewsEndCounter)
 						if err := c.io.Write(endMsg.Marshal(), "review"); err != nil {
 							return fmt.Errorf("couldn't write end message: %w", err)
 						}

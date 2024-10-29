@@ -62,6 +62,7 @@ func (tg *TopGames) Run(ctx context.Context) error {
 				}
 				tg.processGamesData(internalMsg)
 			} else if internalMsg.ExpectKind(protocol.End) {
+				slog.Debug("received end", "game", internalMsg.HasGameData(), "review", internalMsg.HasReviewData())
 				if err := tg.writeResult(internalMsg); err != nil {
 					return err
 				}
