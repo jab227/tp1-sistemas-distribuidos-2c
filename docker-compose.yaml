@@ -574,7 +574,7 @@ services:
       - DIRECT_PUBLISHER_TIMEOUT=5
       - OUTPUT_ROUTER_TAGS=1 # Affects Top5
       - DIRECT_SUBSCRIBER_EXCHANGES=indie-filter-exchange,positive-filter-exchange
-      - DIRECT_SUBSCRIBER_QUEUE=q3-joiner-input-queue
+      - DIRECT_SUBSCRIBER_QUEUE=q3-joiner-input-queue-1
       - DIRECT_SUBSCRIBER_KEYS=1
       - DIRECT_SUBSCRIBER_PREFETCH_COUNT=1      
       - END_SERVICE_COORDINATOR_QUEUE=joiner-query3-control
@@ -602,7 +602,7 @@ services:
       - DIRECT_PUBLISHER_TIMEOUT=5
       - OUTPUT_ROUTER_TAGS=1 # Affects Top5
       - DIRECT_SUBSCRIBER_EXCHANGES=indie-filter-exchange,positive-filter-exchange
-      - DIRECT_SUBSCRIBER_QUEUE=q3-joiner-input-queue
+      - DIRECT_SUBSCRIBER_QUEUE=q3-joiner-input-queue-2
       - DIRECT_SUBSCRIBER_KEYS=2
       - DIRECT_SUBSCRIBER_PREFETCH_COUNT=1      
       - END_SERVICE_COORDINATOR_QUEUE=joiner-query3-control
@@ -631,7 +631,7 @@ services:
       - DIRECT_PUBLISHER_TIMEOUT=5
       - OUTPUT_ROUTER_TAGS=1 # Affects Top5
       - DIRECT_SUBSCRIBER_EXCHANGES=indie-filter-exchange,positive-filter-exchange
-      - DIRECT_SUBSCRIBER_QUEUE=q3-joiner-input-queue
+      - DIRECT_SUBSCRIBER_QUEUE=q3-joiner-input-queue-3
       - DIRECT_SUBSCRIBER_KEYS=3
       - DIRECT_SUBSCRIBER_PREFETCH_COUNT=1      
       - END_SERVICE_COORDINATOR_QUEUE=joiner-query3-control
@@ -1159,7 +1159,7 @@ services:
       - DIRECT_PUBLISHER_TIMEOUT=5
       - OUTPUT_ROUTER_TAGS=1 
       - DIRECT_SUBSCRIBER_EXCHANGES=action-filter-exchange,english-filter-exchange
-      - DIRECT_SUBSCRIBER_QUEUE=q4-joiner-input-queue
+      - DIRECT_SUBSCRIBER_QUEUE=q4-joiner-input-queue-1
       - DIRECT_SUBSCRIBER_KEYS=1
       - DIRECT_SUBSCRIBER_PREFETCH_COUNT=1      
       - END_SERVICE_COORDINATOR_QUEUE=joiner-query4-control
@@ -1188,7 +1188,7 @@ services:
       - DIRECT_PUBLISHER_TIMEOUT=5
       - OUTPUT_ROUTER_TAGS=1 
       - DIRECT_SUBSCRIBER_EXCHANGES=action-filter-exchange,english-filter-exchange
-      - DIRECT_SUBSCRIBER_QUEUE=q4-joiner-input-queue
+      - DIRECT_SUBSCRIBER_QUEUE=q4-joiner-input-queue-2
       - DIRECT_SUBSCRIBER_KEYS=2
       - DIRECT_SUBSCRIBER_PREFETCH_COUNT=1      
       - END_SERVICE_COORDINATOR_QUEUE=joiner-query4-control
@@ -1217,7 +1217,7 @@ services:
       - DIRECT_PUBLISHER_TIMEOUT=5
       - OUTPUT_ROUTER_TAGS=1 
       - DIRECT_SUBSCRIBER_EXCHANGES=action-filter-exchange,english-filter-exchange
-      - DIRECT_SUBSCRIBER_QUEUE=q4-joiner-input-queue
+      - DIRECT_SUBSCRIBER_QUEUE=q4-joiner-input-queue-3
       - DIRECT_SUBSCRIBER_KEYS=3
       - DIRECT_SUBSCRIBER_PREFETCH_COUNT=1      
       - END_SERVICE_COORDINATOR_QUEUE=joiner-query4-control
@@ -1300,7 +1300,7 @@ services:
       - DIRECT_PUBLISHER_TIMEOUT=5
       - OUTPUT_ROUTER_TAGS=1 # Affects percentil
       - DIRECT_SUBSCRIBER_EXCHANGES=action-filter-exchange,negative-filter-exchange
-      - DIRECT_SUBSCRIBER_QUEUE=q5-joiner-input-queue
+      - DIRECT_SUBSCRIBER_QUEUE=q5-joiner-input-queue-1
       - DIRECT_SUBSCRIBER_KEYS=1
       - DIRECT_SUBSCRIBER_PREFETCH_COUNT=1      
       - END_SERVICE_COORDINATOR_QUEUE=joiner-query5-control
@@ -1329,7 +1329,7 @@ services:
       - DIRECT_PUBLISHER_TIMEOUT=5
       - OUTPUT_ROUTER_TAGS=1 # Affects percentil
       - DIRECT_SUBSCRIBER_EXCHANGES=action-filter-exchange,negative-filter-exchange
-      - DIRECT_SUBSCRIBER_QUEUE=q5-joiner-input-queue
+      - DIRECT_SUBSCRIBER_QUEUE=q5-joiner-input-queue-2
       - DIRECT_SUBSCRIBER_KEYS=2
       - DIRECT_SUBSCRIBER_PREFETCH_COUNT=1      
       - END_SERVICE_COORDINATOR_QUEUE=joiner-query5-control
@@ -1358,7 +1358,7 @@ services:
       - DIRECT_PUBLISHER_TIMEOUT=5
       - OUTPUT_ROUTER_TAGS=1 # Affects percentil
       - DIRECT_SUBSCRIBER_EXCHANGES=action-filter-exchange,negative-filter-exchange
-      - DIRECT_SUBSCRIBER_QUEUE=q5-joiner-input-queue
+      - DIRECT_SUBSCRIBER_QUEUE=q5-joiner-input-queue-3
       - DIRECT_SUBSCRIBER_KEYS=3
       - DIRECT_SUBSCRIBER_PREFETCH_COUNT=1      
       - END_SERVICE_COORDINATOR_QUEUE=joiner-query5-control

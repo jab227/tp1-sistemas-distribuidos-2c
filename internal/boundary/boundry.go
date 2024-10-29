@@ -38,6 +38,9 @@ func (b *Boundary) Run() error {
 		return fmt.Errorf("could not listen to %s:%d: %v", b.config.ServiceHost, b.config.ServicePort, err)
 	}
 
+	// Error logger goroutine
+	go b.handleErrors()
+
 	// Results recv goroutine
 	resultService := NewResultsService(b.ioManager, &b.state)
 	go func() {
@@ -48,9 +51,6 @@ func (b *Boundary) Run() error {
 			return
 		}
 	}()
-
-	// Error logger goroutine
-	go b.handleErrors()
 	// Sender goroutine to handle message send
 	go b.senderGoroutine()
 
@@ -79,9 +79,9 @@ func (b *Boundary) senderGoroutine() {
 }
 
 func (b *Boundary) handleErrors() {
-	for {
-		errMsg := <-b.errorsCh
-		slog.Error(errMsg.Error())
+	for err := range b.errorsCh {
+		slog.Info("error handling message", "error", err)
+		slog.Error(err.Error())
 	}
 }
 

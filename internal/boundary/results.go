@@ -153,6 +153,9 @@ func (r *ResultsService) Run(ctx context.Context) error {
 					// Sends message
 					clientMsg := *cprotocol.NewResultMessage(cprotocol.Query1, uint64(msg.GetClientID()), uint64(msg.GetRequestID()), data)
 					clientCh := r.boundaryState.GetClientCh(uint64(msg.GetClientID()))
+					if clientCh == nil {
+						return fmt.Errorf("chan is nil for client %d", msg.GetClientID())
+					}
 					clientCh <- clientMsg
 				case 2:
 					slog.Debug("received result", "query", 2, "clientId", msg.GetClientID())
@@ -192,6 +195,9 @@ func (r *ResultsService) Run(ctx context.Context) error {
 					// Sends results
 					clientMsg := *cprotocol.NewResultMessage(cprotocol.Query2, uint64(msg.GetClientID()), uint64(msg.GetRequestID()), data)
 					clientCh := r.boundaryState.GetClientCh(uint64(msg.GetClientID()))
+					if clientCh == nil {
+						return fmt.Errorf("chan is nil for client %d", msg.GetClientID())
+					}
 					clientCh <- clientMsg
 				case 3:
 					// Update results state
@@ -205,6 +211,9 @@ func (r *ResultsService) Run(ctx context.Context) error {
 					// Send results
 					clientMsg := *cprotocol.NewResultMessage(cprotocol.Query3, uint64(msg.GetClientID()), uint64(msg.GetRequestID()), data)
 					clientCh := r.boundaryState.GetClientCh(uint64(msg.GetClientID()))
+					if clientCh == nil {
+						return fmt.Errorf("chan is nil for client %d", msg.GetClientID())
+					}
 					clientCh <- clientMsg
 				case 4:
 					// Update results state
@@ -219,6 +228,9 @@ func (r *ResultsService) Run(ctx context.Context) error {
 					// Send results
 					clientMsg := *cprotocol.NewResultMessage(cprotocol.Query4, uint64(msg.GetClientID()), uint64(msg.GetRequestID()), data)
 					clientCh := r.boundaryState.GetClientCh(uint64(msg.GetClientID()))
+					if clientCh == nil {
+						return fmt.Errorf("chan is nil for client %d", msg.GetClientID())
+					}
 					clientCh <- clientMsg
 				case 5:
 					// Update results state
@@ -233,6 +245,9 @@ func (r *ResultsService) Run(ctx context.Context) error {
 					// Send results
 					clientMsg := *cprotocol.NewResultMessage(cprotocol.Query5, uint64(msg.GetClientID()), uint64(msg.GetRequestID()), data)
 					clientCh := r.boundaryState.GetClientCh(uint64(msg.GetClientID()))
+					if clientCh == nil {
+						return fmt.Errorf("chan is nil for client %d", msg.GetClientID())
+					}
 					clientCh <- clientMsg
 				default:
 					utils.Assertf(false, "query number %d should not happen in end", queryNumber)

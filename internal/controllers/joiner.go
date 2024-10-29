@@ -3,13 +3,12 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"log/slog"
-
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/join"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/client"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/end"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/model"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/protocol"
+	"log/slog"
 )
 
 type joinerState struct {
