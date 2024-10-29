@@ -43,7 +43,7 @@ func (c *Client) Run() error {
 	if err := c.RecvResults(); err != nil {
 		return fmt.Errorf("could not receive results: %w", err)
 	}
-
+	
 	return nil
 }
 

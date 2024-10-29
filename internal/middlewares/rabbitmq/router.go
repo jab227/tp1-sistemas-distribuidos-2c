@@ -21,6 +21,7 @@ func NewIDRouter(idCount int) IDRouter {
 }
 
 func (r IDRouter) Select(key string) int {
+	r.hasher.Reset()
 	r.hasher.Write([]byte(key))
 	return int(r.hasher.Sum64() % uint64(r.idCount))
 }
@@ -67,7 +68,7 @@ func (r *Router) Close() error {
 
 func (r *Router) Write(p []byte, key string) error {
 	idx := r.s.Select(key)
-	//o	slog.Debug("Index chosen from router", "index", idx, "key", key, "tag", r.tags[idx])
+	// slog.Debug("Index chosen from router", "index", idx, "key", key, "tag", r.tags[idx])
 	utils.Assert(idx < len(r.tags), "the index should be less that len(r.tags)")
 	return r.p.Write(p, r.tags[idx])
 }

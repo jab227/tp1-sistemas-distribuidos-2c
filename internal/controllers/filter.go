@@ -90,7 +90,6 @@ func (f *Filter) Run(ctx context.Context) error {
 	}
 	service, err := end.NewService(options)
 	tx, rx := service.Run(ctx)
-	end := false
 	for {
 		select {
 		case delivery := <-consumerCh:
@@ -104,9 +103,6 @@ func (f *Filter) Run(ctx context.Context) error {
 			f.clientID = msg.GetClientID()
 			// Detect type
 			if msg.ExpectKind(protocol.Data) {
-				if end {
-					slog.Debug("received data after end")
-				}
 				// Handle filter
 				if f.hasGameFilter {
 					if err := f.handleGameFunc(msg); err != nil {
@@ -137,14 +133,9 @@ func (f *Filter) Run(ctx context.Context) error {
 				tx <- newMsg
 				delivery.Ack(false)
 			}
-		case t := <-rx:
+		case msgInfo := <-rx:
 			slog.Info("END received from peer")
-			end = true
-			service.NotifyCoordinator(t, protocol.MessageOptions{
-				MessageID: 0,
-				ClientID:  f.clientID,
-				RequestID: f.requestID,
-			})
+			service.NotifyCoordinator(msgInfo.DataType, msgInfo.Options)
 		case <-ctx.Done():
 			return nil
 		}

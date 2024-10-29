@@ -25,6 +25,7 @@ func main() {
 		slog.Error("error connecting to io manager", "error", err.Error())
 		return
 	}
+	defer ioManager.Close()
 
 	boundaryStruct := boundary.NewBoundary(config, &ioManager)
 	if err := boundaryStruct.Run(); err != nil {

@@ -130,8 +130,10 @@ func (r *ResultsService) Run(ctx context.Context) error {
 			if err := msg.Unmarshal(msgBytes); err != nil {
 				return fmt.Errorf("couldn't unmarshal protocol message: %w", err)
 			}
+			slog.Debug("received message", "clientID", msg.GetClientID())
 			if msg.ExpectKind(protocol.Results) {
 				queryNumber := msg.GetQueryNumber()
+				slog.Debug("received query result", "query number", queryNumber)
 				elements := msg.Elements()
 				switch queryNumber {
 				case 1:
@@ -153,6 +155,9 @@ func (r *ResultsService) Run(ctx context.Context) error {
 					// Sends message
 					clientMsg := *cprotocol.NewResultMessage(cprotocol.Query1, uint64(msg.GetClientID()), uint64(msg.GetRequestID()), data)
 					clientCh := r.boundaryState.GetClientCh(uint64(msg.GetClientID()))
+					if clientCh == nil {
+						return fmt.Errorf("chan is nil for client %d", msg.GetClientID())
+					}
 					clientCh <- clientMsg
 				case 2:
 					slog.Debug("received result", "query", 2, "clientId", msg.GetClientID())
@@ -192,6 +197,9 @@ func (r *ResultsService) Run(ctx context.Context) error {
 					// Sends results
 					clientMsg := *cprotocol.NewResultMessage(cprotocol.Query2, uint64(msg.GetClientID()), uint64(msg.GetRequestID()), data)
 					clientCh := r.boundaryState.GetClientCh(uint64(msg.GetClientID()))
+					if clientCh == nil {
+						return fmt.Errorf("chan is nil for client %d", msg.GetClientID())
+					}
 					clientCh <- clientMsg
 				case 3:
 					// Update results state
@@ -205,6 +213,9 @@ func (r *ResultsService) Run(ctx context.Context) error {
 					// Send results
 					clientMsg := *cprotocol.NewResultMessage(cprotocol.Query3, uint64(msg.GetClientID()), uint64(msg.GetRequestID()), data)
 					clientCh := r.boundaryState.GetClientCh(uint64(msg.GetClientID()))
+					if clientCh == nil {
+						return fmt.Errorf("chan is nil for client %d", msg.GetClientID())
+					}
 					clientCh <- clientMsg
 				case 4:
 					// Update results state
@@ -219,6 +230,9 @@ func (r *ResultsService) Run(ctx context.Context) error {
 					// Send results
 					clientMsg := *cprotocol.NewResultMessage(cprotocol.Query4, uint64(msg.GetClientID()), uint64(msg.GetRequestID()), data)
 					clientCh := r.boundaryState.GetClientCh(uint64(msg.GetClientID()))
+					if clientCh == nil {
+						return fmt.Errorf("chan is nil for client %d", msg.GetClientID())
+					}
 					clientCh <- clientMsg
 				case 5:
 					// Update results state
@@ -233,6 +247,9 @@ func (r *ResultsService) Run(ctx context.Context) error {
 					// Send results
 					clientMsg := *cprotocol.NewResultMessage(cprotocol.Query5, uint64(msg.GetClientID()), uint64(msg.GetRequestID()), data)
 					clientCh := r.boundaryState.GetClientCh(uint64(msg.GetClientID()))
+					if clientCh == nil {
+						return fmt.Errorf("chan is nil for client %d", msg.GetClientID())
+					}
 					clientCh <- clientMsg
 				default:
 					utils.Assertf(false, "query number %d should not happen in end", queryNumber)
@@ -246,10 +263,10 @@ func (r *ResultsService) Run(ctx context.Context) error {
 			if r.res.hasClientAllResults(msg.GetClientID()) {
 				slog.Debug("all querys received")
 				close(r.boundaryState.GetClientCh(uint64(msg.GetClientID())))
-				return nil
 			}
 		case <-ctx.Done():
 			return ctx.Err()
 		}
 	}
+	return nil
 }
