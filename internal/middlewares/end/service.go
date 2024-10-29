@@ -106,9 +106,14 @@ func (s *Service) Destroy() {
 	s.coordinator.Close()
 }
 
-func (s *Service) Run(ctx context.Context) (chan<- protocol.Message, <-chan protocol.DataType) {
+type MessageInfo struct {
+	DataType protocol.DataType
+	Options  protocol.MessageOptions
+}
+
+func (s *Service) Run(ctx context.Context) (chan<- protocol.Message, <-chan MessageInfo) {
 	tx := make(chan protocol.Message, 1)
-	rx := make(chan protocol.DataType, 1)
+	rx := make(chan MessageInfo, 1)
 	go func() {
 		consumerCh := s.fanoutSub.GetConsumer()
 		for {
@@ -134,12 +139,17 @@ func (s *Service) Run(ctx context.Context) (chan<- protocol.Message, <-chan prot
 				var t protocol.DataType
 				if msg.HasGameData() {
 					t = protocol.Games
-				} else if msg.HasReviewData() {
-					t = protocol.Reviews
 				} else {
-					utils.Assert(false, "unreachable")
+					t = protocol.Reviews
 				}
-				rx <- t
+				rx <- MessageInfo{
+					Options: protocol.MessageOptions{
+						MessageID: msg.GetMessageID(),
+						ClientID:  msg.GetClientID(),
+						RequestID: msg.GetRequestID(),
+					},
+					DataType: t,
+				}
 				// Acknowledge
 				delivery.Ack(false)
 			case msg := <-s.notify:

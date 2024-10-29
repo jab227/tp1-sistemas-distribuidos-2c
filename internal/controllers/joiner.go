@@ -13,11 +13,9 @@ import (
 )
 
 type joinerState struct {
-	games     []models.Game
-	reviews   []models.Review
-	ends      int
-	clientID  uint32
-	requestID uint32
+	games   []models.Game
+	reviews []models.Review
+	ends    int
 }
 
 type Joiner struct {
@@ -80,25 +78,19 @@ func (j *Joiner) Run(ctx context.Context) error {
 				return fmt.Errorf("unexpected message type: %s", msg.GetMessageType())
 			}
 			delivery.Ack(false)
-		case t := <-rx:
-			slog.Debug("received end", "node", "joiner", "type", t)
+		case msgInfo := <-rx:
 			j.s.ends--
 			if j.s.ends != 0 {
 				continue
 			}
 			end = true
-			opts := protocol.MessageOptions{
-				MessageID: 0,
-				ClientID:  j.s.clientID,
-				RequestID: j.s.requestID,
-			}
 			slog.Debug("join and send data")
-			err := joinAndSend(j, opts)
+			err := joinAndSend(j, msgInfo.Options)
 			if err != nil {
 				return err
 			}
 			slog.Debug("notifying coordinator")
-			service.NotifyCoordinator(protocol.Reviews, opts)
+			service.NotifyCoordinator(protocol.Reviews, msgInfo.Options)
 		case <-ctx.Done():
 			return ctx.Err()
 		}
