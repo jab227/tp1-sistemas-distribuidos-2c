@@ -189,7 +189,7 @@ func NewRouterService(opts *ServiceOptions) (*RouterService, error) {
 	}
 	return &RouterService{
 		coordinator: coordinator,
-		notify:      make(chan protocol.Message, 1),
+		notify:      make(chan protocol.Message),
 	}, nil
 }
 
