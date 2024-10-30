@@ -3,12 +3,14 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"log/slog"
+
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/join"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/client"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/end"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/model"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/protocol"
-	"log/slog"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/store"
 )
 
 type joinerState struct {
@@ -20,7 +22,6 @@ type joinerState struct {
 type Joiner struct {
 	io   client.IOManager
 	done chan struct{}
-	s    joinerState
 }
 
 func NewJoiner() (*Joiner, error) {
@@ -31,7 +32,6 @@ func NewJoiner() (*Joiner, error) {
 	return &Joiner{
 		io:   io,
 		done: make(chan struct{}),
-		s:    joinerState{ends: 2},
 	}, nil
 }
 
@@ -54,22 +54,26 @@ func (j *Joiner) Run(ctx context.Context) error {
 	}
 	service, err := end.NewService(options)
 	tx, rx := service.Run(ctx)
+	joinerStateStore := store.NewStore[joinerState]()
 	for {
 		select {
 		case delivery := <-consumerCh:
-			if j.s.ends <= 0 {
-				slog.Debug("received message after end")
-			}
 			msgBytes := delivery.Body
 			var msg protocol.Message
 			if err := msg.Unmarshal(msgBytes); err != nil {
 				return fmt.Errorf("couldn't unmarshal protocol message: %w", err)
 			}
+			clientID := msg.GetClientID()
 			if msg.ExpectKind(protocol.Data) {
 				elements := msg.Elements()
-				if err := j.handleDataMessage(msg, elements); err != nil {
+				state, ok := joinerStateStore.Get(clientID)
+				if !ok {
+					state = joinerState{ends: 2}
+				}
+				if err := handleDataMessage(msg, &state, elements); err != nil {
 					return err
 				}
+				joinerStateStore.Set(clientID, state)
 			} else if msg.ExpectKind(protocol.End) {
 				tx <- msg
 			} else {
@@ -77,26 +81,32 @@ func (j *Joiner) Run(ctx context.Context) error {
 			}
 			delivery.Ack(false)
 		case msgInfo := <-rx:
-			j.s.ends--
-			if j.s.ends != 0 {
+			clientID := msgInfo.Options.ClientID
+			state, ok := joinerStateStore.Get(clientID)
+			if !ok {
+				state = joinerState{ends: 2}
+			}
+			state.ends--
+			if state.ends != 0 {
+				joinerStateStore.Set(clientID, state)
 				continue
 			}
 			slog.Debug("join and send data")
-			err := joinAndSend(j, msgInfo.Options)
+			err := joinAndSend(j, &state, msgInfo.Options)
 			if err != nil {
 				return err
 			}
 			slog.Debug("notifying coordinator")
 			service.NotifyCoordinator(protocol.Reviews, msgInfo.Options)
-			j.s = joinerState{ends: 2}
+			joinerStateStore.Delete(clientID)
 		case <-ctx.Done():
 			return ctx.Err()
 		}
 	}
 }
 
-func joinAndSend(j *Joiner, opts protocol.MessageOptions) error {
-	tuples := join.Join(j.s.games, j.s.reviews)
+func joinAndSend(j *Joiner, s *joinerState, opts protocol.MessageOptions) error {
+	tuples := join.Join(s.games, s.reviews)
 
 	for _, tuple := range tuples {
 		game := tuple.X
@@ -110,16 +120,16 @@ func joinAndSend(j *Joiner, opts protocol.MessageOptions) error {
 	return nil
 }
 
-func (j *Joiner) handleDataMessage(msg protocol.Message, elements *protocol.PayloadElements) error {
+func handleDataMessage(msg protocol.Message, s *joinerState, elements *protocol.PayloadElements) error {
 	if msg.HasGameData() {
 		for _, element := range elements.Iter() {
 			game := models.ReadGame(&element)
-			j.s.games = append(j.s.games, game)
+			s.games = append(s.games, game)
 		}
 	} else if msg.HasReviewData() {
 		for _, element := range elements.Iter() {
 			review := models.ReadReview(&element)
-			j.s.reviews = append(j.s.reviews, review)
+			s.reviews = append(s.reviews, review)
 		}
 	} else {
 		return fmt.Errorf("unexpected data type")
