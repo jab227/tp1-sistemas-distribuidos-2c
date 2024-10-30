@@ -10,6 +10,49 @@ import (
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/protocol"
 )
 
+type ClientState struct {
+	GamesEndCounter   int
+	ReviewsEndCounter int
+}
+
+type State struct {
+	state map[uint32]ClientState
+}
+
+func (s *State) AddGameEnd(clientId uint32) {
+	state := s.state[clientId]
+	state.GamesEndCounter++
+	s.state[clientId] = state
+}
+
+func (s *State) AddReviewsEnd(clientId uint32) {
+	state := s.state[clientId]
+	state.ReviewsEndCounter++
+	s.state[clientId] = state
+}
+
+func (s *State) GetGamesEnd(clientId uint32) int {
+	state := s.state[clientId]
+	return state.GamesEndCounter
+}
+
+func (s *State) GetReviewsEnd(clientId uint32) int {
+	state := s.state[clientId]
+	return state.ReviewsEndCounter
+}
+
+func (s *State) ResetGamesEnd(clientId uint32) {
+	state := s.state[clientId]
+	state.GamesEndCounter = 0
+	s.state[clientId] = state
+}
+
+func (s *State) ResetReviewsEnd(clientId uint32) {
+	state := s.state[clientId]
+	state.ReviewsEndCounter = 0
+	s.state[clientId] = state
+}
+
 type EndCoordinator struct {
 	output client.OutputType
 	io     client.IOManager
@@ -17,8 +60,7 @@ type EndCoordinator struct {
 	expectedGamesEnd   int
 	expectedReviewsEnd int
 
-	GamesEndCounter   int
-	ReviewsEndCounter int
+	state State
 
 	done chan struct{}
 }
@@ -34,8 +76,7 @@ func NewEndCoordinator(output client.OutputType, expectedGames int, expectedRevi
 		io:                 io,
 		expectedGamesEnd:   expectedGames,
 		expectedReviewsEnd: expectedReviews,
-		GamesEndCounter:    0,
-		ReviewsEndCounter:  0,
+		state:              State{state: make(map[uint32]ClientState)},
 		done:               make(chan struct{}),
 	}, nil
 }
@@ -63,20 +104,20 @@ func (c *EndCoordinator) Run(ctx context.Context) error {
 					}
 
 					// Sum counter
-					c.GamesEndCounter += 1
-					slog.Info("Received Game END", "counter", c.GamesEndCounter)
-					if c.GamesEndCounter >= c.expectedGamesEnd {
+					c.state.AddGameEnd(msg.GetClientID())
+					slog.Info("Received Game END", "counter", c.state.GetGamesEnd(msg.GetClientID()))
+					if c.state.GetGamesEnd(msg.GetClientID()) >= c.expectedGamesEnd {
 						endMsg := protocol.NewEndMessage(protocol.Games, protocol.MessageOptions{
 							MessageID: msg.GetMessageID(),
 							ClientID:  msg.GetClientID(),
 							RequestID: msg.GetRequestID(),
 						})
 						<-time.After(1 * time.Second)
-						slog.Info("Propagating END games", "counter", c.GamesEndCounter)
+						slog.Info("Propagating END games", "counter", c.state.GetGamesEnd(msg.GetClientID()))
 						if err := c.io.Write(endMsg.Marshal(), "game"); err != nil {
 							return fmt.Errorf("couldn't write end message: %w", err)
 						}
-						c.GamesEndCounter = 0
+						c.state.ResetGamesEnd(msg.GetClientID())
 					}
 
 					// ACK of the MSg
@@ -88,20 +129,20 @@ func (c *EndCoordinator) Run(ctx context.Context) error {
 					}
 
 					// Sum counter
-					c.ReviewsEndCounter += 1
-					slog.Info("Received Review END", "counter", c.ReviewsEndCounter)
-					if c.ReviewsEndCounter >= c.expectedReviewsEnd {
+					c.state.AddReviewsEnd(msg.GetClientID())
+					slog.Info("Received Review END", "counter", c.state.GetReviewsEnd(msg.GetClientID()))
+					if c.state.GetReviewsEnd(msg.GetClientID()) >= c.expectedReviewsEnd {
 						endMsg := protocol.NewEndMessage(protocol.Reviews, protocol.MessageOptions{
 							MessageID: msg.GetMessageID(),
 							ClientID:  msg.GetClientID(),
 							RequestID: msg.GetRequestID(),
 						})
 						<-time.After(5 * time.Second)
-						slog.Info("Propagating END reviews", "counter", c.ReviewsEndCounter)
+						slog.Info("Propagating END reviews", "counter", c.state.GetReviewsEnd(msg.GetClientID()))
 						if err := c.io.Write(endMsg.Marshal(), "review"); err != nil {
 							return fmt.Errorf("couldn't write end message: %w", err)
 						}
-						c.ReviewsEndCounter = 0
+						c.state.ResetReviewsEnd(msg.GetClientID())
 					}
 
 					// ACK of the MSg
