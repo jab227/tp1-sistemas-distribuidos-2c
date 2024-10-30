@@ -12,9 +12,10 @@ import (
 )
 
 type Service struct {
-	fanoutPub          *rabbitmq.FanoutPublisher
-	fanoutSub          *rabbitmq.FanoutSubscriber
-	coordinator        *rabbitmq.WorkerQueue
+	fanoutPub   *rabbitmq.FanoutPublisher
+	fanoutSub   *rabbitmq.FanoutSubscriber
+	coordinator *rabbitmq.WorkerQueue
+	notify      chan protocol.Message
 }
 
 type ServiceOptions struct {
@@ -92,9 +93,10 @@ func NewService(opts *ServiceOptions) (*Service, error) {
 	}
 
 	return &Service{
-		fanoutPub:          fanoutPub,
-		fanoutSub:          fanoutSub,
-		coordinator:        coordinator,
+		fanoutPub:   fanoutPub,
+		fanoutSub:   fanoutSub,
+		coordinator: coordinator,
+		notify:      make(chan protocol.Message),
 	}, nil
 }
 
@@ -104,9 +106,14 @@ func (s *Service) Destroy() {
 	s.coordinator.Close()
 }
 
-func (s *Service) Run(ctx context.Context) (chan<- protocol.Message, <-chan struct{}) {
+type MessageInfo struct {
+	DataType protocol.DataType
+	Options  protocol.MessageOptions
+}
+
+func (s *Service) Run(ctx context.Context) (chan<- protocol.Message, <-chan MessageInfo) {
 	tx := make(chan protocol.Message, 1)
-	rx := make(chan struct{}, 1)
+	rx := make(chan MessageInfo, 1)
 	go func() {
 		consumerCh := s.fanoutSub.GetConsumer()
 		for {
@@ -128,12 +135,25 @@ func (s *Service) Run(ctx context.Context) (chan<- protocol.Message, <-chan stru
 					continue
 				}
 				utils.Assert(msg.ExpectKind(protocol.End), "must be an END message")
-				// Notify I received END
-				s.coordinator.Write(msg.Marshal(), "")
 				// Notify that I received an END
-				rx <- struct{}{}
+				var t protocol.DataType
+				if msg.HasGameData() {
+					t = protocol.Games
+				} else {
+					t = protocol.Reviews
+				}
+				rx <- MessageInfo{
+					Options: protocol.MessageOptions{
+						MessageID: msg.GetMessageID(),
+						ClientID:  msg.GetClientID(),
+						RequestID: msg.GetRequestID(),
+					},
+					DataType: t,
+				}
 				// Acknowledge
 				delivery.Ack(false)
+			case msg := <-s.notify:
+				s.coordinator.Write(msg.Marshal(), "")
 			case <-ctx.Done():
 				slog.Error("context error", "error", ctx.Err())
 				return
@@ -141,4 +161,9 @@ func (s *Service) Run(ctx context.Context) (chan<- protocol.Message, <-chan stru
 		}
 	}()
 	return tx, rx
+}
+
+func (s *Service) NotifyCoordinator(d protocol.DataType, opts protocol.MessageOptions) {
+	msg := protocol.NewEndMessage(d, opts)
+	s.notify <- msg
 }

@@ -89,7 +89,6 @@ func (tr *TopReviews) processReviewsData(state *topReviewsState, internalMsg pro
 	elements := internalMsg.Elements()
 	for _, element := range elements.Iter() {
 		game := models.ReadGame(&element)
-		slog.Debug("received game", "game", game)
 		key := fmt.Sprintf("%s||%s", game.AppID, game.Name)
 		state.appByReviewScore[key] += 1
 	}

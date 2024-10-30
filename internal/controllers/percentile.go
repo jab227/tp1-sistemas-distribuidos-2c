@@ -68,6 +68,7 @@ func (r *Percentile) Run(ctx context.Context) error {
 	}()
 
 	percentileStateStore := store.NewStore[percentileState]()
+
 	for {
 		select {
 		case delivery := <-consumerCh:
@@ -94,8 +95,9 @@ func (r *Percentile) Run(ctx context.Context) error {
 					state.insertOrUpdate(game)
 				}
 			} else if msg.ExpectKind(protocol.End) {
-				slog.Debug("received end", "node", "review_counter")
 				clientID := msg.GetClientID()
+				// reset state
+				slog.Debug("received end", "node", "percentile", "game end", msg.HasGameData(), "review end", msg.HasReviewData())
 				// Compute percentile
 				s, _ := percentileStateStore.Get(clientID)
 				results := computePercentile(s)
