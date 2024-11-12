@@ -9,6 +9,7 @@ import (
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/client"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/end"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/protocol"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/utils"
 	"github.com/pemistahl/lingua-go"
 )
 
@@ -89,53 +90,41 @@ func (f *Filter) Run(ctx context.Context) error {
 		return err
 	}
 	service, err := end.NewService(options)
-	tx, rx := service.Run(ctx)
+	ch := service.MergeConsumers(consumerCh)
 	for {
 		select {
-		case delivery := <-consumerCh:
-			msgBytes := delivery.Body
+		case delivery := <-ch:
+			msgBytes := delivery.RecvDelivery.Body
 			var msg protocol.Message
 			if err := msg.Unmarshal(msgBytes); err != nil {
 				return fmt.Errorf("couldn't unmarshal protocol message: %w", err)
 			}
-
-			f.requestID = msg.GetRequestID()
-			f.clientID = msg.GetClientID()
-			// Detect type
-			if msg.ExpectKind(protocol.Data) {
-				// Handle filter
-				if f.hasGameFilter {
-					if err := f.handleGameFunc(msg); err != nil {
-						return fmt.Errorf("couldn't handle game function: %w", err)
+			if delivery.SenderType == end.SenderPrevious {
+				f.requestID = msg.GetRequestID()
+				f.clientID = msg.GetClientID()
+				// Detect type
+				if msg.ExpectKind(protocol.Data) {
+					// Handle filter
+					if f.hasGameFilter {
+						if err := f.handleGameFunc(msg); err != nil {
+							return fmt.Errorf("couldn't handle game function: %w", err)
+						}
+					} else {
+						if err := f.handleReviewFunc(msg); err != nil {
+							return fmt.Errorf("couldn't handle review function: %w", err)
+						}
 					}
-				} else {
-					if err := f.handleReviewFunc(msg); err != nil {
-						return fmt.Errorf("couldn't handle review function: %w", err)
-					}
+					delivery.RecvDelivery.Ack(false)
+				} else if msg.ExpectKind(protocol.End) {
+					service.NotifyNeighbours(msg)
+					delivery.RecvDelivery.Ack(false)
 				}
-				delivery.Ack(false)
-			} else if msg.ExpectKind(protocol.End) {
-				var msgType protocol.DataType
-				if msg.HasGameData() {
-					msgType = protocol.Games
-				} else if msg.HasReviewData() {
-					msgType = protocol.Reviews
-				}
-				slog.Debug("received end message")
-				newMsg := protocol.NewEndMessage(
-					msgType,
-					protocol.MessageOptions{
-						ClientID:  msg.GetClientID(),
-						RequestID: msg.GetRequestID(),
-						MessageID: msg.GetMessageID(),
-					})
-
-				tx <- newMsg
-				delivery.Ack(false)
+			} else if delivery.SenderType == end.SenderNeighbour {
+				service.NotifyCoordinator(msg)
+				delivery.RecvDelivery.Ack(false)
+			} else {
+				utils.Assert(false, "unknown type")
 			}
-		case msgInfo := <-rx:
-			slog.Info("END received from peer")
-			service.NotifyCoordinator(msgInfo.DataType, msgInfo.Options)
 		case <-ctx.Done():
 			return nil
 		}

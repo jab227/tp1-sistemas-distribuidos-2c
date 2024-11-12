@@ -93,5 +93,3 @@ func (hg *HeapReviews) TopNReviews(n int) []models.Review {
 	slices.Reverse(top)
 	return top
 }
-
-

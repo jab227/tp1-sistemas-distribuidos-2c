@@ -112,7 +112,7 @@ func (c *EndCoordinator) Run(ctx context.Context) error {
 							ClientID:  msg.GetClientID(),
 							RequestID: msg.GetRequestID(),
 						})
-						<-time.After(1 * time.Second)
+						<-time.After(2 * time.Second)
 						slog.Info("Propagating END games", "counter", c.state.GetGamesEnd(msg.GetClientID()))
 						if err := c.io.Write(endMsg.Marshal(), "game"); err != nil {
 							return fmt.Errorf("couldn't write end message: %w", err)
@@ -137,7 +137,7 @@ func (c *EndCoordinator) Run(ctx context.Context) error {
 							ClientID:  msg.GetClientID(),
 							RequestID: msg.GetRequestID(),
 						})
-						<-time.After(5 * time.Second)
+						<-time.After(8 * time.Second)
 						slog.Info("Propagating END reviews", "counter", c.state.GetReviewsEnd(msg.GetClientID()))
 						if err := c.io.Write(endMsg.Marshal(), "review"); err != nil {
 							return fmt.Errorf("couldn't write end message: %w", err)

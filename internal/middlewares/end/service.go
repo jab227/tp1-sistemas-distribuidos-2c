@@ -1,14 +1,13 @@
 package end
 
 import (
-	"context"
 	"fmt"
-	"log/slog"
 
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/env"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/rabbitmq"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/protocol"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/utils"
+	"github.com/rabbitmq/amqp091-go"
 )
 
 type Service struct {
@@ -111,59 +110,49 @@ type MessageInfo struct {
 	Options  protocol.MessageOptions
 }
 
-func (s *Service) Run(ctx context.Context) (chan<- protocol.Message, <-chan MessageInfo) {
-	tx := make(chan protocol.Message, 1)
-	rx := make(chan MessageInfo, 1)
+type Sender string
+
+const (
+	SenderNeighbour Sender = "neighbour"
+	SenderPrevious  Sender = "previous"
+)
+
+type Delivery struct {
+	RecvDelivery amqp091.Delivery
+	SenderType   Sender
+}
+
+func (s *Service) MergeConsumers(consumer <-chan amqp091.Delivery) <-chan Delivery {
+	newConsumer := make(chan Delivery, 1)
+	neighboursConsumer := s.fanoutSub.GetConsumer()
 	go func() {
-		consumerCh := s.fanoutSub.GetConsumer()
 		for {
 			select {
-			// FROM THE QUEUE
-			case msg := <-tx:
-				utils.Assert(msg.ExpectKind(protocol.End), "must be an END message")
-				utils.Assert(msg.HasGameData() || msg.HasReviewData(), "unreachable")
-
-				marshaledMsg := msg.Marshal()
-				s.fanoutPub.Write(marshaledMsg, "")
-			// FROM MY BROTHERS
-			// NEED SOME OATS BROTHER
-			case delivery := <-consumerCh:
-				msgBytes := delivery.Body
-				var msg protocol.Message
-				if err := msg.Unmarshal(msgBytes); err != nil {
-					slog.Error("couldn't unmarshal message", "error", err)
-					continue
+			case delivery := <-neighboursConsumer:
+				newConsumer <- Delivery{
+					RecvDelivery: delivery,
+					SenderType:   SenderNeighbour,
 				}
-				utils.Assert(msg.ExpectKind(protocol.End), "must be an END message")
-				// Notify that I received an END
-				var t protocol.DataType
-				if msg.HasGameData() {
-					t = protocol.Games
-				} else {
-					t = protocol.Reviews
+			case delivery := <-consumer:
+				newConsumer <- Delivery{
+					RecvDelivery: delivery,
+					SenderType:   SenderPrevious,
 				}
-				rx <- MessageInfo{
-					Options: protocol.MessageOptions{
-						MessageID: msg.GetMessageID(),
-						ClientID:  msg.GetClientID(),
-						RequestID: msg.GetRequestID(),
-					},
-					DataType: t,
-				}
-				// Acknowledge
-				delivery.Ack(false)
-			case msg := <-s.notify:
-				s.coordinator.Write(msg.Marshal(), "")
-			case <-ctx.Done():
-				slog.Error("context error", "error", ctx.Err())
-				return
 			}
 		}
 	}()
-	return tx, rx
+	return newConsumer
 }
 
-func (s *Service) NotifyCoordinator(d protocol.DataType, opts protocol.MessageOptions) {
-	msg := protocol.NewEndMessage(d, opts)
-	s.notify <- msg
+func (s *Service) NotifyCoordinator(endMessage protocol.Message) {
+	utils.Assert(endMessage.ExpectKind(protocol.End), "must be an END message")
+	utils.Assert(endMessage.HasGameData() || endMessage.HasReviewData(), "unreachable")
+	s.coordinator.Write(endMessage.Marshal(), "")
+}
+
+func (s *Service) NotifyNeighbours(endMessage protocol.Message) {
+	utils.Assert(endMessage.ExpectKind(protocol.End), "must be an END message")
+	utils.Assert(endMessage.HasGameData() || endMessage.HasReviewData(), "unreachable")
+	marshaledMsg := endMessage.Marshal()
+	s.fanoutPub.Write(marshaledMsg, "")
 }
