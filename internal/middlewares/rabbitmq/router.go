@@ -1,12 +1,32 @@
 package rabbitmq
 
 import (
-	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/utils"
 	"hash"
 	"hash/fnv"
 	"strings"
+
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/utils"
 	//	"log/slog"
 )
+
+type RoundRobinRouter struct {
+	size int
+	pos  int
+}
+
+func NewRoundRobinRouter(size int) RoundRobinRouter {
+	return RoundRobinRouter{
+		size: size,
+		pos:  0,
+	}
+}
+
+func (r *RoundRobinRouter) Select(key string) int {
+	utils.Assert(r.pos < r.size, "should be less")
+	pos := r.pos
+	r.pos = (r.pos + 1) % r.size
+	return pos
+}
 
 type IDRouter struct {
 	hasher  hash.Hash64

@@ -27,9 +27,10 @@ services:
       - RABBITMQ_PORT=5672
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
-      - OUTPUT_WORKER_QUEUE=projection-input-queue
-      - OUTPUT_WORKER_QUEUE_TIMEOUT=5
-      - OUTPUT_WORKER_QUEUE_COUNT=1
+      - DIRECT_PUBLISHER_EXCHANGE=boundary-exchange
+      - DIRECT_PUBLISHER_TIMEOUT=5
+      - OUTPUT_ROUTER_TAGS=0,1,2,3,4,5 #affects projection
+      - ROUTER_TYPE=round-robin
       - INPUT_WORKER_QUEUE=output-queue
       - INPUT_WORKER_QUEUE_TIMEOUT=5
       - INPUT_WORKER_QUEUE_COUNT=1
@@ -56,17 +57,19 @@ services:
       - RABBITMQ_PORT=5672
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
-      - INPUT_WORKER_QUEUE=projection-input-queue
-      - INPUT_WORKER_QUEUE_TIMEOUT=5
-      - INPUT_WORKER_QUEUE_COUNT=1
+      - DIRECT_SUBSCRIBER_EXCHANGES=boundary-exchange
+      - DIRECT_SUBSCRIBER_QUEUE=projection-input-queue-0
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=1
+      - DIRECT_SUBSCRIBER_KEYS=0
       - DIRECT_PUBLISHER_EXCHANGE=projection-output-exchange
       - DIRECT_PUBLISHER_TIMEOUT=5
+      - OUTPUT_ROUTER_TAGS=game,review      
       - LOGGER_LEVEL=debug
       - END_SERVICE_COORDINATOR_QUEUE=projection-control
       - END_SERVICE_EXCHANGE=projection-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=projection-peer-queue-0
       - END_SERVICE_TIMEOUT=5
-      - IS_PROJECTION=True      
+      - ROUTER_TYPE=game-review      
     networks:
       - rabbitmq_go_net
     depends_on:
@@ -83,17 +86,19 @@ services:
       - RABBITMQ_PORT=5672
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
-      - INPUT_WORKER_QUEUE=projection-input-queue
-      - INPUT_WORKER_QUEUE_TIMEOUT=5
-      - INPUT_WORKER_QUEUE_COUNT=1
+      - DIRECT_SUBSCRIBER_EXCHANGES=boundary-exchange
+      - DIRECT_SUBSCRIBER_QUEUE=projection-input-queue-1
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=1
+      - DIRECT_SUBSCRIBER_KEYS=1
       - DIRECT_PUBLISHER_EXCHANGE=projection-output-exchange
       - DIRECT_PUBLISHER_TIMEOUT=5
+      - OUTPUT_ROUTER_TAGS=game,review      
       - LOGGER_LEVEL=debug
       - END_SERVICE_COORDINATOR_QUEUE=projection-control
       - END_SERVICE_EXCHANGE=projection-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=projection-peer-queue-1
       - END_SERVICE_TIMEOUT=5
-      - IS_PROJECTION=True      
+      - ROUTER_TYPE=game-review      
     networks:
       - rabbitmq_go_net
     depends_on:
@@ -111,17 +116,19 @@ services:
       - RABBITMQ_PORT=5672
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
-      - INPUT_WORKER_QUEUE=projection-input-queue
-      - INPUT_WORKER_QUEUE_TIMEOUT=5
-      - INPUT_WORKER_QUEUE_COUNT=1
+      - DIRECT_SUBSCRIBER_EXCHANGES=boundary-exchange
+      - DIRECT_SUBSCRIBER_QUEUE=projection-input-queue-2
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=1
+      - DIRECT_SUBSCRIBER_KEYS=2
       - DIRECT_PUBLISHER_EXCHANGE=projection-output-exchange
       - DIRECT_PUBLISHER_TIMEOUT=5
+      - OUTPUT_ROUTER_TAGS=game,review      
       - LOGGER_LEVEL=debug
       - END_SERVICE_COORDINATOR_QUEUE=projection-control
       - END_SERVICE_EXCHANGE=projection-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=projection-peer-queue-2
       - END_SERVICE_TIMEOUT=5
-      - IS_PROJECTION=True
+      - ROUTER_TYPE=game-review
     networks:
       - rabbitmq_go_net
     depends_on:
@@ -139,17 +146,19 @@ services:
       - RABBITMQ_PORT=5672
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
-      - INPUT_WORKER_QUEUE=projection-input-queue
-      - INPUT_WORKER_QUEUE_TIMEOUT=5
-      - INPUT_WORKER_QUEUE_COUNT=1
+      - DIRECT_SUBSCRIBER_EXCHANGES=boundary-exchange
+      - DIRECT_SUBSCRIBER_QUEUE=projection-input-queue-3
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=1
+      - DIRECT_SUBSCRIBER_KEYS=3
       - DIRECT_PUBLISHER_EXCHANGE=projection-output-exchange
       - DIRECT_PUBLISHER_TIMEOUT=5
+      - OUTPUT_ROUTER_TAGS=game,review      
       - LOGGER_LEVEL=debug
       - END_SERVICE_COORDINATOR_QUEUE=projection-control
       - END_SERVICE_EXCHANGE=projection-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=projection-peer-queue-3
       - END_SERVICE_TIMEOUT=5
-      - IS_PROJECTION=True
+      - ROUTER_TYPE=game-review
     networks:
       - rabbitmq_go_net
     depends_on:
@@ -167,17 +176,19 @@ services:
       - RABBITMQ_PORT=5672
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
-      - INPUT_WORKER_QUEUE=projection-input-queue
-      - INPUT_WORKER_QUEUE_TIMEOUT=5
-      - INPUT_WORKER_QUEUE_COUNT=1
+      - DIRECT_SUBSCRIBER_EXCHANGES=boundary-exchange
+      - DIRECT_SUBSCRIBER_QUEUE=projection-input-queue-4
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=1
+      - DIRECT_SUBSCRIBER_KEYS=4
       - DIRECT_PUBLISHER_EXCHANGE=projection-output-exchange
       - DIRECT_PUBLISHER_TIMEOUT=5
+      - OUTPUT_ROUTER_TAGS=game,review      
       - LOGGER_LEVEL=debug
       - END_SERVICE_COORDINATOR_QUEUE=projection-control
       - END_SERVICE_EXCHANGE=projection-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=projection-peer-queue-4
       - END_SERVICE_TIMEOUT=5
-      - IS_PROJECTION=True
+      - ROUTER_TYPE=game-review
     networks:
       - rabbitmq_go_net
     depends_on:
@@ -195,17 +206,19 @@ services:
       - RABBITMQ_PORT=5672
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
-      - INPUT_WORKER_QUEUE=projection-input-queue
-      - INPUT_WORKER_QUEUE_TIMEOUT=5
-      - INPUT_WORKER_QUEUE_COUNT=1
+      - DIRECT_SUBSCRIBER_EXCHANGES=boundary-exchange
+      - DIRECT_SUBSCRIBER_QUEUE=projection-input-queue-5
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=1
+      - DIRECT_SUBSCRIBER_KEYS=5
       - DIRECT_PUBLISHER_EXCHANGE=projection-output-exchange
       - DIRECT_PUBLISHER_TIMEOUT=5
+      - OUTPUT_ROUTER_TAGS=game,review
       - LOGGER_LEVEL=debug
       - END_SERVICE_COORDINATOR_QUEUE=projection-control
       - END_SERVICE_EXCHANGE=projection-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=projection-peer-queue-5
       - END_SERVICE_TIMEOUT=5
-      - IS_PROJECTION=True
+      - ROUTER_TYPE=game-review
     networks:
       - rabbitmq_go_net
     depends_on:
@@ -231,9 +244,9 @@ services:
       - INPUT_WORKER_QUEUE_COUNT=1
       - DIRECT_PUBLISHER_EXCHANGE=projection-output-exchange
       - DIRECT_PUBLISHER_TIMEOUT=5
-      - OUTPUT_ROUTER_TAGS=1 # Affects filter_decade and JoinnerQuery3
+      - OUTPUT_ROUTER_TAGS=game,review            
       - LOGGER_LEVEL=debug
-      - IS_PROJECTION=True 
+      - ROUTER_TYPE=game-review 
     networks:
       - rabbitmq_go_net
     depends_on:

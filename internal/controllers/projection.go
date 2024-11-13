@@ -22,7 +22,7 @@ type Projection struct {
 
 func NewProjection() (*Projection, error) {
 	ioManager := client.IOManager{}
-	err := ioManager.Connect(client.InputWorker, client.DirectPublisher)
+	err := ioManager.Connect(client.DirectSubscriber, client.Router)
 	if err != nil {
 		return nil, err
 	}

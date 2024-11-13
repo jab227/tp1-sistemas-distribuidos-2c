@@ -6,6 +6,7 @@ import (
 
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/env"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/rabbitmq"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/utils"
 )
 
 type InputType int
@@ -92,24 +93,13 @@ func (m *IOManager) connectOutput(conn *rabbitmq.Connection, output OutputType) 
 		m.Output = rabbitmq.NewDirectPublisher(*config)
 	case Router:
 		config, err := env.GetDirectPublisherConfig()
+		routerType := env.GetRouterTypeFromEnv()
 		tags, err := env.GetRouterTags()
-
 		if err != nil {
 			return fmt.Errorf("couldn't get tags from env: %w", err)
 		}
-		isProjection, err := env.GetIsProjection()
-		if err != nil {
-			isProjection = false
-		}
-		var selector rabbitmq.RouteSelector
-		if isProjection {
-			slog.Debug("selected game review selector")
-			selector = rabbitmq.GameReviewRouter{}
-			tags = []string{"game", "review"}
-		} else {
-			slog.Debug("selected id selector")
-			selector = rabbitmq.NewIDRouter(len(tags))
-		}
+		slog.Debug("tag values", "values", tags)
+		selector := makeSelector(routerType, len(tags))
 		router := rabbitmq.NewRouter(*config, tags, selector)
 		m.Output = &router
 	}
@@ -119,6 +109,24 @@ func (m *IOManager) connectOutput(conn *rabbitmq.Connection, output OutputType) 
 		return err
 	}
 	return nil
+}
+
+func makeSelector(routerType string, tagCount int) rabbitmq.RouteSelector {
+	switch routerType {
+	case env.RouterRoundRobin:
+		slog.Debug("use round robin router")
+		r := rabbitmq.NewRoundRobinRouter(tagCount)
+		return &r
+	case env.RouterGameReview:
+		slog.Debug("use game-review router")
+		return rabbitmq.GameReviewRouter{}
+	case env.RouterID:
+		slog.Debug("use id router")
+		return rabbitmq.NewIDRouter(tagCount)
+	default:
+		utils.Assertf(false, "unknown router type %s", routerType)
+		return nil
+	}
 }
 
 func (m *IOManager) Connect(input InputType, output OutputType) error {
