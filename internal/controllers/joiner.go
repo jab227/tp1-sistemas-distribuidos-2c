@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"time"
 
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/batch"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/client"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/end"
 	models "github.com/jab227/tp1-sistemas-distribuidos-2c/internal/model"
@@ -62,33 +64,27 @@ func (j *Joiner) Run(ctx context.Context) error {
 	}
 	service, err := end.NewService(options)
 	ch := service.MergeConsumers(consumerCh)
+	batcher := batch.NewBatcher(5000)
 	joinerStateStore := store.NewStore[joinerState]()
 	for {
 		select {
 		case delivery := <-ch:
-			msgBytes := delivery.RecvDelivery.Body
+			body := delivery.RecvDelivery.Body
 			var msg protocol.Message
-			if err := msg.Unmarshal(msgBytes); err != nil {
+			if err := msg.Unmarshal(body); err != nil {
 				return fmt.Errorf("couldn't unmarshal protocol message: %w", err)
 			}
 			if delivery.SenderType == end.SenderPrevious {
-				clientID := msg.GetClientID()
-				if msg.ExpectKind(protocol.Data) {
-					elements := msg.Elements()
-					state, ok := joinerStateStore.Get(clientID)
-					if !ok {
-						state.Reset()
-					}
-					if err := handleDataMessage(msg, &state, elements); err != nil {
-						return err
-					}
-					joinerStateStore.Set(clientID, state)
-				} else if msg.ExpectKind(protocol.End) {
-					service.NotifyNeighbours(msg)
-				} else {
-					return fmt.Errorf("unexpected message type: %s", msg.GetMessageType())
+				batcher.Push(msg, delivery.RecvDelivery)
+				if !batcher.IsFull() {
+					continue
 				}
-				delivery.RecvDelivery.Ack(false)
+				batch := batcher.Batch()
+				err := processBatch(batch, joinerStateStore, service)
+				if err != nil {
+					return err
+				}
+				batcher.Acknowledge()
 			} else if delivery.SenderType == end.SenderNeighbour {
 				clientID := msg.GetClientID()
 				state, ok := joinerStateStore.Get(clientID)
@@ -98,7 +94,7 @@ func (j *Joiner) Run(ctx context.Context) error {
 				state.ends--
 				if state.ends != 0 {
 					joinerStateStore.Set(clientID, state)
-					delivery.RecvDelivery.Ack(false)					
+					delivery.RecvDelivery.Ack(false)
 					continue
 				}
 				slog.Debug("join and send data")
@@ -117,10 +113,39 @@ func (j *Joiner) Run(ctx context.Context) error {
 			} else {
 				utils.Assert(false, "unknown type")
 			}
+		case <-time.After(10 * time.Second):
+			if batcher.IsEmpty() {
+				continue
+			}
+			batch := batcher.Batch()
+			processBatch(batch, joinerStateStore, service)
+			batcher.Acknowledge()
 		case <-ctx.Done():
 			return ctx.Err()
 		}
 	}
+}
+
+func processBatch(batch []protocol.Message, joinerStateStore store.Store[joinerState], service *end.Service) error {
+	for _, m := range batch {
+		clientID := m.GetClientID()
+		if m.ExpectKind(protocol.Data) {
+			elements := m.Elements()
+			state, ok := joinerStateStore.Get(clientID)
+			if !ok {
+				state.Reset()
+			}
+			if err := handleDataMessage(m, &state, elements); err != nil {
+				return err
+			}
+			joinerStateStore.Set(clientID, state)
+		} else if m.ExpectKind(protocol.End) {
+			service.NotifyNeighbours(m)
+		} else {
+			return fmt.Errorf("unexpected message type: %s", m.GetMessageType())
+		}
+	}
+	return nil
 }
 
 func joinAndSend(j *Joiner, s *joinerState, opts protocol.MessageOptions) error {

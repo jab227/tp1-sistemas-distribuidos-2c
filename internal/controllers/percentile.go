@@ -7,7 +7,9 @@ import (
 	"log/slog"
 	"math"
 	"slices"
+	"time"
 
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/batch"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/client"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/model"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/protocol"
@@ -68,7 +70,7 @@ func (r *Percentile) Run(ctx context.Context) error {
 	}()
 
 	percentileStateStore := store.NewStore[percentileState]()
-
+	batcher := batch.NewBatcher(2000)
 	for {
 		select {
 		case delivery := <-consumerCh:
@@ -77,44 +79,63 @@ func (r *Percentile) Run(ctx context.Context) error {
 			if err := msg.Unmarshal(msgBytes); err != nil {
 				return fmt.Errorf("couldn't unmarshal protocol message: %w", err)
 			}
-
-			if msg.ExpectKind(protocol.Data) {
-				if !msg.HasGameData() {
-					return fmt.Errorf("couldn't wrong type: expected game data")
-				}
-				clientID := msg.GetClientID()
-				elements := msg.Elements()
-				state, ok := percentileStateStore.Get(clientID)
-				if !ok {
-					// the map behaves like a ptr
-					state = make(map[string]innerPercentile)
-					percentileStateStore.Set(clientID, state)
-				}
-				for _, element := range elements.Iter() {
-					game := models.ReadGame(&element)
-					state.insertOrUpdate(game)
-				}
-			} else if msg.ExpectKind(protocol.End) {
-				clientID := msg.GetClientID()
-				// reset state
-				slog.Debug("received end", "node", "percentile", "game end", msg.HasGameData(), "review end", msg.HasReviewData())
-				// Compute percentile
-				s, _ := percentileStateStore.Get(clientID)
-				results := computePercentile(s)
-				// NOTE: This should be batched instead of being sent one by one
-				slog.Debug("query 5 results", "result", results, "state", s)
-				// Tell it ends the query 5
-
-				if err := marshalAndSendPercentileResults(results, msg, r); err != nil {
-					return err
-				}
-				percentileStateStore.Delete(clientID)
-			} else {
-				return fmt.Errorf("unexpected message type: %s", msg.GetMessageType())
+			batcher.Push(msg, delivery)
+			if !batcher.IsFull() {
+				continue
 			}
-			delivery.Ack(false)
+			batch := batcher.Batch()
+			if err := processPercentileBatch(batch, percentileStateStore, r); err != nil {
+				return err
+			}
+			batcher.Acknowledge()
+		case <-time.After(10 * time.Second):
+			if batcher.IsEmpty() {
+				continue
+			}
+			batch := batcher.Batch()
+			if err := processPercentileBatch(batch, percentileStateStore, r); err != nil {
+				return err
+			}
+			batcher.Acknowledge()
 		case <-ctx.Done():
 			return ctx.Err()
+		}
+	}
+}
+
+func processPercentileBatch(batch []protocol.Message, percentileStateStore store.Store[percentileState], r *Percentile) error {
+	for _, msg := range batch {
+		if msg.ExpectKind(protocol.Data) {
+			if !msg.HasGameData() {
+				return fmt.Errorf("couldn't wrong type: expected game data")
+			}
+			clientID := msg.GetClientID()
+			elements := msg.Elements()
+			state, ok := percentileStateStore.Get(clientID)
+			if !ok {
+				state = make(map[string]innerPercentile)
+				percentileStateStore.Set(clientID, state)
+			}
+			for _, element := range elements.Iter() {
+				game := models.ReadGame(&element)
+				state.insertOrUpdate(game)
+			}
+		} else if msg.ExpectKind(protocol.End) {
+			clientID := msg.GetClientID()
+
+			slog.Debug("received end", "node", "percentile", "game end", msg.HasGameData(), "review end", msg.HasReviewData())
+
+			s, _ := percentileStateStore.Get(clientID)
+			results := computePercentile(s)
+
+			slog.Debug("query 5 results", "result", results, "state", s)
+
+			if err := marshalAndSendPercentileResults(results, msg, r); err != nil {
+				return err
+			}
+			percentileStateStore.Delete(clientID)
+		} else {
+			return fmt.Errorf("unexpected message type: %s", msg.GetMessageType())
 		}
 	}
 	return nil
