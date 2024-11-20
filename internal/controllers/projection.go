@@ -11,6 +11,7 @@ import (
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/end"
 	models "github.com/jab227/tp1-sistemas-distribuidos-2c/internal/model"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/protocol"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/utils"
 	"github.com/rabbitmq/amqp091-go"
 )
 
@@ -21,7 +22,7 @@ type Projection struct {
 
 func NewProjection() (*Projection, error) {
 	ioManager := client.IOManager{}
-	err := ioManager.Connect(client.InputWorker, client.DirectPublisher)
+	err := ioManager.Connect(client.DirectSubscriber, client.Router)
 	if err != nil {
 		return nil, err
 	}
@@ -50,18 +51,28 @@ func (p *Projection) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	tx, rx := service.Run(ctx)
+	ch := service.MergeConsumers(consumerChan)
 	for {
 		select {
-		case msg := <-consumerChan:
-			err := p.handleMessage(msg, tx)
-			if err != nil {
-				return err
+		case delivery := <-ch:
+			if delivery.SenderType == end.SenderPrevious {
+				err := p.handleMessage(delivery.RecvDelivery, service)
+				if err != nil {
+					return err
+				}
+				delivery.RecvDelivery.Ack(false)
+			} else if delivery.SenderType == end.SenderNeighbour {
+				msgBytes := delivery.RecvDelivery.Body
+				var msg protocol.Message
+				if err := msg.Unmarshal(msgBytes); err != nil {
+					slog.Error("couldn't unmarshal message", "error", err)
+					continue
+				}
+				service.NotifyCoordinator(msg)
+				delivery.RecvDelivery.Ack(false)
+			} else {
+				utils.Assert(false, "unknown type")
 			}
-			msg.Ack(false)
-		case msgInfo := <-rx:
-			service.NotifyCoordinator(msgInfo.DataType, msgInfo.Options)
-			slog.Info("END received")
 		case <-ctx.Done():
 			return ctx.Err()
 		}
@@ -69,7 +80,7 @@ func (p *Projection) Run(ctx context.Context) error {
 }
 
 // TODO(fede) - Replace name for something else
-func (p *Projection) handleMessage(msg amqp091.Delivery, tx chan<- protocol.Message) error {
+func (p *Projection) handleMessage(msg amqp091.Delivery, service *end.Service) error {
 	bytes := msg.Body
 	internalMsg := protocol.Message{}
 	err := internalMsg.Unmarshal(bytes)
@@ -99,7 +110,7 @@ func (p *Projection) handleMessage(msg amqp091.Delivery, tx chan<- protocol.Mess
 		}
 	} else if internalMsg.ExpectKind(protocol.End) {
 		slog.Debug("received end", "game", internalMsg.HasGameData(), "reviews", internalMsg.HasReviewData())
-		tx <- internalMsg
+		service.NotifyNeighbours(internalMsg)
 	} else {
 		return fmt.Errorf("expected Data or End MessageType got %d", internalMsg.GetMessageType())
 	}

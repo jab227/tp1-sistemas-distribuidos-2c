@@ -47,12 +47,13 @@ func (o OS) IsLinuxSupported() bool {
 }
 
 type Game struct {
-	AppID       string
-	Name        string
-	Genres      string
-	ReleaseYear uint32
-	AvgPlayTime float32
-	SupportedOS OS
+	AppID        string
+	Name         string
+	Genres       string
+	ReleaseYear  uint32
+	AvgPlayTime  float32
+	SupportedOS  OS
+	ReviewsCount uint32
 }
 
 type playableIn struct {
@@ -140,6 +141,7 @@ func (g *Game) BuildPayload(builder *protocol.PayloadBuffer) {
 	builder.WriteUint32(g.ReleaseYear)
 	builder.WriteFloat32(g.AvgPlayTime)
 	builder.WriteByte(byte(g.SupportedOS))
+	builder.WriteUint32(g.ReviewsCount)
 
 	builder.EndPayloadElement()
 }
@@ -205,12 +207,13 @@ func ReadReview(element *protocol.Element) Review {
 
 func ReadGame(element *protocol.Element) Game {
 	game := Game{
-		AppID:       string(element.ReadBytes()),
-		Name:        string(element.ReadBytes()),
-		Genres:      string(element.ReadBytes()),
-		ReleaseYear: element.ReadUint32(),
-		AvgPlayTime: element.ReadFloat32(),
-		SupportedOS: OS(element.ReadByte()),
+		AppID:        string(element.ReadBytes()),
+		Name:         string(element.ReadBytes()),
+		Genres:       string(element.ReadBytes()),
+		ReleaseYear:  element.ReadUint32(),
+		AvgPlayTime:  element.ReadFloat32(),
+		SupportedOS:  OS(element.ReadByte()),
+		ReviewsCount: element.ReadUint32(),
 	}
 	return game
 }

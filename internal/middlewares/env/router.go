@@ -19,6 +19,20 @@ func GetRouterTags() ([]string, error) {
 	return tagsList, nil
 }
 
+const (
+	RouterRoundRobin = "round-robin"
+	RouterID         = "id"
+	RouterGameReview = "game-review"
+)
+
+func GetRouterTypeFromEnv() string {
+	routerType, err := utils.GetFromEnv("ROUTER_TYPE")
+	if err != nil {
+		return RouterID
+	}
+	return *routerType
+}
+
 func GetIsProjection() (bool, error) {
 	isProjectionStr, err := utils.GetFromEnv("IS_PROJECTION")
 	if err != nil {

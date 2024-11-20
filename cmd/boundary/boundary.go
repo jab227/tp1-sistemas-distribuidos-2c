@@ -21,7 +21,7 @@ func main() {
 	}
 
 	ioManager := client.IOManager{}
-	if err := ioManager.Connect(client.InputWorker, client.OutputWorker); err != nil {
+	if err := ioManager.Connect(client.InputWorker, client.Router); err != nil {
 		slog.Error("error connecting to io manager", "error", err.Error())
 		return
 	}
