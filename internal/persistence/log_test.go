@@ -1,14 +1,16 @@
-package main
+package persistence_test
 
 import (
 	"io"
 	"os"
 	"reflect"
 	"testing"
+
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/persistence"
 )
 
 func TestAppendAndCommitDataToWriteAheadLog(t *testing.T) {
-	tlog := NewTransactionLog("wal.log")
+	tlog := persistence.NewTransactionLog("wal.log")
 	tlog.Append([]byte("hellope"), 1)
 	tlog.Commit()
 	tlog.Append([]byte("hellope!"), 2)
@@ -24,7 +26,7 @@ func TestAppendAndCommitDataToWriteAheadLog(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var got TransactionLog
+	var got persistence.TransactionLog
 	err = got.Unmarshal(p)
 	if err != nil {
 		t.Fatal(err)
@@ -41,7 +43,7 @@ func TestAppendAndCommitDataToWriteAheadLog(t *testing.T) {
 
 func BenchmarkAppendAndCommit16KDataChunks(b *testing.B) {
 	b.ReportAllocs()
-	wal := NewTransactionLog("wal.log")
+	wal := persistence.NewTransactionLog("wal.log")
 	data := make([]byte, 16*1024)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -53,7 +55,7 @@ func BenchmarkAppendAndCommit16KDataChunks(b *testing.B) {
 
 func BenchmarkAppendAndCommitAHundred16KDataChunks(b *testing.B) {
 	b.ReportAllocs()
-	wal := NewTransactionLog("wal.log")
+	wal := persistence.NewTransactionLog("wal.log")
 	data := make([]byte, 16*1024)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

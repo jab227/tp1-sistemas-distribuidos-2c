@@ -1,4 +1,4 @@
-package main
+package persistence
 
 import (
 	"bytes"
@@ -13,11 +13,11 @@ import (
 )
 
 type Entry struct {
-	data      []byte
-	timestamp int64
-	index     int64
-	checksum  uint32
-	kind      uint32
+	Data      []byte
+	Timestamp int64
+	Index     int64
+	Checksum  uint32
+	Kind      uint32
 }
 
 type TransactionLog struct {
@@ -42,11 +42,11 @@ func (t *TransactionLog) Append(data []byte, kind uint32) {
 
 	index := len(t.log)
 	t.log = append(t.log, Entry{
-		data:      data,
-		timestamp: timestamp,
-		index:     int64(index),
-		checksum:  crc,
-		kind:      kind,
+		Data:      data,
+		Timestamp: timestamp,
+		Index:     int64(index),
+		Checksum:  crc,
+		Kind:      kind,
 	})
 }
 
@@ -79,11 +79,11 @@ func readEntry(p []byte) (Entry, int, error) {
 		return Entry{}, -1, fmt.Errorf("couldn't unmarshal log: corrupted entry")
 	}
 	return Entry{
-		data:      data,
-		timestamp: int64(timestamp),
-		index:     int64(index),
-		checksum:  crc,
-		kind:      kind,
+		Data:      data,
+		Timestamp: int64(timestamp),
+		Index:     int64(index),
+		Checksum:  crc,
+		Kind:      kind,
 	}, int(32 + dataLen), nil
 }
 
@@ -100,17 +100,17 @@ func (t *TransactionLog) Marshal() []byte {
 }
 
 func writeEntry(w io.Writer, entry Entry, buf4 []byte, buf8 []byte) {
-	binary.LittleEndian.PutUint32(buf4, entry.checksum)
+	binary.LittleEndian.PutUint32(buf4, entry.Checksum)
 	w.Write(buf4)
-	binary.LittleEndian.PutUint32(buf4, entry.kind)
+	binary.LittleEndian.PutUint32(buf4, entry.Kind)
 	w.Write(buf4)
-	binary.LittleEndian.PutUint64(buf8, uint64(entry.index))
+	binary.LittleEndian.PutUint64(buf8, uint64(entry.Index))
 	w.Write(buf8)
-	binary.LittleEndian.PutUint64(buf8, uint64(entry.timestamp))
+	binary.LittleEndian.PutUint64(buf8, uint64(entry.Timestamp))
 	w.Write(buf8)
-	binary.LittleEndian.PutUint64(buf8, uint64(len(entry.data)))
+	binary.LittleEndian.PutUint64(buf8, uint64(len(entry.Data)))
 	w.Write(buf8)
-	w.Write(entry.data)
+	w.Write(entry.Data)
 }
 
 // Recepcion de los datos
@@ -136,7 +136,7 @@ func atomicWriteFile(filename string, data []byte) (err error) {
 			os.Remove(tempName)
 		}
 	}()
-	
+
 	if _, err := f.Write(data); err != nil {
 		return fmt.Errorf("couldn't write to temp file: %w", err)
 	}
