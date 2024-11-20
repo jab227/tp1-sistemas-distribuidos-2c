@@ -154,13 +154,15 @@ func joinAndSend(j *Joiner, s *joinerState, opts protocol.MessageOptions) error 
 		if game.Name == "" {
 			continue
 		}
+
+		game.ReviewsCount = uint32(count)
 		builder := protocol.NewPayloadBuffer(1)
 		game.BuildPayload(builder)
-		for i := 0; i < count; i++ {
-			res := protocol.NewDataMessage(protocol.Games, builder.Bytes(), opts)
-			if err := j.io.Write(res.Marshal(), game.AppID); err != nil {
-				return fmt.Errorf("couldn't write query 1 output: %w", err)
-			}
+
+		slog.Info("Message to send", "msg", fmt.Sprintf("%v", game))
+		res := protocol.NewDataMessage(protocol.Games, builder.Bytes(), opts)
+		if err := j.io.Write(res.Marshal(), game.AppID); err != nil {
+			return fmt.Errorf("couldn't write query 1 output: %w", err)
 		}
 	}
 	return nil

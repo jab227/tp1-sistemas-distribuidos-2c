@@ -41,5 +41,5 @@ func (b *Batcher) Acknowledge() {
 }
 
 func (b *Batcher) Batch() []protocol.Message {
-	return b.messages
+	return b.messages[:b.pos]
 }

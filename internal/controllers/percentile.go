@@ -26,10 +26,10 @@ type percentileState map[string]innerPercentile
 func (p percentileState) insertOrUpdate(game models.Game) {
 	v, ok := p[game.AppID]
 	if !ok {
-		p[game.AppID] = innerPercentile{game.Name, 1}
+		p[game.AppID] = innerPercentile{game.Name, uint(game.ReviewsCount)}
 		return
 	}
-	v.counter += 1
+	v.counter += uint(game.ReviewsCount)
 	p[game.AppID] = v
 }
 

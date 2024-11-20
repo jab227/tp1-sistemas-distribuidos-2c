@@ -90,7 +90,7 @@ func (tr *TopReviews) processReviewsData(state *topReviewsState, internalMsg pro
 	for _, element := range elements.Iter() {
 		game := models.ReadGame(&element)
 		key := fmt.Sprintf("%s||%s", game.AppID, game.Name)
-		state.appByReviewScore[key] += 1
+		state.appByReviewScore[key] += int(game.ReviewsCount)
 	}
 }
 
