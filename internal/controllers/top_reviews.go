@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
+	"time"
 
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/heap"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/batch"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/client"
 	models "github.com/jab227/tp1-sistemas-distribuidos-2c/internal/model"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/protocol"
@@ -48,6 +50,7 @@ func (tr *TopReviews) Run(ctx context.Context) error {
 	}()
 
 	topReviewsStateStore := store.NewStore[*topReviewsState]()
+	batcher := batch.NewBatcher(50)
 	for {
 		select {
 		case delivery := <-consumerCh:
@@ -57,32 +60,55 @@ func (tr *TopReviews) Run(ctx context.Context) error {
 				return fmt.Errorf("couldn't unmarshal protocol message: %w", err)
 			}
 
-			clientID := msg.GetClientID()
-			state, ok := topReviewsStateStore.Get(clientID)
-			if !ok {
-				state = &topReviewsState{make(map[string]int)}
-				topReviewsStateStore.Set(clientID, state)
+			batcher.Push(msg, delivery)
+			if !batcher.IsFull() {
+				continue
 			}
-
-			if msg.ExpectKind(protocol.Data) {
-				if !msg.HasGameData() {
-					return fmt.Errorf("wrong type: expected game data")
-				}
-				tr.processReviewsData(state, msg)
-			} else if msg.ExpectKind(protocol.End) {
-				slog.Debug("received end", "game", msg.HasGameData())
-				if err := tr.writeResult(state, msg); err != nil {
-					return err
-				}
-				topReviewsStateStore.Delete(clientID)
-			} else {
-				return fmt.Errorf("unexpected message type: %s", msg.GetMessageType())
+			batch := batcher.Batch()
+			if err := processTopReviewsBatch(batch, topReviewsStateStore, tr); err != nil {
+				return err
 			}
-			delivery.Ack(false)
+			batcher.Acknowledge()
+		case <-time.After(10 * time.Second):
+			if batcher.IsEmpty() {
+				continue
+			}
+			batch := batcher.Batch()
+			if err := processTopReviewsBatch(batch, topReviewsStateStore, tr); err != nil {
+				return err
+			}
+			batcher.Acknowledge()
 		case <-ctx.Done():
 			return ctx.Err()
 		}
 	}
+}
+
+func processTopReviewsBatch(batch []protocol.Message, topReviewsStateStore store.Store[*topReviewsState], tr *TopReviews) error {
+	for _, msg := range batch {
+		clientID := msg.GetClientID()
+		state, ok := topReviewsStateStore.Get(clientID)
+		if !ok {
+			state = &topReviewsState{make(map[string]int)}
+			topReviewsStateStore.Set(clientID, state)
+		}
+
+		if msg.ExpectKind(protocol.Data) {
+			if !msg.HasGameData() {
+				return fmt.Errorf("wrong type: expected game data")
+			}
+			tr.processReviewsData(state, msg)
+		} else if msg.ExpectKind(protocol.End) {
+			slog.Debug("received end", "game", msg.HasGameData())
+			if err := tr.writeResult(state, msg); err != nil {
+				return err
+			}
+			topReviewsStateStore.Delete(clientID)
+		} else {
+			return fmt.Errorf("unexpected message type: %s", msg.GetMessageType())
+		}
+	}
+	return nil
 }
 
 func (tr *TopReviews) processReviewsData(state *topReviewsState, internalMsg protocol.Message) {
@@ -99,7 +125,7 @@ func (tr *TopReviews) writeResult(state *topReviewsState, internalMsg protocol.M
 	for k, v := range state.appByReviewScore {
 		name := strings.Split(k, "||")[1]
 		count := v
-		values = append(values, heap.Value{name, count})
+		values = append(values, heap.Value{Name: name, Count: count})
 	}
 	h := heap.NewHeap()
 	for _, value := range values {
@@ -132,7 +158,7 @@ func (tr *TopReviews) writeResult(state *topReviewsState, internalMsg protocol.M
 	if err := tr.iomanager.Write(res.Marshal(), ""); err != nil {
 		return fmt.Errorf("couldn't write query 5 end: %w", err)
 	}
-	slog.Debug("query 3 results", "result", res, "state", *state)
+	slog.Debug("query 3 results", "result", res, "state", state)
 
 	return nil
 }
