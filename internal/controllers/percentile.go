@@ -65,7 +65,7 @@ func (r *Percentile) Done() <-chan struct{} {
 	return r.done
 }
 
-func (p *Percentile) reloadPercentile() (store.Store[percentileState], *persistence.TransactionLog,  error) {
+func reloadPercentile() (store.Store[percentileState], *persistence.TransactionLog,  error) {
 	stateStore := store.NewStore[percentileState]()
 	log := persistence.NewTransactionLog("../logs/percentile.log")
 	logBytes, err := os.ReadFile("../logs/percentile.log")
@@ -86,7 +86,7 @@ func (p *Percentile) reloadPercentile() (store.Store[percentileState], *persiste
 			if err != nil {
 				return stateStore, log, err
 			}
-			applyBatch(currentBatch, stateStore)
+			applyPercentileBatch(currentBatch, stateStore)
 		}
 	}
 	return stateStore, log,  nil
@@ -98,7 +98,7 @@ func (r *Percentile) Run(ctx context.Context) error {
 		r.done <- struct{}{}
 	}()
 
-	percentileStateStore, log, err := r.reloadPercentile()
+	percentileStateStore, log, err := reloadPercentile()
 	if err != nil {
 		return err
 	}
@@ -203,7 +203,7 @@ func processPercentileBatch(
 	return nil
 }
 
-func applyBatch(
+func applyPercentileBatch(
 	batch []protocol.Message,
 	percentileStateStore store.Store[percentileState],
 ) {
