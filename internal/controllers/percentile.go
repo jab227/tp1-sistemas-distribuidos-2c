@@ -17,6 +17,7 @@ import (
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/persistence"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/protocol"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/store"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/utils"
 )
 
 type innerPercentile struct {
@@ -32,7 +33,7 @@ func (p percentileState) insertOrUpdate(game models.Game) {
 		p[game.AppID] = innerPercentile{game.Name, uint(game.ReviewsCount)}
 		return
 	}
-	v.counter += uint(game.ReviewsCount)
+	v.counter = uint(game.ReviewsCount)
 	p[game.AppID] = v
 }
 
@@ -64,39 +65,31 @@ func (r *Percentile) Done() <-chan struct{} {
 	return r.done
 }
 
-func (p *Percentile) reloadPercentile() (store.Store[percentileState], *persistence.TransactionLog, MessageIDSet, error) {
+func (p *Percentile) reloadPercentile() (store.Store[percentileState], *persistence.TransactionLog,  error) {
 	stateStore := store.NewStore[percentileState]()
-	set := NewMessageIDSet()
-	log := persistence.NewTransactionLog("percentile.log")
-	logBytes, err := os.ReadFile("percentile.log")
+	log := persistence.NewTransactionLog("../logs/percentile.log")
+	logBytes, err := os.ReadFile("../logs/percentile.log")
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return stateStore, log, set, nil
+			return stateStore, log, nil
 		}
-		return stateStore, log, set, err
+		return stateStore, log, err
 	}
 	if err := log.Unmarshal(logBytes); err != nil {
 		err = fmt.Errorf("couldn't unmarshal log: %w", err)
-		return stateStore, log, set, err
+		return stateStore, log,  err
 	}
 	for _, entry := range log.GetLog() {
 		switch TXN(entry.Kind) {
-		case TXNSet:
-			set.Unmarshal(entry.Data)
 		case TXNBatch:
 			currentBatch, err := batch.UnmarshalBatch(entry.Data)
 			if err != nil {
-				return stateStore, log, set, err
+				return stateStore, log, err
 			}
-			// This function should always receive an
-			// empty set because there shouldn't be any
-			// duplicates
-			if err := processPercentileBatch(currentBatch, stateStore, p, MessageIDSet{}); err != nil {
-				return stateStore, log, set, err
-			}
+			applyBatch(currentBatch, stateStore)
 		}
 	}
-	return stateStore, log, set, nil
+	return stateStore, log,  nil
 }
 
 func (r *Percentile) Run(ctx context.Context) error {
@@ -105,10 +98,11 @@ func (r *Percentile) Run(ctx context.Context) error {
 		r.done <- struct{}{}
 	}()
 
-	percentileStateStore := store.NewStore[percentileState]()
-	batcher := batch.NewBatcher(2000)
-	log := persistence.NewTransactionLog("percentile.log")
-	lastBatchMessageIDs := NewMessageIDSet()
+	percentileStateStore, log, err := r.reloadPercentile()
+	if err != nil {
+		return err
+	}
+	batcher := batch.NewBatcher(50)
 	for {
 		select {
 		case delivery := <-consumerCh:
@@ -121,21 +115,23 @@ func (r *Percentile) Run(ctx context.Context) error {
 			if !batcher.IsFull() {
 				continue
 			}
+
 			currentBatch := batcher.Batch()
 			log.Append(batch.MarshalBatch(currentBatch), uint32(TXNBatch))
+			slog.Debug("processing batch")
 			if err := processPercentileBatch(
 				currentBatch,
 				percentileStateStore,
 				r,
-				lastBatchMessageIDs,
 			); err != nil {
 				return err
 			}
-			lastBatchMessageIDs.Insert(currentBatch)
-			log.Append(lastBatchMessageIDs.Marshal(), uint32(TXNSet))
+			slog.Debug("commit")
 			if err := log.Commit(); err != nil {
 				return fmt.Errorf("couldn't commit to disk: %w", err)
 			}
+			time.Sleep(5 * time.Second)
+			slog.Debug("acknowledge")
 			batcher.Acknowledge()
 		case <-time.After(10 * time.Second):
 			if batcher.IsEmpty() {
@@ -143,19 +139,21 @@ func (r *Percentile) Run(ctx context.Context) error {
 			}
 			currentBatch := batcher.Batch()
 			log.Append(batch.MarshalBatch(currentBatch), uint32(TXNBatch))
+			slog.Debug("processing batch timeout")
 			if err := processPercentileBatch(
 				currentBatch,
 				percentileStateStore,
 				r,
-				lastBatchMessageIDs,
 			); err != nil {
 				return err
 			}
-			lastBatchMessageIDs.Insert(currentBatch)
-			log.Append(lastBatchMessageIDs.Marshal(), uint32(TXNSet))
+			slog.Debug("storing message id batch timeout")
+			slog.Debug("commit batch timeout")
 			if err := log.Commit(); err != nil {
 				return fmt.Errorf("couldn't commit to disk: %w", err)
 			}
+			slog.Debug("acknowledge batch timeout")
+			time.Sleep(5 * time.Second)
 			batcher.Acknowledge()
 		case <-ctx.Done():
 			return ctx.Err()
@@ -167,13 +165,8 @@ func processPercentileBatch(
 	batch []protocol.Message,
 	percentileStateStore store.Store[percentileState],
 	r *Percentile,
-	set MessageIDSet,
 ) error {
 	for _, msg := range batch {
-		if set.Contains(msg.GetMessageID()) {
-			slog.Debug("message with already processed", "MessageID", msg.GetMessageID())
-			continue
-		}
 		if msg.ExpectKind(protocol.Data) {
 			if !msg.HasGameData() {
 				return fmt.Errorf("couldn't wrong type: expected game data")
@@ -197,7 +190,7 @@ func processPercentileBatch(
 			s, _ := percentileStateStore.Get(clientID)
 			results := computePercentile(s)
 
-			slog.Debug("query 5 results", "result", results, "state", s)
+			slog.Debug("query 5 results", "result", results)
 
 			if err := marshalAndSendPercentileResults(results, msg, r); err != nil {
 				return err
@@ -210,7 +203,34 @@ func processPercentileBatch(
 	return nil
 }
 
+func applyBatch(
+	batch []protocol.Message,
+	percentileStateStore store.Store[percentileState],
+) {
+	for _, msg := range batch {
+		if msg.ExpectKind(protocol.Data) {
+			utils.Assert(msg.HasGameData(), "wrong type: expected game data")
+			clientID := msg.GetClientID()
+			elements := msg.Elements()
+			state, ok := percentileStateStore.Get(clientID)
+			if !ok {
+				state = make(map[string]innerPercentile)
+				percentileStateStore.Set(clientID, state)
+			}
+			for _, element := range elements.Iter() {
+				game := models.ReadGame(&element)
+				state.insertOrUpdate(game)
+			}
+		} else if msg.ExpectKind(protocol.End) {
+			continue
+		} else {
+			utils.Assertf(false, "unexpected message type: %s", msg.GetMessageType())
+		}
+	}
+}
+
 func marshalAndSendPercentileResults(results []innerPercentile, msg protocol.Message, r *Percentile) error {
+	slog.Debug("message result", "clientID", msg.GetClientID())
 	for _, result := range results {
 		builder := protocol.NewPayloadBuffer(1)
 		builder.BeginPayloadElement()
@@ -226,6 +246,7 @@ func marshalAndSendPercentileResults(results []innerPercentile, msg protocol.Mes
 		}
 
 	}
+	// Generate own messageID
 	res := protocol.NewEndMessage(protocol.Games, protocol.MessageOptions{
 		MessageID: msg.GetMessageID(),
 		ClientID:  msg.GetClientID(),

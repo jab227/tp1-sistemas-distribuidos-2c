@@ -7,7 +7,6 @@ import (
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/protocol"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/utils"
 	"github.com/rabbitmq/amqp091-go"
-	"golang.org/x/text/message"
 )
 
 type Batcher struct {
@@ -68,10 +67,11 @@ func UnmarshalBatch(p []byte) ([]protocol.Message, error) {
 	messages := make([]protocol.Message, count)
 	for i := 0; i < count; i++ {
 		messageSize := int(binary.LittleEndian.Uint32(p[:4]))
-		if err := messages[i].Unmarshal(p[4:messageSize]); err != nil {
+		p = p[4:]
+		if err := messages[i].Unmarshal(p[:messageSize]); err != nil {
 			return nil, err
 		}
-		p = p[messageSize+4:]
+		p = p[messageSize:]
 	}
 	return messages, nil
 }

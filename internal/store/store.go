@@ -1,12 +1,5 @@
 package store
 
-import (
-	"bytes"
-	"encoding/binary"
-
-	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/utils"
-)
-
 type Store[S any] map[uint32]S
 
 func NewStore[S any]() Store[S] {

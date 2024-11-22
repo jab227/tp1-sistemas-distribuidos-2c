@@ -30,8 +30,9 @@ func (j *joinerState) Reset() {
 }
 
 type Joiner struct {
-	io   client.IOManager
-	done chan struct{}
+	io        client.IOManager
+	done      chan struct{}
+	messageID uint32
 }
 
 func NewJoiner() (*Joiner, error) {
@@ -99,7 +100,6 @@ func (j *Joiner) Run(ctx context.Context) error {
 				}
 				slog.Debug("join and send data")
 				err := joinAndSend(j, &state, protocol.MessageOptions{
-					MessageID: msg.GetMessageID(),
 					ClientID:  clientID,
 					RequestID: msg.GetRequestID(),
 				})
@@ -107,6 +107,12 @@ func (j *Joiner) Run(ctx context.Context) error {
 					return err
 				}
 				slog.Debug("notifying coordinator")
+				msg = protocol.NewEndMessage(protocol.Reviews, protocol.MessageOptions{
+					MessageID: j.messageID,
+					ClientID:  clientID,
+					RequestID: msg.GetRequestID(),
+				})
+				j.messageID++
 				service.NotifyCoordinator(msg)
 				joinerStateStore.Delete(clientID)
 				delivery.RecvDelivery.Ack(false)
@@ -154,7 +160,8 @@ func joinAndSend(j *Joiner, s *joinerState, opts protocol.MessageOptions) error 
 		if game.Name == "" {
 			continue
 		}
-
+		opts.MessageID = j.messageID
+		j.messageID++
 		game.ReviewsCount = uint32(count)
 		builder := protocol.NewPayloadBuffer(1)
 		game.BuildPayload(builder)
