@@ -6,10 +6,8 @@ import (
 )
 
 func main() {
-	service := healthcheck.HealthService{
-		Port:    1516,
-		Timeout: 2,
-	}
+	config := healthcheck.NewHealthServiceConfigFromEnv()
+	service := healthcheck.NewHealthService(config)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

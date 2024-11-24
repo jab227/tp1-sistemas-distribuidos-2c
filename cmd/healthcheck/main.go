@@ -19,17 +19,9 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	signal := utils.MakeSignalHandler()
 
-	// TODO - Add env variables
-	config := healthcheck.ControllerConfig{
-		Port:                1516,
-		NodesPort:           1516,
-		HealthCheckInterval: 5,
-		MaxRetries:          3,
-		MaxTimeout:          4,
-		ListOfNodes:         []string{"node1", "node2"},
-	}
-
-	healthController := healthcheck.NewHealthController(config)
+	// TODO - Add list of nodes as config
+	config := healthcheck.NewHealthConfigFromEnv([]string{"node1", "node2"})
+	healthController := healthcheck.NewHealthController(*config)
 
 	go func() {
 		if err = healthController.Run(ctx); err != nil {

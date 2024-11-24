@@ -9,8 +9,7 @@ import (
 )
 
 type HealthService struct {
-	Port    int
-	Timeout int
+	Config HealthServiceConfig
 }
 
 type RecvData struct {
@@ -19,8 +18,12 @@ type RecvData struct {
 	err  error
 }
 
+func NewHealthService(config *HealthServiceConfig) *HealthService {
+	return &HealthService{Config: *config}
+}
+
 func (h *HealthService) Run(ctx context.Context) error {
-	udpAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("0.0.0.0:%d", h.Port))
+	udpAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("0.0.0.0:%d", h.Config.Port))
 	if err != nil {
 		return fmt.Errorf("failed to resolve udp address: %w", err)
 	}
@@ -58,7 +61,7 @@ func (h *HealthService) listen(ctx context.Context, conn *net.UDPConn, ch chan<-
 		case <-ctx.Done():
 			return
 		default:
-			msg, add, err := ReadCheckMSG(conn, time.Duration(h.Timeout)*time.Second)
+			msg, add, err := ReadCheckMSG(conn, time.Duration(h.Config.Timeout)*time.Second)
 			slog.Debug("health - read message", "msg", msg, "add", add, "err", err)
 			if err != nil {
 				// Timeout case

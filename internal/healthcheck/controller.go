@@ -10,17 +10,6 @@ import (
 	"time"
 )
 
-type ControllerConfig struct {
-	Port        int
-	NodesPort   int
-	ListOfNodes []string
-
-	HealthCheckInterval int
-
-	MaxRetries int
-	MaxTimeout int
-}
-
 type NodeInfo struct {
 	Count        int
 	RecoveryMode bool
