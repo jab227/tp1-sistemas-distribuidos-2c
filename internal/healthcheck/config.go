@@ -1,8 +1,10 @@
 package healthcheck
 
 import (
+	"fmt"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/utils"
 	"log/slog"
+	"strings"
 )
 
 const PortEnvVariable = "HEALTHCHECK_PORT"
@@ -104,4 +106,31 @@ func NewHealthServiceConfigFromEnv() *HealthServiceConfig {
 	}
 
 	return &c
+}
+
+const ExcludedNodesEnvVariable = "HEALTH_EXCLUDED_NODES"
+const HealthNetworkEnvVariable = "HEALTH_NETWORK"
+
+type DockerDiscoveryConfig struct {
+	Excluded []string
+	Network  string
+}
+
+func NewDockerDiscoveryConfigFromEnv() (*DockerDiscoveryConfig, error) {
+	nodes, err := utils.GetFromEnv(ExcludedNodesEnvVariable)
+	if err != nil {
+		return nil, fmt.Errorf("could not get exclude nodes %s: %w", ExcludedNodesEnvVariable, err)
+	}
+
+	nodesList := strings.Split(*nodes, ",")
+
+	network, err := utils.GetFromEnv(HealthNetworkEnvVariable)
+	if err != nil {
+		return nil, fmt.Errorf("could not get health network %s: %w", HealthNetworkEnvVariable, err)
+	}
+
+	return &DockerDiscoveryConfig{
+		Excluded: nodesList,
+		Network:  *network,
+	}, nil
 }

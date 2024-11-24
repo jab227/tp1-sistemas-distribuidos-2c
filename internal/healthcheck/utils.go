@@ -2,10 +2,12 @@ package healthcheck
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net"
 	"net/http"
+	"strings"
 )
 
 func RestartNode(node string) error {
@@ -36,4 +38,59 @@ func RestartNode(node string) error {
 	}
 
 	return nil
+}
+
+func GetDockerNodes(excluded []string, network string) ([]string, error) {
+	client := &http.Client{
+		Transport: &http.Transport{
+			DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+				return net.Dial("unix", "/var/run/docker.sock")
+			},
+		},
+	}
+
+	url := fmt.Sprintf("http://unix/containers/json?all=true&filter={\"network\":\"%s\"}", network)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("error creating request: %w", err)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("error performing request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected response status: %s", resp.Status)
+	}
+
+	var containers []map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&containers); err != nil {
+		return nil, fmt.Errorf("error decoding response: %w", err)
+	}
+
+	var names []string
+	for _, container := range containers {
+		if nameList, ok := container["Names"].([]interface{}); ok && len(nameList) > 0 {
+			if name, ok := nameList[0].(string); ok {
+				contains := false
+				cleanName := strings.TrimPrefix(name, "/")
+				for _, node := range excluded {
+					if cleanName == node {
+						contains = true
+						break
+					}
+				}
+
+				if contains {
+					continue
+				}
+
+				names = append(names, cleanName)
+			}
+		}
+	}
+
+	return names, nil
 }
