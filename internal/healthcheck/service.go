@@ -3,7 +3,6 @@ package healthcheck
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"net"
 	"time"
 )
@@ -44,11 +43,11 @@ func (h *HealthService) Run(ctx context.Context) error {
 				return fmt.Errorf("failed to read response: %w", msg.err)
 			}
 
-			slog.Debug("health - received check msg", "msg", msg.msg, "addr", msg.addr)
+			// slog.Debug("health - received check msg", "msg", msg.msg, "addr", msg.addr)
 			if err := SendOkMessage(conn, msg.addr); err != nil {
 				return fmt.Errorf("failed to send ok message: %w", err)
 			}
-			slog.Debug("health - sent ok message", "addr", msg.addr)
+			//slog.Debug("health - sent ok message", "addr", msg.addr)
 		case <-ctx.Done():
 			return ctx.Err()
 		}
@@ -62,7 +61,7 @@ func (h *HealthService) listen(ctx context.Context, conn *net.UDPConn, ch chan<-
 			return
 		default:
 			msg, add, err := ReadCheckMSG(conn, time.Duration(h.Config.Timeout)*time.Second)
-			slog.Debug("health - read message", "msg", msg, "add", add, "err", err)
+			//slog.Debug("health - read message", "msg", msg, "add", add, "err", err)
 			if err != nil {
 				// Timeout case
 				if netErr, ok := err.(net.Error); ok && netErr.Timeout() {

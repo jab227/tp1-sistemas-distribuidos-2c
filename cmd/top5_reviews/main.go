@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/healthcheck"
 	"log/slog"
 
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/controllers"
@@ -25,6 +26,12 @@ func main() {
 		slog.Error("error parsing N_VALUE env var", "error", err)
 		return
 	}
+
+	// Set up the healthcheck service
+	config := healthcheck.NewHealthServiceConfigFromEnv()
+	service := healthcheck.NewHealthService(config)
+
+	go service.Run(ctx)
 
 	topReviews, err := controllers.NewTopReviews(int(*n))
 	if err != nil {
