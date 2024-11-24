@@ -45,6 +45,24 @@ services:
       rabbitmq:
         condition: service_healthy
 
+  healthcheck:
+    container_name: healthcheck
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/healthcheck
+    environment:
+      - LOGGER_LEVEL=info
+      - HEALTH_EXCLUDED_NODES=healthcheck,rabbitmq
+      - HEALTH_NETWORK=rabbitmq_go_net
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
   # Projection controllers
   projection0:
     container_name: projection0

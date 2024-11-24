@@ -126,7 +126,7 @@ func (f *Filter) Run(ctx context.Context) error {
 				utils.Assert(false, "unknown type")
 			}
 		case <-ctx.Done():
-			return nil
+			return ctx.Err()
 		}
 	}
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	coordinator2 "github.com/jab227/tp1-sistemas-distribuidos-2c/internal/coordinator"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/healthcheck"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/logging"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/utils"
 	"log/slog"
@@ -34,6 +35,12 @@ func main() {
 		slog.Error("error getting expected revisions", "error", err.Error())
 		return
 	}
+
+	// Set up the healthcheck service
+	config := healthcheck.NewHealthServiceConfigFromEnv()
+	service := healthcheck.NewHealthService(config)
+
+	go service.Run(ctx)
 
 	coordinator, err := coordinator2.NewEndCoordinator(outputType, expectedGames, expectedReviews)
 	defer coordinator.Close()

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/healthcheck"
 	"log/slog"
 
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/controllers"
@@ -19,6 +20,12 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	signal := utils.MakeSignalHandler()
 
+	// Set up the healthcheck service
+	config := healthcheck.NewHealthServiceConfigFromEnv()
+	service := healthcheck.NewHealthService(config)
+
+	go service.Run(ctx)
+
 	filterName, err := utils.GetFromEnv("FILTER_NAME")
 	if err != nil {
 		slog.Error("couldn't read filter name", "error", err)
@@ -30,7 +37,7 @@ func main() {
 		return
 	}
 	defer filter.Close()
-	
+
 	slog.Info("filter started", "filter", *filterName)
 	go func() {
 		err = filter.Run(ctx)

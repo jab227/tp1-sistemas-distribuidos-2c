@@ -1,7 +1,9 @@
 package main
 
 import (
+	"context"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/boundary"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/healthcheck"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/logging"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/client"
 	"log/slog"
@@ -26,6 +28,15 @@ func main() {
 		return
 	}
 	defer ioManager.Close()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Set up the healthcheck service
+	hConfig := healthcheck.NewHealthServiceConfigFromEnv()
+	service := healthcheck.NewHealthService(hConfig)
+
+	go service.Run(ctx)
 
 	boundaryStruct := boundary.NewBoundary(config, &ioManager)
 	if err := boundaryStruct.Run(); err != nil {
