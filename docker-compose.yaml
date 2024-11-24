@@ -641,6 +641,7 @@ services:
       dockerfile: cmd/Dockerfile
     entrypoint: /cmd/joiner
     environment:
+      - NODE_ID=31
       - RABBITMQ_HOSTNAME=rabbitmq
       - RABBITMQ_PORT=5672
       - RABBITMQ_USERNAME=user
@@ -659,6 +660,8 @@ services:
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
+    volumes:
+      - ./logs/:/logs/            
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -669,6 +672,7 @@ services:
       dockerfile: cmd/Dockerfile
     entrypoint: /cmd/joiner
     environment:
+      - NODE_ID=32
       - RABBITMQ_HOSTNAME=rabbitmq
       - RABBITMQ_PORT=5672
       - RABBITMQ_USERNAME=user
@@ -687,6 +691,8 @@ services:
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
+    volumes:
+      - ./logs/:/logs/            
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -698,6 +704,7 @@ services:
       dockerfile: cmd/Dockerfile
     entrypoint: /cmd/joiner
     environment:
+      - NODE_ID=33      
       - RABBITMQ_HOSTNAME=rabbitmq
       - RABBITMQ_PORT=5672
       - RABBITMQ_USERNAME=user
@@ -716,6 +723,8 @@ services:
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
+    volumes:
+      - ./logs/:/logs/            
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -1287,6 +1296,7 @@ services:
       dockerfile: cmd/Dockerfile
     entrypoint: /cmd/joiner
     environment:
+      - NODE_ID=41            
       - RABBITMQ_HOSTNAME=rabbitmq
       - RABBITMQ_PORT=5672
       - RABBITMQ_USERNAME=user
@@ -1305,6 +1315,8 @@ services:
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
+    volumes:
+      - ./logs/:/logs/            
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -1316,6 +1328,7 @@ services:
       dockerfile: cmd/Dockerfile
     entrypoint: /cmd/joiner
     environment:
+      - NODE_ID=42                  
       - RABBITMQ_HOSTNAME=rabbitmq
       - RABBITMQ_PORT=5672
       - RABBITMQ_USERNAME=user
@@ -1334,6 +1347,8 @@ services:
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
+    volumes:
+      - ./logs/:/logs/            
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -1345,6 +1360,7 @@ services:
       dockerfile: cmd/Dockerfile
     entrypoint: /cmd/joiner
     environment:
+      - NODE_ID=43                  
       - RABBITMQ_HOSTNAME=rabbitmq
       - RABBITMQ_PORT=5672
       - RABBITMQ_USERNAME=user
@@ -1363,6 +1379,8 @@ services:
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
+    volumes:
+      - ./logs/:/logs/            
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -1428,6 +1446,7 @@ services:
       dockerfile: cmd/Dockerfile
     entrypoint: /cmd/joiner
     environment:
+      - NODE_ID=51        
       - RABBITMQ_HOSTNAME=rabbitmq
       - RABBITMQ_PORT=5672
       - RABBITMQ_USERNAME=user
@@ -1446,6 +1465,8 @@ services:
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
+    volumes:
+      - ./logs/:/logs/            
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -1456,7 +1477,8 @@ services:
       context: ./
       dockerfile: cmd/Dockerfile
     entrypoint: /cmd/joiner
-    environment:
+    environment: 
+      - NODE_ID=52     
       - RABBITMQ_HOSTNAME=rabbitmq
       - RABBITMQ_PORT=5672
       - RABBITMQ_USERNAME=user
@@ -1475,6 +1497,8 @@ services:
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
+    volumes:
+      - ./logs/:/logs/            
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -1486,6 +1510,7 @@ services:
       dockerfile: cmd/Dockerfile
     entrypoint: /cmd/joiner
     environment:
+      - NODE_ID=53      
       - RABBITMQ_HOSTNAME=rabbitmq
       - RABBITMQ_PORT=5672
       - RABBITMQ_USERNAME=user
@@ -1504,6 +1529,8 @@ services:
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
+    volumes:
+      - ./logs/:/logs/      
     depends_on:
       rabbitmq:
         condition: service_healthy

@@ -156,7 +156,6 @@ func (o *OSCounter) Run(ctx context.Context) error {
 			if err := log.Commit(); err != nil {
 				return fmt.Errorf("couldn't commit to disk: %w", err)
 			}
-			time.Sleep(5 * time.Second)
 			slog.Debug("acknowledge")
 			batcher.Acknowledge()
 		case <-time.After(10 * time.Second):
@@ -178,7 +177,6 @@ func (o *OSCounter) Run(ctx context.Context) error {
 			if err := log.Commit(); err != nil {
 				return fmt.Errorf("couldn't commit to disk: %w", err)
 			}
-			time.Sleep(5 * time.Second)
 			slog.Debug("acknowledge")
 			batcher.Acknowledge()
 		case <-ctx.Done():

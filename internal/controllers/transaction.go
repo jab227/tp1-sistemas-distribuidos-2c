@@ -13,6 +13,7 @@ type TXN uint32
 const (
 	TXNBatch TXN = iota
 	TXNSet
+	TXNEnd
 )
 
 type MessageIDSet map[uint32]struct{}
@@ -22,9 +23,13 @@ func NewMessageIDSet() MessageIDSet {
 	return s
 }
 
+func (m MessageIDSet) InsertOne(msg protocol.Message) {
+	m[msg.GetMessageID()] = struct{}{}
+}
+
 func (m MessageIDSet) Insert(msgs []protocol.Message) {
 	for _, msg := range msgs {
-		m[msg.GetMessageID()] = struct{}{}
+		m.InsertOne(msg)
 	}
 }
 
