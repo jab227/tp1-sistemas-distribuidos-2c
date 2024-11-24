@@ -1,6 +1,9 @@
 package batch
 
 import (
+	"bytes"
+	"encoding/binary"
+
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/protocol"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/utils"
 	"github.com/rabbitmq/amqp091-go"
@@ -42,4 +45,33 @@ func (b *Batcher) Acknowledge() {
 
 func (b *Batcher) Batch() []protocol.Message {
 	return b.messages[:b.pos]
+}
+
+func MarshalBatch(b []protocol.Message) []byte {
+	var buf bytes.Buffer
+	var bufCount [4]byte
+	binary.LittleEndian.PutUint32(bufCount[:], uint32(len(b)))
+	buf.Write(bufCount[:])
+	for _, m := range b {
+		p := m.Marshal()
+		binary.LittleEndian.PutUint32(bufCount[:], uint32(len(p)))
+		buf.Write(bufCount[:])
+		buf.Write(p)
+	}
+	return buf.Bytes()
+}
+
+func UnmarshalBatch(p []byte) ([]protocol.Message, error) {
+	count := int(binary.LittleEndian.Uint32(p[0:4]))
+	p = p[4:]
+	messages := make([]protocol.Message, count)
+	for i := 0; i < count; i++ {
+		messageSize := int(binary.LittleEndian.Uint32(p[:4]))
+		p = p[4:]
+		if err := messages[i].Unmarshal(p[:messageSize]); err != nil {
+			return nil, err
+		}
+		p = p[messageSize:]
+	}
+	return messages, nil
 }

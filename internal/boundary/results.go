@@ -3,10 +3,11 @@ package boundary
 import (
 	"context"
 	"fmt"
-	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/cprotocol"
 	"log/slog"
 	"slices"
 	"strings"
+
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/cprotocol"
 
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/client"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/protocol"
