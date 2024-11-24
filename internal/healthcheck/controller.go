@@ -111,6 +111,7 @@ func (h *HealthController) Run(ctx context.Context) error {
 				wg.Add(1)
 				go h.CheckNode(node, info, reviveCh, &wg)
 			}
+			wg.Wait()
 		case <-ctx.Done():
 			return ctx.Err()
 		}
