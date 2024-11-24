@@ -8,7 +8,7 @@ func main() {
 		NodesPort:           1516,
 		HealthCheckInterval: 5,
 		MaxRetries:          3,
-		MaxTimeout:          2,
+		MaxTimeout:          4,
 		ListOfNodes:         []string{"node1", "node2"},
 	}
 

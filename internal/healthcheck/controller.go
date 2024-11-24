@@ -2,6 +2,7 @@ package healthcheck
 
 import (
 	"fmt"
+	"log/slog"
 	"net"
 	"strings"
 	"sync"
@@ -95,7 +96,6 @@ func (h *HealthController) Run() error {
 
 	for {
 		for node, info := range h.State.GetAllNodes() {
-			// TODO - Handle errors
 			wg.Add(1)
 			go h.CheckNode(node, info, reviveCh, &wg)
 		}
@@ -108,9 +108,9 @@ func (h *HealthController) RunReviver(reviveCh <-chan string) {
 	for {
 		select {
 		case node := <-reviveCh:
-			fmt.Printf("Reviving node %s\n", node)
+			slog.Info("reviving node", "node", node)
 			if err := RestartNode(node); err != nil {
-				fmt.Printf("Error restarting node %s: %s (This will be retried later)\n", node, err)
+				slog.Error("Error restarting node", "node", node, "error", err.Error())
 			} else {
 				h.State.ResetRetries(node)
 			}
@@ -120,21 +120,19 @@ func (h *HealthController) RunReviver(reviveCh <-chan string) {
 	}
 }
 
-// TODO - Use logs
 func (h *HealthController) CheckNode(node string, nodeInfo NodeInfo, reviveCh chan<- string, wg *sync.WaitGroup) {
 	defer wg.Done()
-	fmt.Printf("Checking if node %s is alive\n", node)
 
 	// Check if limit was obtained or the service is down and being revived
 	if nodeInfo.Count >= h.Config.MaxRetries && !nodeInfo.RecoveryMode {
-		fmt.Printf("Node %s reached a limit - Sending for revive\n", node)
+		slog.Info("node reached a limit, sending it to be revived", "node", node)
 		h.State.ToggleRecoveryMode(node, true)
 
 		// Send node to be revived
 		reviveCh <- node
 		return
 	} else if nodeInfo.RecoveryMode {
-		fmt.Printf("Node %s is set as down temporarly\n", node)
+		slog.Info("node is temporarily down and should be restarted soon", "node", node)
 		return
 	}
 
@@ -144,12 +142,12 @@ func (h *HealthController) CheckNode(node string, nodeInfo NodeInfo, reviveCh ch
 	if err != nil {
 		// Check if the service is available
 		if netErr, ok := err.(*net.OpError); ok && strings.Contains(netErr.Err.Error(), "missing address") {
-			fmt.Printf("Node %s is down\n", node)
+			slog.Info("couldn't connect to node, the container could be down", "node", node)
 			h.State.IncreaseRetries(node)
 			return
 
 		} else {
-			fmt.Printf("failed to connect to %s: %s\n", node, err)
+			slog.Error("failed to connect to node", "node", node, "error", err.Error())
 			return
 		}
 	}
@@ -158,27 +156,23 @@ func (h *HealthController) CheckNode(node string, nodeInfo NodeInfo, reviveCh ch
 	// Sends check alive message
 	err = SendCheckMessage(conn)
 	if err != nil {
-		fmt.Printf("failed to write to %s: %s\n", node, err)
+		slog.Error("failed to send check message", "node", node, "error", err.Error())
 		return
 	}
 
-	// Set Timeout for recv the node response
-	if err := conn.SetReadDeadline(time.Now().Add(time.Duration(h.Config.MaxTimeout) * time.Second)); err != nil {
-		fmt.Printf("failed to set read deadline: %s", err)
-		return
-	}
-	response, addr, err := ReadResponseMessage(conn)
+	// Set Timeout for recv the node response and wait to recv
+	response, _, err := ReadOkMSG(conn, time.Duration(h.Config.MaxTimeout)*time.Second)
 	if err != nil {
 		//
 		if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
-			fmt.Printf("Node %s didn't respond\n", node)
+			slog.Info("node didn't respond within timeout period", "node", node, "error", err.Error())
 			h.State.IncreaseRetries(node)
 		} else {
-			fmt.Printf("failed to read from %s: %s\n", node, err)
+			slog.Error("failed to read from node", "node", node, "error", err.Error())
 			return
 		}
 	} else {
-		fmt.Printf("Received data from %s: %s\n", addr.String(), response)
+		slog.Debug("received response from node", "node", node, "response", response)
 		h.State.ResetRetries(node)
 	}
 }

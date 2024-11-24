@@ -1,26 +1,36 @@
 package healthcheck
 
-import "net"
+import (
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/utils"
+	"net"
+	"time"
+)
 
-const MaxSizeMessage = 1024
 const CheckMSG = "CHECK"
 const OkMSG = "OK"
 
 func SendCheckMessage(conn *net.UDPConn) error {
-	_, err := conn.Write([]byte(CheckMSG))
-	return err
+	return utils.WriteToSocket(conn, []byte(CheckMSG))
+
 }
 
-// TODO - Handle Short Write
 func SendOkMessage(conn *net.UDPConn, addr *net.UDPAddr) error {
-	_, err := conn.WriteToUDP([]byte(OkMSG), addr)
-	return err
+	return utils.WriteToUDPSocket(conn, []byte(OkMSG), addr)
 }
 
-// TODO - Handle Short Read
-func ReadResponseMessage(conn *net.UDPConn) (string, *net.UDPAddr, error) {
-	buf := make([]byte, MaxSizeMessage)
-	_, addr, err := conn.ReadFromUDP(buf)
+func ReadCheckMSG(conn *net.UDPConn) (string, *net.UDPAddr, error) {
+	buf := make([]byte, len(CheckMSG))
+	addr, err := utils.ReadFromUDPSocket(conn, &buf, len(CheckMSG))
+	if err != nil {
+		return "", nil, err
+	}
+
+	return string(buf), addr, nil
+}
+
+func ReadOkMSG(conn *net.UDPConn, timeout time.Duration) (string, *net.UDPAddr, error) {
+	buf := make([]byte, len(OkMSG))
+	addr, err := utils.ReadFromUDPSocketWithTimeout(conn, &buf, len(OkMSG), timeout)
 	if err != nil {
 		return "", nil, err
 	}

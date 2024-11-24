@@ -2,6 +2,7 @@ package healthcheck
 
 import (
 	"fmt"
+	"log/slog"
 	"net"
 )
 
@@ -22,15 +23,15 @@ func (h *HealthService) Run() error {
 	defer conn.Close()
 
 	for {
-		response, addr, err := ReadResponseMessage(conn)
+		response, addr, err := ReadCheckMSG(conn)
 		if err != nil {
 			return fmt.Errorf("failed to read response: %w", err)
 		}
 
-		fmt.Printf("Received response: %s\n", response)
+		slog.Debug("health - received check msg", "msg", response, "addr", addr)
 		if err := SendOkMessage(conn, addr); err != nil {
 			return fmt.Errorf("failed to send ok message: %w", err)
 		}
-		fmt.Printf("Sent ok message to %s\n", addr.String())
+		slog.Debug("health - sent ok message", "addr", addr)
 	}
 }
