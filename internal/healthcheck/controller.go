@@ -1,6 +1,7 @@
 package healthcheck
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"net"
@@ -82,29 +83,41 @@ func (s *State) ToggleRecoveryMode(node string, mode bool) {
 type HealthController struct {
 	Config ControllerConfig
 	State  *State
+	done   chan struct{}
 }
 
 func NewHealthController(config ControllerConfig) *HealthController {
 	return &HealthController{Config: config, State: NewState(config.ListOfNodes)}
 }
 
-func (h *HealthController) Run() error {
+func (h *HealthController) Done() <-chan struct{} {
+	return h.done
+}
+
+func (h *HealthController) Run(ctx context.Context) error {
+	defer func() {
+		h.done <- struct{}{}
+	}()
+
 	var wg sync.WaitGroup
 	reviveCh := make(chan string)
 
-	go h.RunReviver(reviveCh)
+	go h.RunReviver(ctx, reviveCh)
 
 	for {
-		for node, info := range h.State.GetAllNodes() {
-			wg.Add(1)
-			go h.CheckNode(node, info, reviveCh, &wg)
+		select {
+		case <-time.After(time.Second * time.Duration(h.Config.HealthCheckInterval)):
+			for node, info := range h.State.GetAllNodes() {
+				wg.Add(1)
+				go h.CheckNode(node, info, reviveCh, &wg)
+			}
+		case <-ctx.Done():
+			return ctx.Err()
 		}
-		wg.Wait()
-		time.Sleep(time.Duration(h.Config.HealthCheckInterval) * time.Second)
 	}
 }
 
-func (h *HealthController) RunReviver(reviveCh <-chan string) {
+func (h *HealthController) RunReviver(ctx context.Context, reviveCh <-chan string) {
 	for {
 		select {
 		case node := <-reviveCh:
@@ -116,6 +129,8 @@ func (h *HealthController) RunReviver(reviveCh <-chan string) {
 			}
 
 			h.State.ToggleRecoveryMode(node, false)
+		case <-ctx.Done():
+			return
 		}
 	}
 }

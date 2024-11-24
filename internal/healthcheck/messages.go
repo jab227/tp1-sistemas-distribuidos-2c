@@ -18,9 +18,9 @@ func SendOkMessage(conn *net.UDPConn, addr *net.UDPAddr) error {
 	return utils.WriteToUDPSocket(conn, []byte(OkMSG), addr)
 }
 
-func ReadCheckMSG(conn *net.UDPConn) (string, *net.UDPAddr, error) {
+func ReadCheckMSG(conn *net.UDPConn, timeout time.Duration) (string, *net.UDPAddr, error) {
 	buf := make([]byte, len(CheckMSG))
-	addr, err := utils.ReadFromUDPSocket(conn, &buf, len(CheckMSG))
+	addr, err := utils.ReadFromUDPSocketWithTimeout(conn, &buf, len(CheckMSG), timeout)
 	if err != nil {
 		return "", nil, err
 	}

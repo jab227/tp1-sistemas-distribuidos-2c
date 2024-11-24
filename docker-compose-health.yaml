@@ -5,6 +5,8 @@ services:
       context: ./
       dockerfile: cmd/Dockerfile
     entrypoint: /cmd/healthcheck
+    environment:
+      - LOGGER_LEVEL=debug
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     networks:

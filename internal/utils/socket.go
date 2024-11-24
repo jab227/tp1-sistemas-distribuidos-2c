@@ -91,7 +91,7 @@ func ReadFromUDPSocketWithTimeout(connection *net.UDPConn, buffer *[]byte, size 
 		}
 		bytesRecv, addr, err := connection.ReadFromUDP(internalBuffer[recvData:])
 		if err != nil {
-			return nil, fmt.Errorf("failed to receive message of size: %v - err %s", size, err)
+			return nil, err
 		}
 
 		recvData += bytesRecv

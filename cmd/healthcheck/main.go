@@ -1,8 +1,25 @@
 package main
 
-import "github.com/jab227/tp1-sistemas-distribuidos-2c/internal/healthcheck"
+import (
+	"context"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/utils"
+	"log/slog"
+
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/healthcheck"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/logging"
+)
 
 func main() {
+	err := logging.InitLoggerWithEnv()
+	if err != nil {
+		slog.Error("error creating logger", "error", err.Error())
+		return
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	signal := utils.MakeSignalHandler()
+
+	// TODO - Add env variables
 	config := healthcheck.ControllerConfig{
 		Port:                1516,
 		NodesPort:           1516,
@@ -12,9 +29,14 @@ func main() {
 		ListOfNodes:         []string{"node1", "node2"},
 	}
 
-	controller := healthcheck.NewHealthController(config)
+	healthController := healthcheck.NewHealthController(config)
 
-	if err := controller.Run(); err != nil {
-		panic(err)
-	}
+	go func() {
+		if err = healthController.Run(ctx); err != nil {
+			slog.Error("error running healthcheck", "error", err.Error())
+			return
+		}
+	}()
+
+	utils.BlockUntilSignal(signal, healthController.Done(), cancel)
 }
