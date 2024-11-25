@@ -2,8 +2,10 @@ package controllers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
+	"os"
 	"strings"
 	"time"
 
@@ -11,8 +13,10 @@ import (
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/batch"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/client"
 	models "github.com/jab227/tp1-sistemas-distribuidos-2c/internal/model"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/persistence"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/protocol"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/store"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/utils"
 )
 
 type topReviewsState struct {
@@ -49,8 +53,11 @@ func (tr *TopReviews) Run(ctx context.Context) error {
 		tr.done <- struct{}{}
 	}()
 
-	topReviewsStateStore := store.NewStore[*topReviewsState]()
-	batcher := batch.NewBatcher(50)
+	topReviewsStateStore, log, idSet, err := reloadTopReviews(tr)
+	if err != nil {
+		return err
+	}
+	batcher := batch.NewBatcher(3000)
 	for {
 		select {
 		case delivery := <-consumerCh:
@@ -64,19 +71,43 @@ func (tr *TopReviews) Run(ctx context.Context) error {
 			if !batcher.IsFull() {
 				continue
 			}
-			batch := batcher.Batch()
-			if err := processTopReviewsBatch(batch, topReviewsStateStore, tr); err != nil {
+			currentBatch := batcher.Batch()
+			log.Append(batch.MarshalBatch(currentBatch), uint32(TXNBatch))
+			slog.Debug("processing batch")
+			if err := processTopReviewsBatch(currentBatch, topReviewsStateStore, tr, idSet); err != nil {
 				return err
 			}
+			slog.Debug("storing new message id set")
+			idSet.Clear()
+			idSet.Insert(currentBatch)
+			log.Append(idSet.Marshal(), uint32(TXNSet))
+			slog.Debug("commit")
+			if err := log.Commit(); err != nil {
+				return fmt.Errorf("couldn't commit to disk: %w", err)
+			}
+			time.Sleep(5 * time.Second)
+			slog.Debug("acknowledge")
 			batcher.Acknowledge()
 		case <-time.After(10 * time.Second):
 			if batcher.IsEmpty() {
 				continue
 			}
-			batch := batcher.Batch()
-			if err := processTopReviewsBatch(batch, topReviewsStateStore, tr); err != nil {
+			currentBatch := batcher.Batch()
+			log.Append(batch.MarshalBatch(currentBatch), uint32(TXNBatch))
+			slog.Debug("processing batch")
+			if err := processTopReviewsBatch(currentBatch, topReviewsStateStore, tr, idSet); err != nil {
 				return err
 			}
+			slog.Debug("storing new message id set")
+			idSet.Clear()
+			idSet.Insert(currentBatch)
+			log.Append(idSet.Marshal(), uint32(TXNSet))
+			slog.Debug("commit")
+			if err := log.Commit(); err != nil {
+				return fmt.Errorf("couldn't commit to disk: %w", err)
+			}
+			time.Sleep(5 * time.Second)
+			slog.Debug("acknowledge")
 			batcher.Acknowledge()
 		case <-ctx.Done():
 			return ctx.Err()
@@ -84,8 +115,67 @@ func (tr *TopReviews) Run(ctx context.Context) error {
 	}
 }
 
-func processTopReviewsBatch(batch []protocol.Message, topReviewsStateStore store.Store[*topReviewsState], tr *TopReviews) error {
+func reloadTopReviews(tr *TopReviews) (store.Store[*topReviewsState], *persistence.TransactionLog, MessageIDSet, error) {
+	stateStore := store.NewStore[*topReviewsState]()
+	log := persistence.NewTransactionLog("../logs/top_reviews.log")
+	idSet := NewMessageIDSet()
+	logBytes, err := os.ReadFile("../logs/top_reviews.log")
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return stateStore, log, idSet, nil
+		}
+		return stateStore, log, idSet, err
+	}
+	if err := log.Unmarshal(logBytes); err != nil {
+		err = fmt.Errorf("couldn't unmarshal log: %w", err)
+		return stateStore, log, idSet, err
+	}
+	for _, entry := range log.GetLog() {
+		switch TXN(entry.Kind) {
+		case TXNSet:
+			err := idSet.Unmarshal(entry.Data)
+			if err != nil {
+				return stateStore, log, idSet, err
+			}
+		case TXNBatch:
+			currentBatch, err := batch.UnmarshalBatch(entry.Data)
+			if err != nil {
+				return stateStore, log, idSet, err
+			}
+			applyTopReviewsBatch(currentBatch, stateStore, tr)
+		}
+	}
+	return stateStore, log, idSet, nil
+}
+
+func applyTopReviewsBatch(
+	batch []protocol.Message,
+	topReviewsStateStore store.Store[*topReviewsState],
+	tr *TopReviews,
+) {
 	for _, msg := range batch {
+		if msg.ExpectKind(protocol.Data) {
+			utils.Assert(msg.HasGameData(), "wrong type: expected game data")
+			clientID := msg.GetClientID()
+			state, ok := topReviewsStateStore.Get(clientID)
+			if !ok {
+				state = &topReviewsState{make(map[string]int)}
+				topReviewsStateStore.Set(clientID, state)
+			}
+			tr.processReviewsData(state, msg)
+		} else if msg.ExpectKind(protocol.End) {
+			continue
+		} else {
+			utils.Assertf(false, "unexpected message type: %s", msg.GetMessageType())
+		}
+	}
+}
+
+func processTopReviewsBatch(batch []protocol.Message, topReviewsStateStore store.Store[*topReviewsState], tr *TopReviews, idSet MessageIDSet) error {
+	for _, msg := range batch {
+		if idSet.Contains(msg.GetMessageID()) && !msg.ExpectKind(protocol.End) {
+			continue
+		}
 		clientID := msg.GetClientID()
 		state, ok := topReviewsStateStore.Get(clientID)
 		if !ok {
