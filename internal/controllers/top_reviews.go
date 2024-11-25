@@ -53,7 +53,7 @@ func (tr *TopReviews) Run(ctx context.Context) error {
 		tr.done <- struct{}{}
 	}()
 
-	topReviewsStateStore, log, idSet, err := reloadTopReviews(tr)
+	topReviewsStateStore, log, err := reloadTopReviews(tr)
 	if err != nil {
 		return err
 	}
@@ -74,13 +74,9 @@ func (tr *TopReviews) Run(ctx context.Context) error {
 			currentBatch := batcher.Batch()
 			log.Append(batch.MarshalBatch(currentBatch), uint32(TXNBatch))
 			slog.Debug("processing batch")
-			if err := processTopReviewsBatch(currentBatch, topReviewsStateStore, tr, idSet); err != nil {
+			if err := processTopReviewsBatch(currentBatch, topReviewsStateStore, tr); err != nil {
 				return err
 			}
-			slog.Debug("storing new message id set")
-			idSet.Clear()
-			idSet.Insert(currentBatch)
-			log.Append(idSet.Marshal(), uint32(TXNSet))
 			slog.Debug("commit")
 			if err := log.Commit(); err != nil {
 				return fmt.Errorf("couldn't commit to disk: %w", err)
@@ -95,13 +91,9 @@ func (tr *TopReviews) Run(ctx context.Context) error {
 			currentBatch := batcher.Batch()
 			log.Append(batch.MarshalBatch(currentBatch), uint32(TXNBatch))
 			slog.Debug("processing batch")
-			if err := processTopReviewsBatch(currentBatch, topReviewsStateStore, tr, idSet); err != nil {
+			if err := processTopReviewsBatch(currentBatch, topReviewsStateStore, tr); err != nil {
 				return err
 			}
-			slog.Debug("storing new message id set")
-			idSet.Clear()
-			idSet.Insert(currentBatch)
-			log.Append(idSet.Marshal(), uint32(TXNSet))
 			slog.Debug("commit")
 			if err := log.Commit(); err != nil {
 				return fmt.Errorf("couldn't commit to disk: %w", err)
@@ -115,37 +107,31 @@ func (tr *TopReviews) Run(ctx context.Context) error {
 	}
 }
 
-func reloadTopReviews(tr *TopReviews) (store.Store[*topReviewsState], *persistence.TransactionLog, MessageIDSet, error) {
+func reloadTopReviews(tr *TopReviews) (store.Store[*topReviewsState], *persistence.TransactionLog,  error) {
 	stateStore := store.NewStore[*topReviewsState]()
 	log := persistence.NewTransactionLog("../logs/top_reviews.log")
-	idSet := NewMessageIDSet()
 	logBytes, err := os.ReadFile("../logs/top_reviews.log")
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return stateStore, log, idSet, nil
+			return stateStore, log, nil
 		}
-		return stateStore, log, idSet, err
+		return stateStore, log, err
 	}
 	if err := log.Unmarshal(logBytes); err != nil {
 		err = fmt.Errorf("couldn't unmarshal log: %w", err)
-		return stateStore, log, idSet, err
+		return stateStore, log, err
 	}
 	for _, entry := range log.GetLog() {
 		switch TXN(entry.Kind) {
-		case TXNSet:
-			err := idSet.Unmarshal(entry.Data)
-			if err != nil {
-				return stateStore, log, idSet, err
-			}
 		case TXNBatch:
 			currentBatch, err := batch.UnmarshalBatch(entry.Data)
 			if err != nil {
-				return stateStore, log, idSet, err
+				return stateStore, log, err
 			}
 			applyTopReviewsBatch(currentBatch, stateStore, tr)
 		}
 	}
-	return stateStore, log, idSet, nil
+	return stateStore, log, nil
 }
 
 func applyTopReviewsBatch(
@@ -171,11 +157,8 @@ func applyTopReviewsBatch(
 	}
 }
 
-func processTopReviewsBatch(batch []protocol.Message, topReviewsStateStore store.Store[*topReviewsState], tr *TopReviews, idSet MessageIDSet) error {
+func processTopReviewsBatch(batch []protocol.Message, topReviewsStateStore store.Store[*topReviewsState], tr *TopReviews) error {
 	for _, msg := range batch {
-		if idSet.Contains(msg.GetMessageID()) && !msg.ExpectKind(protocol.End) {
-			continue
-		}
 		clientID := msg.GetClientID()
 		state, ok := topReviewsStateStore.Get(clientID)
 		if !ok {
@@ -206,7 +189,7 @@ func (tr *TopReviews) processReviewsData(state *topReviewsState, internalMsg pro
 	for _, element := range elements.Iter() {
 		game := models.ReadGame(&element)
 		key := fmt.Sprintf("%s||%s", game.AppID, game.Name)
-		state.appByReviewScore[key] += int(game.ReviewsCount)
+		state.appByReviewScore[key] = int(game.ReviewsCount)
 	}
 }
 

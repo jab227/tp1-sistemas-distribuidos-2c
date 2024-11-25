@@ -17,6 +17,8 @@ import (
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/utils"
 )
 
+type newOSState map[string]models.OS
+
 type osState struct {
 	windows, mac, linux uint
 }
@@ -49,7 +51,7 @@ func (o OSCounter) Done() <-chan struct{} {
 
 func applyOSBatch(
 	batch []protocol.Message,
-	osStateStore store.Store[osState],
+	osStateStore store.Store[newOSState],
 ) {
 	for _, msg := range batch {
 		if msg.ExpectKind(protocol.Data) {
@@ -57,25 +59,15 @@ func applyOSBatch(
 
 			elements := msg.Elements()
 			clientID := msg.GetClientID()
-			var s osState
+			state, ok := osStateStore.Get(clientID)
+			if !ok {
+				state = make(map[string]models.OS)
+				osStateStore.Set(clientID, state)
+			}
 			for _, element := range elements.Iter() {
 				game := models.ReadGame(&element)
-				if game.SupportedOS.IsWindowsSupported() {
-					s.windows += 1
-				}
-				if game.SupportedOS.IsMacSupported() {
-					s.mac += 1
-				}
-				if game.SupportedOS.IsLinuxSupported() {
-					s.linux += 1
-				}
+				state[game.AppID] = game.SupportedOS
 			}
-
-			state, ok := osStateStore.Get(clientID)
-			if ok {
-				s.Update(state)
-			}
-			osStateStore.Set(clientID, s)
 		} else if msg.ExpectKind(protocol.End) {
 			continue
 		} else {
@@ -84,37 +76,31 @@ func applyOSBatch(
 	}
 }
 
-func reloadOSCounter() (store.Store[osState], *persistence.TransactionLog, MessageIDSet, error) {
-	stateStore := store.NewStore[osState]()
+func reloadOSCounter() (store.Store[newOSState], *persistence.TransactionLog, error) {
+	stateStore := store.NewStore[newOSState]()
 	log := persistence.NewTransactionLog("../logs/os_counter.log")
-	idSet := NewMessageIDSet()
 	logBytes, err := os.ReadFile("../logs/os_counter.log")
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return stateStore, log, idSet, nil
+			return stateStore, log, nil
 		}
-		return stateStore, log, idSet, err
+		return stateStore, log, err
 	}
 	if err := log.Unmarshal(logBytes); err != nil {
 		err = fmt.Errorf("couldn't unmarshal log: %w", err)
-		return stateStore, log, idSet, err
+		return stateStore, log, err
 	}
 	for _, entry := range log.GetLog() {
 		switch TXN(entry.Kind) {
-		case TXNSet:
-			err := idSet.Unmarshal(entry.Data)
-			if err != nil {
-				return stateStore, log, idSet, err
-			}
 		case TXNBatch:
 			currentBatch, err := batch.UnmarshalBatch(entry.Data)
 			if err != nil {
-				return stateStore, log, idSet, err
+				return stateStore, log, err
 			}
 			applyOSBatch(currentBatch, stateStore)
 		}
 	}
-	return stateStore, log, idSet, nil
+	return stateStore, log, nil
 }
 
 func (o *OSCounter) Run(ctx context.Context) error {
@@ -123,7 +109,7 @@ func (o *OSCounter) Run(ctx context.Context) error {
 		o.done <- struct{}{}
 	}()
 
-	osStateStore, log, idSet, err := reloadOSCounter()
+	osStateStore, log, err := reloadOSCounter()
 	if err != nil {
 		return err
 	}
@@ -144,14 +130,10 @@ func (o *OSCounter) Run(ctx context.Context) error {
 			currentBatch := batcher.Batch()
 			log.Append(batch.MarshalBatch(currentBatch), uint32(TXNBatch))
 			slog.Debug("processing batch")
-			err := o.processBatchOsCounter(currentBatch, osStateStore, idSet)
+			err := o.processBatchOsCounter(currentBatch, osStateStore)
 			if err != nil {
 				return err
 			}
-			slog.Debug("storing new message id set")
-			idSet.Clear()
-			idSet.Insert(currentBatch)
-			log.Append(idSet.Marshal(), uint32(TXNSet))
 			slog.Debug("commit")
 			if err := log.Commit(); err != nil {
 				return fmt.Errorf("couldn't commit to disk: %w", err)
@@ -166,14 +148,10 @@ func (o *OSCounter) Run(ctx context.Context) error {
 			currentBatch := batcher.Batch()
 			log.Append(batch.MarshalBatch(currentBatch), uint32(TXNBatch))
 			slog.Debug("processing batch")
-			err := o.processBatchOsCounter(currentBatch, osStateStore, idSet)
+			err := o.processBatchOsCounter(currentBatch, osStateStore)
 			if err != nil {
 				return err
 			}
-			slog.Debug("storing new message id set")
-			idSet.Clear()
-			idSet.Insert(currentBatch)
-			log.Append(idSet.Marshal(), uint32(TXNSet))
 			slog.Debug("commit")
 			if err := log.Commit(); err != nil {
 				return fmt.Errorf("couldn't commit to disk: %w", err)
@@ -189,13 +167,9 @@ func (o *OSCounter) Run(ctx context.Context) error {
 
 func (o *OSCounter) processBatchOsCounter(
 	messages []protocol.Message,
-	osStateStore store.Store[osState],
-	idSet MessageIDSet,
+	osStateStore store.Store[newOSState],
 ) error {
 	for _, msg := range messages {
-		if idSet.Contains(msg.GetMessageID()) && !msg.ExpectKind(protocol.End) {
-			continue
-		}
 		if msg.ExpectKind(protocol.Data) {
 			if !msg.HasGameData() {
 				return fmt.Errorf("couldn't wrong type: expected game data")
@@ -203,29 +177,31 @@ func (o *OSCounter) processBatchOsCounter(
 
 			elements := msg.Elements()
 			clientID := msg.GetClientID()
-			var s osState
+			state, ok := osStateStore.Get(clientID)
+			if !ok {
+				state = make(map[string]models.OS)
+				osStateStore.Set(clientID, state)
+			}
 			for _, element := range elements.Iter() {
 				game := models.ReadGame(&element)
-				if game.SupportedOS.IsWindowsSupported() {
-					s.windows += 1
-				}
-				if game.SupportedOS.IsMacSupported() {
-					s.mac += 1
-				}
-				if game.SupportedOS.IsLinuxSupported() {
-					s.linux += 1
-				}
+				state[game.AppID] = game.SupportedOS
 			}
-
-			state, ok := osStateStore.Get(clientID)
-			if ok {
-				s.Update(state)
-			}
-			osStateStore.Set(clientID, s)
 		} else if msg.ExpectKind(protocol.End) {
 			clientID := msg.GetClientID()
 			slog.Info("received end", "node", "os_counter")
-			result := marshalResults(osStateStore[clientID])
+			var s osState
+			for _, o := range osStateStore[clientID] {
+				if o.IsWindowsSupported() {
+					s.windows += 1
+				}
+				if o.IsMacSupported() {
+					s.mac += 1
+				}
+				if o.IsLinuxSupported() {
+					s.linux += 1
+				}
+			}
+			result := marshalResults(s)
 			res := protocol.NewResultsMessage(protocol.Query1, result, protocol.MessageOptions{
 				MessageID: msg.GetMessageID(),
 				ClientID:  clientID,
