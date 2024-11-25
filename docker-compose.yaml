@@ -475,11 +475,13 @@ services:
       - OUTPUT_WORKER_QUEUE_COUNT=1
       - INPUT_WORKER_QUEUE=decade-filter-output-queue
       - INPUT_WORKER_QUEUE_TIMEOUT=5
-      - INPUT_WORKER_QUEUE_COUNT=50
+      - INPUT_WORKER_QUEUE_COUNT=3000
       - LOGGER_LEVEL=debug
       - N_VALUE=10
     networks:
       - rabbitmq_go_net
+    volumes:
+      - ./logs/:/logs/ 
     depends_on:
       rabbitmq:
         condition: service_healthy

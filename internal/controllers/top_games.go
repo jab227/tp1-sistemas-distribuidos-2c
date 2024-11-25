@@ -2,16 +2,20 @@ package controllers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
+	"os"
 	"time"
 
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/heap"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/batch"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/client"
 	models "github.com/jab227/tp1-sistemas-distribuidos-2c/internal/model"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/persistence"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/protocol"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/store"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/utils"
 )
 
 type topGamesState struct {
@@ -48,8 +52,12 @@ func (tg *TopGames) Run(ctx context.Context) error {
 		tg.done <- struct{}{}
 	}()
 
-	topGamesStateStore := store.NewStore[*topGamesState]()
-	batcher := batch.NewBatcher(50)
+	topGamesStateStore, log, idSet, err := reloadTopGames(tg)
+	if err != nil {
+		return err
+	}
+	batcher := batch.NewBatcher(3000)
+
 	for {
 		select {
 		case msg := <-consumerChan:
@@ -63,19 +71,43 @@ func (tg *TopGames) Run(ctx context.Context) error {
 			if !batcher.IsFull() {
 				continue
 			}
-			batch := batcher.Batch()
-			if err := processTopGamesBatch(batch, topGamesStateStore, tg); err != nil {
+			currentBatch := batcher.Batch()
+			log.Append(batch.MarshalBatch(currentBatch), uint32(TXNBatch))
+			slog.Debug("processing batch")
+			if err := processTopGamesBatch(currentBatch, topGamesStateStore, tg, idSet); err != nil {
 				return err
 			}
+			slog.Debug("storing new message id set")
+			idSet.Clear()
+			idSet.Insert(currentBatch)
+			log.Append(idSet.Marshal(), uint32(TXNSet))
+			slog.Debug("commit")
+			if err := log.Commit(); err != nil {
+				return fmt.Errorf("couldn't commit to disk: %w", err)
+			}
+			time.Sleep(5 * time.Second)
+			slog.Debug("acknowledge")
 			batcher.Acknowledge()
 		case <-time.After(10 * time.Second):
 			if batcher.IsEmpty() {
 				continue
 			}
-			batch := batcher.Batch()
-			if err := processTopGamesBatch(batch, topGamesStateStore, tg); err != nil {
+			currentBatch := batcher.Batch()
+			log.Append(batch.MarshalBatch(currentBatch), uint32(TXNBatch))
+			slog.Debug("processing batch")
+			if err := processTopGamesBatch(currentBatch, topGamesStateStore, tg, idSet); err != nil {
 				return err
 			}
+			slog.Debug("storing new message id set")
+			idSet.Clear()
+			idSet.Insert(currentBatch)
+			log.Append(idSet.Marshal(), uint32(TXNSet))
+			slog.Debug("commit")
+			if err := log.Commit(); err != nil {
+				return fmt.Errorf("couldn't commit to disk: %w", err)
+			}
+			time.Sleep(5 * time.Second)
+			slog.Debug("acknowledge")
 			batcher.Acknowledge()
 		case <-ctx.Done():
 			return ctx.Err()
@@ -83,8 +115,68 @@ func (tg *TopGames) Run(ctx context.Context) error {
 	}
 }
 
-func processTopGamesBatch(batch []protocol.Message, topGamesStateStore store.Store[*topGamesState], tg *TopGames) error {
+func reloadTopGames(tg *TopGames) (store.Store[*topGamesState], *persistence.TransactionLog, MessageIDSet, error) {
+	stateStore := store.NewStore[*topGamesState]()
+	log := persistence.NewTransactionLog("../logs/top_games.log")
+	idSet := NewMessageIDSet()
+	logBytes, err := os.ReadFile("../logs/top_games.log")
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return stateStore, log, idSet, nil
+		}
+		return stateStore, log, idSet, err
+	}
+	if err := log.Unmarshal(logBytes); err != nil {
+		err = fmt.Errorf("couldn't unmarshal log: %w", err)
+		return stateStore, log, idSet, err
+	}
+	for _, entry := range log.GetLog() {
+		switch TXN(entry.Kind) {
+		case TXNSet:
+			err := idSet.Unmarshal(entry.Data)
+			if err != nil {
+				return stateStore, log, idSet, err
+			}
+		case TXNBatch:
+			currentBatch, err := batch.UnmarshalBatch(entry.Data)
+			if err != nil {
+				return stateStore, log, idSet, err
+			}
+			applyTopGamesBatch(currentBatch, stateStore, tg)
+		}
+	}
+	return stateStore, log, idSet, nil
+}
+
+func applyTopGamesBatch(
+	batch []protocol.Message,
+	topGamesStateStore store.Store[*topGamesState],
+	tg *TopGames,
+) {
+	for _, msg := range batch {
+		if msg.ExpectKind(protocol.Data) {
+			utils.Assert(msg.HasGameData(), "wrong type: expected game data")
+			clientID := msg.GetClientID()
+			state, ok := topGamesStateStore.Get(clientID)
+			if !ok {
+				state = &topGamesState{heapGames: heap.NewHeapGames()}
+				topGamesStateStore.Set(clientID, state)
+			}
+			tg.processGamesData(state, msg)
+		} else if msg.ExpectKind(protocol.End) {
+			continue
+		} else {
+			utils.Assertf(false, "unexpected message type: %s", msg.GetMessageType())
+		}
+	}
+}
+
+func processTopGamesBatch(batch []protocol.Message, topGamesStateStore store.Store[*topGamesState], tg *TopGames, idSet MessageIDSet) error {
 	for _, internalMsg := range batch {
+		if idSet.Contains(internalMsg.GetMessageID()) && !internalMsg.ExpectKind(protocol.End) {
+			continue
+		}
+
 		clientID := internalMsg.GetClientID()
 		state, ok := topGamesStateStore.Get(clientID)
 		if !ok {
