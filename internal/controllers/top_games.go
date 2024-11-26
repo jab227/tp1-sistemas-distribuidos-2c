@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/heap"
@@ -19,7 +20,8 @@ import (
 )
 
 type topGamesState struct {
-	heapGames *heap.HeapGames
+	// heapGames *heap.HeapGames
+	appByGameScore map[string]int
 }
 
 type TopGames struct {
@@ -52,7 +54,7 @@ func (tg *TopGames) Run(ctx context.Context) error {
 		tg.done <- struct{}{}
 	}()
 
-	topGamesStateStore, log, idSet, err := reloadTopGames(tg)
+	topGamesStateStore, log, err := reloadTopGames(tg)
 	if err != nil {
 		return err
 	}
@@ -74,13 +76,9 @@ func (tg *TopGames) Run(ctx context.Context) error {
 			currentBatch := batcher.Batch()
 			log.Append(batch.MarshalBatch(currentBatch), uint32(TXNBatch))
 			slog.Debug("processing batch")
-			if err := processTopGamesBatch(currentBatch, topGamesStateStore, tg, idSet); err != nil {
+			if err := processTopGamesBatch(currentBatch, topGamesStateStore, tg); err != nil {
 				return err
 			}
-			slog.Debug("storing new message id set")
-			idSet.Clear()
-			idSet.Insert(currentBatch)
-			log.Append(idSet.Marshal(), uint32(TXNSet))
 			slog.Debug("commit")
 			if err := log.Commit(); err != nil {
 				return fmt.Errorf("couldn't commit to disk: %w", err)
@@ -95,13 +93,9 @@ func (tg *TopGames) Run(ctx context.Context) error {
 			currentBatch := batcher.Batch()
 			log.Append(batch.MarshalBatch(currentBatch), uint32(TXNBatch))
 			slog.Debug("processing batch")
-			if err := processTopGamesBatch(currentBatch, topGamesStateStore, tg, idSet); err != nil {
+			if err := processTopGamesBatch(currentBatch, topGamesStateStore, tg); err != nil {
 				return err
 			}
-			slog.Debug("storing new message id set")
-			idSet.Clear()
-			idSet.Insert(currentBatch)
-			log.Append(idSet.Marshal(), uint32(TXNSet))
 			slog.Debug("commit")
 			if err := log.Commit(); err != nil {
 				return fmt.Errorf("couldn't commit to disk: %w", err)
@@ -115,37 +109,31 @@ func (tg *TopGames) Run(ctx context.Context) error {
 	}
 }
 
-func reloadTopGames(tg *TopGames) (store.Store[*topGamesState], *persistence.TransactionLog, MessageIDSet, error) {
+func reloadTopGames(tg *TopGames) (store.Store[*topGamesState], *persistence.TransactionLog, error) {
 	stateStore := store.NewStore[*topGamesState]()
 	log := persistence.NewTransactionLog("../logs/top_games.log")
-	idSet := NewMessageIDSet()
 	logBytes, err := os.ReadFile("../logs/top_games.log")
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return stateStore, log, idSet, nil
+			return stateStore, log, nil
 		}
-		return stateStore, log, idSet, err
+		return stateStore, log, err
 	}
 	if err := log.Unmarshal(logBytes); err != nil {
 		err = fmt.Errorf("couldn't unmarshal log: %w", err)
-		return stateStore, log, idSet, err
+		return stateStore, log, err
 	}
 	for _, entry := range log.GetLog() {
 		switch TXN(entry.Kind) {
-		case TXNSet:
-			err := idSet.Unmarshal(entry.Data)
-			if err != nil {
-				return stateStore, log, idSet, err
-			}
 		case TXNBatch:
 			currentBatch, err := batch.UnmarshalBatch(entry.Data)
 			if err != nil {
-				return stateStore, log, idSet, err
+				return stateStore, log, err
 			}
 			applyTopGamesBatch(currentBatch, stateStore, tg)
 		}
 	}
-	return stateStore, log, idSet, nil
+	return stateStore, log, nil
 }
 
 func applyTopGamesBatch(
@@ -159,7 +147,7 @@ func applyTopGamesBatch(
 			clientID := msg.GetClientID()
 			state, ok := topGamesStateStore.Get(clientID)
 			if !ok {
-				state = &topGamesState{heapGames: heap.NewHeapGames()}
+				state = &topGamesState{make(map[string]int)}
 				topGamesStateStore.Set(clientID, state)
 			}
 			tg.processGamesData(state, msg)
@@ -171,16 +159,12 @@ func applyTopGamesBatch(
 	}
 }
 
-func processTopGamesBatch(batch []protocol.Message, topGamesStateStore store.Store[*topGamesState], tg *TopGames, idSet MessageIDSet) error {
+func processTopGamesBatch(batch []protocol.Message, topGamesStateStore store.Store[*topGamesState], tg *TopGames) error {
 	for _, internalMsg := range batch {
-		if idSet.Contains(internalMsg.GetMessageID()) && !internalMsg.ExpectKind(protocol.End) {
-			continue
-		}
-
 		clientID := internalMsg.GetClientID()
 		state, ok := topGamesStateStore.Get(clientID)
 		if !ok {
-			state = &topGamesState{heapGames: heap.NewHeapGames()}
+			state = &topGamesState{make(map[string]int)}
 			topGamesStateStore.Set(clientID, state)
 		}
 
@@ -202,27 +186,27 @@ func processTopGamesBatch(batch []protocol.Message, topGamesStateStore store.Sto
 }
 
 func (tg *TopGames) processGamesData(state *topGamesState, internalMsg protocol.Message) {
-	heapGames := state.heapGames
 	elements := internalMsg.Elements()
-
 	for _, element := range elements.Iter() {
 		game := models.ReadGame(&element)
-		if heapGames.Len() < int(tg.n) {
-			heapGames.PushValue(game)
-			continue
-		}
-
-		minGame := heapGames.PopValue()
-		if game.AvgPlayTime < minGame.AvgPlayTime {
-			heapGames.PushValue(minGame)
-		} else {
-			heapGames.PushValue(game)
-		}
+		key := fmt.Sprintf("%s||%s", game.AppID, game.Name)
+		state.appByGameScore[key] = int(game.AvgPlayTime)
 	}
 }
 
 func (tg *TopGames) writeResult(state *topGamesState, internalMsg protocol.Message) error {
-	listOfGames := state.heapGames.TopNGames(tg.n)
+	values := make([]heap.Value, 0, len(state.appByGameScore))
+	for k, v := range state.appByGameScore {
+		name := strings.Split(k, "||")[1]
+		avgPlayTime := v
+		values = append(values, heap.Value{Name: name, Count: avgPlayTime})
+	}
+	h := heap.NewHeap()
+	for _, value := range values {
+		h.PushValue(value)
+	}
+
+	listOfGames := h.TopN(int(tg.n))
 	slog.Debug("top10", "games", listOfGames)
 	for _, game := range listOfGames {
 		buffer := protocol.NewPayloadBuffer(1)
