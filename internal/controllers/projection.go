@@ -88,25 +88,16 @@ func (p *Projection) handleMessage(msg amqp091.Delivery, service *end.Service) e
 		return err
 	}
 	if internalMsg.ExpectKind(protocol.Data) {
-		var res *protocol.Message
-		var tag string
 		if internalMsg.HasGameData() {
-			res, err = p.handleGamesMessages(internalMsg)
-			if err != nil {
+			if err = p.handleGamesMessages(internalMsg); err != nil {
 				return err
 			}
-			tag = "game"
 		} else if internalMsg.HasReviewData() {
-			res, err = p.handleReviewsMessages(internalMsg)
-			if err != nil {
+			if err = p.handleReviewsMessages(internalMsg); err != nil {
 				return err
 			}
-			tag = "review"
 		} else {
 			return fmt.Errorf("unexpected message that isn't games or reviews")
-		}
-		if err := p.iomanager.Write(res.Marshal(), tag); err != nil {
-			return err
 		}
 	} else if internalMsg.ExpectKind(protocol.End) {
 		slog.Debug("received end", "game", internalMsg.HasGameData(), "reviews", internalMsg.HasReviewData())
@@ -118,7 +109,7 @@ func (p *Projection) handleMessage(msg amqp091.Delivery, service *end.Service) e
 }
 
 // TODO(fede) - Replace hardcoded separators
-func (p *Projection) handleGamesMessages(msg protocol.Message) (*protocol.Message, error) {
+func (p *Projection) handleGamesMessages(msg protocol.Message) error {
 	elements := msg.Elements()
 	var listOfGames []models.Game
 
@@ -131,34 +122,38 @@ func (p *Projection) handleGamesMessages(msg protocol.Message) (*protocol.Messag
 
 		listOfCsvGames, err := csvReader.ReadAll()
 		if err != nil {
-			return nil, fmt.Errorf("could not parse lines of csv %s: %w", csvData, err)
+			return fmt.Errorf("could not parse lines of csv %s: %w", csvData, err)
 		}
 
 		for _, line := range listOfCsvGames {
 			game, err := models.GameFromCSVLine(line)
 			if err != nil {
-				return nil, fmt.Errorf("could not parse game from csv line %s: %w", line, err)
+				return fmt.Errorf("could not parse game from csv line %s: %w", line, err)
 			}
 
 			listOfGames = append(listOfGames, *game)
 		}
 	}
 
-	payloadBuffer := protocol.NewPayloadBuffer(len(listOfGames))
 	for _, game := range listOfGames {
+		payloadBuffer := protocol.NewPayloadBuffer(1)
 		game.BuildPayload(payloadBuffer)
+
+		responseMsg := protocol.NewDataMessage(protocol.Games, payloadBuffer.Bytes(), protocol.MessageOptions{
+			MessageID: msg.GetMessageID(),
+			ClientID:  msg.GetClientID(),
+			RequestID: msg.GetRequestID(),
+		})
+
+		if err := p.iomanager.Write(responseMsg.Marshal(), "game"); err != nil {
+			return err
+		}
 	}
 
-	responseMsg := protocol.NewDataMessage(protocol.Games, payloadBuffer.Bytes(), protocol.MessageOptions{
-		MessageID: msg.GetMessageID(),
-		ClientID:  msg.GetClientID(),
-		RequestID: msg.GetRequestID(),
-	})
-
-	return &responseMsg, nil
+	return nil
 }
 
-func (p *Projection) handleReviewsMessages(msg protocol.Message) (*protocol.Message, error) {
+func (p *Projection) handleReviewsMessages(msg protocol.Message) error {
 	elements := msg.Elements()
 	var listOfReviews []models.Review
 
@@ -171,31 +166,35 @@ func (p *Projection) handleReviewsMessages(msg protocol.Message) (*protocol.Mess
 
 		listOfCsvReviews, err := csvReader.ReadAll()
 		if err != nil {
-			return nil, fmt.Errorf("could not parse lines of csv %s: %w", csvData, err)
+			return fmt.Errorf("could not parse lines of csv %s: %w", csvData, err)
 		}
 
 		for _, line := range listOfCsvReviews {
 			review, err := models.ReviewFromCSVLine(line)
 			if err != nil {
-				return nil, fmt.Errorf("could not parse review from csv line %s: %w", line, err)
+				return fmt.Errorf("could not parse review from csv line %s: %w", line, err)
 			}
 
 			listOfReviews = append(listOfReviews, *review)
 		}
 	}
 
-	payloadBuffer := protocol.NewPayloadBuffer(len(listOfReviews))
 	for _, review := range listOfReviews {
+		payloadBuffer := protocol.NewPayloadBuffer(1)
 		review.BuildPayload(payloadBuffer)
+
+		responseMsg := protocol.NewDataMessage(protocol.Reviews, payloadBuffer.Bytes(), protocol.MessageOptions{
+			MessageID: msg.GetMessageID(),
+			ClientID:  msg.GetClientID(),
+			RequestID: msg.GetRequestID(),
+		})
+
+		if err := p.iomanager.Write(responseMsg.Marshal(), "review"); err != nil {
+			return err
+		}
 	}
 
-	responseMsg := protocol.NewDataMessage(protocol.Reviews, payloadBuffer.Bytes(), protocol.MessageOptions{
-		MessageID: msg.GetMessageID(),
-		ClientID:  msg.GetClientID(),
-		RequestID: msg.GetRequestID(),
-	})
-
-	return &responseMsg, nil
+	return nil
 }
 
 func (p *Projection) Close() {

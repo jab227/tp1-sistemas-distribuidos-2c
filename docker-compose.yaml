@@ -319,7 +319,7 @@ services:
       - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
       - DIRECT_SUBSCRIBER_QUEUE=indie-genre-filter-input-queue
       - DIRECT_SUBSCRIBER_KEYS=game
-      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=1      
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
       - END_SERVICE_COORDINATOR_QUEUE=indie-filter-control
       - END_SERVICE_EXCHANGE=indie-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=indie-peer-queue-1
@@ -349,7 +349,7 @@ services:
       - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
       - DIRECT_SUBSCRIBER_QUEUE=indie-genre-filter-input-queue
       - DIRECT_SUBSCRIBER_KEYS=game
-      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=1      
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
       - END_SERVICE_COORDINATOR_QUEUE=indie-filter-control
       - END_SERVICE_EXCHANGE=indie-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=indie-peer-queue-2
@@ -407,7 +407,7 @@ services:
       - DIRECT_SUBSCRIBER_EXCHANGES=indie-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=decade-filter-input-queue
       - DIRECT_SUBSCRIBER_KEYS=1,2,3 # Affects Top10
-      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=1      
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
       - END_SERVICE_COORDINATOR_QUEUE=decade-filter-control
       - END_SERVICE_EXCHANGE=decade-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=decade-peer-queue-1
@@ -437,7 +437,7 @@ services:
       - DIRECT_SUBSCRIBER_EXCHANGES=indie-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=decade-filter-input-queue
       - DIRECT_SUBSCRIBER_KEYS=1,2,3 # Affects Top10
-      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=1      
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
       - END_SERVICE_COORDINATOR_QUEUE=decade-filter-control
       - END_SERVICE_EXCHANGE=decade-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=decade-peer-queue-2
@@ -522,9 +522,8 @@ services:
       - OUTPUT_ROUTER_TAGS=1,2,3 # Affects Joinner Query 3
       - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
       - DIRECT_SUBSCRIBER_QUEUE=positive-filter-input-queue
-      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=1
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
       - DIRECT_SUBSCRIBER_KEYS=review
-      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=1      
       - END_SERVICE_COORDINATOR_QUEUE=positive-filter-control
       - END_SERVICE_EXCHANGE=positive-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=positive-peer-queue-1
@@ -554,7 +553,7 @@ services:
       - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
       - DIRECT_SUBSCRIBER_QUEUE=positive-filter-input-queue
       - DIRECT_SUBSCRIBER_KEYS=review
-      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=1            
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
       - END_SERVICE_COORDINATOR_QUEUE=positive-filter-control
       - END_SERVICE_EXCHANGE=positive-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=positive-peer-queue-2
@@ -584,7 +583,7 @@ services:
       - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
       - DIRECT_SUBSCRIBER_QUEUE=positive-filter-input-queue
       - DIRECT_SUBSCRIBER_KEYS=review
-      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=1
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
       - END_SERVICE_COORDINATOR_QUEUE=positive-filter-control
       - END_SERVICE_EXCHANGE=positive-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=positive-peer-queue-3
@@ -614,7 +613,7 @@ services:
       - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
       - DIRECT_SUBSCRIBER_QUEUE=positive-filter-input-queue
       - DIRECT_SUBSCRIBER_KEYS=review
-      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=1
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
       - END_SERVICE_COORDINATOR_QUEUE=positive-filter-control
       - END_SERVICE_EXCHANGE=positive-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=positive-peer-queue-4
@@ -824,7 +823,7 @@ services:
       - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
       - DIRECT_SUBSCRIBER_QUEUE=action-genre-filter-input-queue
       - DIRECT_SUBSCRIBER_KEYS=game
-      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=1      
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
       - END_SERVICE_COORDINATOR_QUEUE=action-filter-control
       - END_SERVICE_EXCHANGE=action-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=action-peer-queue-1
@@ -854,7 +853,7 @@ services:
       - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
       - DIRECT_SUBSCRIBER_QUEUE=action-genre-filter-input-queue
       - DIRECT_SUBSCRIBER_KEYS=game
-      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=1      
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
       - END_SERVICE_COORDINATOR_QUEUE=action-filter-control
       - END_SERVICE_EXCHANGE=action-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=action-peer-queue-2
@@ -912,7 +911,7 @@ services:
       - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
       - DIRECT_SUBSCRIBER_QUEUE=negative-filter-input-queue
       - DIRECT_SUBSCRIBER_KEYS=review
-      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=1      
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
       - END_SERVICE_COORDINATOR_QUEUE=negative-filter-control
       - END_SERVICE_EXCHANGE=negative-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=negative-peer-queue-1
@@ -942,7 +941,7 @@ services:
       - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
       - DIRECT_SUBSCRIBER_QUEUE=negative-filter-input-queue
       - DIRECT_SUBSCRIBER_KEYS=review
-      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=1      
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
       - END_SERVICE_COORDINATOR_QUEUE=negative-filter-control
       - END_SERVICE_EXCHANGE=negative-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=negative-peer-queue-2
@@ -972,7 +971,7 @@ services:
       - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
       - DIRECT_SUBSCRIBER_QUEUE=negative-filter-input-queue
       - DIRECT_SUBSCRIBER_KEYS=review
-      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=1
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
       - END_SERVICE_COORDINATOR_QUEUE=negative-filter-control
       - END_SERVICE_EXCHANGE=negative-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=negative-peer-queue-3
@@ -1003,7 +1002,7 @@ services:
       - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
       - DIRECT_SUBSCRIBER_QUEUE=negative-filter-input-queue
       - DIRECT_SUBSCRIBER_KEYS=review
-      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=1
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
       - END_SERVICE_COORDINATOR_QUEUE=negative-filter-control
       - END_SERVICE_EXCHANGE=negative-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=negative-peer-queue-4
@@ -1061,7 +1060,7 @@ services:
       - DIRECT_SUBSCRIBER_EXCHANGES=negative-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=english-filter-input-queue
       - DIRECT_SUBSCRIBER_KEYS=1,2,3
-      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=1
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
       - END_SERVICE_COORDINATOR_QUEUE=english-filter-control
       - END_SERVICE_EXCHANGE=english-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=english-peer-queue-1
@@ -1091,7 +1090,7 @@ services:
       - DIRECT_SUBSCRIBER_EXCHANGES=negative-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=english-filter-input-queue
       - DIRECT_SUBSCRIBER_KEYS=1,2,3
-      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=1
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
       - END_SERVICE_COORDINATOR_QUEUE=english-filter-control
       - END_SERVICE_EXCHANGE=english-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=english-peer-queue-2
@@ -1121,7 +1120,7 @@ services:
       - DIRECT_SUBSCRIBER_EXCHANGES=negative-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=english-filter-input-queue
       - DIRECT_SUBSCRIBER_KEYS=1,2,3
-      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=1
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
       - END_SERVICE_COORDINATOR_QUEUE=english-filter-control
       - END_SERVICE_EXCHANGE=english-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=english-peer-queue-3
@@ -1151,7 +1150,7 @@ services:
       - DIRECT_SUBSCRIBER_EXCHANGES=negative-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=english-filter-input-queue
       - DIRECT_SUBSCRIBER_KEYS=1,2,3
-      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=1
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
       - END_SERVICE_COORDINATOR_QUEUE=english-filter-control
       - END_SERVICE_EXCHANGE=english-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=english-peer-queue-4
@@ -1181,7 +1180,7 @@ services:
       - DIRECT_SUBSCRIBER_EXCHANGES=negative-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=english-filter-input-queue
       - DIRECT_SUBSCRIBER_KEYS=1,2,3
-      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=1
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
       - END_SERVICE_COORDINATOR_QUEUE=english-filter-control
       - END_SERVICE_EXCHANGE=english-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=english-peer-queue-5
@@ -1211,7 +1210,7 @@ services:
       - DIRECT_SUBSCRIBER_EXCHANGES=negative-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=english-filter-input-queue
       - DIRECT_SUBSCRIBER_KEYS=1,2,3
-      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=1
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
       - END_SERVICE_COORDINATOR_QUEUE=english-filter-control
       - END_SERVICE_EXCHANGE=english-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=english-peer-queue-6
@@ -1241,7 +1240,7 @@ services:
       - DIRECT_SUBSCRIBER_EXCHANGES=negative-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=english-filter-input-queue
       - DIRECT_SUBSCRIBER_KEYS=1,2,3
-      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=1
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
       - END_SERVICE_COORDINATOR_QUEUE=english-filter-control
       - END_SERVICE_EXCHANGE=english-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=english-peer-queue-7
@@ -1271,7 +1270,7 @@ services:
       - DIRECT_SUBSCRIBER_EXCHANGES=negative-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=english-filter-input-queue
       - DIRECT_SUBSCRIBER_KEYS=1,2,3
-      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=1
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
       - END_SERVICE_COORDINATOR_QUEUE=english-filter-control
       - END_SERVICE_EXCHANGE=english-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=english-peer-queue-8

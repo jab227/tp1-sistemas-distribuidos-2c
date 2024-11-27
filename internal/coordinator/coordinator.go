@@ -137,7 +137,7 @@ func (c *EndCoordinator) Run(ctx context.Context) error {
 							ClientID:  msg.GetClientID(),
 							RequestID: msg.GetRequestID(),
 						})
-						<-time.After(15 * time.Second)
+						<-time.After(20 * time.Second)
 						slog.Info("Propagating END reviews", "counter", c.state.GetReviewsEnd(msg.GetClientID()))
 						if err := c.io.Write(endMsg.Marshal(), "review"); err != nil {
 							return fmt.Errorf("couldn't write end message: %w", err)
