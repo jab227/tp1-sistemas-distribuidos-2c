@@ -100,9 +100,6 @@ func (f *Filter) Run(ctx context.Context) error {
 	ch := service.MergeConsumers(consumerCh)
 
 	batcher := batch.NewBatcher(MaxBatchingSize)
-	// TODO - Fede delete now
-	endSupervisor := make(map[uint32]bool)
-
 	for {
 		select {
 		case delivery := <-ch:
@@ -110,10 +107,6 @@ func (f *Filter) Run(ctx context.Context) error {
 			var msg protocol.Message
 			if err := msg.Unmarshal(msgBytes); err != nil {
 				return fmt.Errorf("couldn't unmarshal protocol message: %w", err)
-			}
-
-			if value, ok := endSupervisor[msg.GetClientID()]; ok && value {
-				slog.Debug("message after END")
 			}
 
 			if delivery.SenderType == end.SenderPrevious {
@@ -129,7 +122,6 @@ func (f *Filter) Run(ctx context.Context) error {
 				}
 			} else if delivery.SenderType == end.SenderNeighbour {
 				service.NotifyCoordinator(msg)
-				endSupervisor[msg.GetClientID()] = true
 				delivery.RecvDelivery.Ack(false)
 			} else {
 				utils.Assert(false, "unknown type")

@@ -7,6 +7,7 @@ import (
 	"encoding/gob"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"time"
@@ -63,7 +64,7 @@ func MarshalStore(s store.Store[joinerState]) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	w.Write(buf.Bytes())
+	io.Copy(w, &buf)
 	w.Close()
 	return compressedBuffer.Bytes(), nil
 }
@@ -218,16 +219,13 @@ func (j *Joiner) Run(ctx context.Context) error {
 					return err
 				}
 				log.Append(storeData, uint32(TXNBatch))
-				slog.Debug("processing batch")
 
 				if err := processBatch(currentBatch, joinerStateStore, service); err != nil {
 					return err
 				}
-				slog.Debug("commit")
 				if err := log.Commit(); err != nil {
 					return fmt.Errorf("couldn't commit to disk: %w", err)
 				}
-				slog.Debug("acknowledge")
 				batcher.Acknowledge()
 			} else if delivery.SenderType == end.SenderNeighbour {
 				clientID := msg.GetClientID()
@@ -278,15 +276,12 @@ func (j *Joiner) Run(ctx context.Context) error {
 				return err
 			}
 			log.Append(storeData, uint32(TXNBatch))
-			slog.Debug("processing batch")
 			if err := processBatch(currentBatch, joinerStateStore, service); err != nil {
 				return err
 			}
-			slog.Debug("commit")
 			if err := log.Commit(); err != nil {
 				return fmt.Errorf("couldn't commit to disk: %w", err)
 			}
-			slog.Debug("acknowledge")
 			batcher.Acknowledge()
 		case <-ctx.Done():
 			return ctx.Err()

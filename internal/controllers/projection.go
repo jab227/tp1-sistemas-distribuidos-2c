@@ -6,13 +6,14 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
+	"time"
 
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/batch"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/client"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/end"
 	models "github.com/jab227/tp1-sistemas-distribuidos-2c/internal/model"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/protocol"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/utils"
-	"github.com/rabbitmq/amqp091-go"
 )
 
 type Projection struct {
@@ -52,26 +53,36 @@ func (p *Projection) Run(ctx context.Context) error {
 		return err
 	}
 	ch := service.MergeConsumers(consumerChan)
+
+	batcher := batch.NewBatcher(10000)
 	for {
 		select {
 		case delivery := <-ch:
+			var msg protocol.Message
+			msgBytes := delivery.RecvDelivery.Body
+			if err := msg.Unmarshal(msgBytes); err != nil {
+				return fmt.Errorf("couldn't unmarshal protocol message: %w", err)
+			}
 			if delivery.SenderType == end.SenderPrevious {
-				err := p.handleMessage(delivery.RecvDelivery, service)
-				if err != nil {
-					return err
-				}
-				delivery.RecvDelivery.Ack(false)
-			} else if delivery.SenderType == end.SenderNeighbour {
-				msgBytes := delivery.RecvDelivery.Body
-				var msg protocol.Message
-				if err := msg.Unmarshal(msgBytes); err != nil {
-					slog.Error("couldn't unmarshal message", "error", err)
+				batcher.Push(msg, delivery.RecvDelivery)
+				if !batcher.IsFull() {
 					continue
 				}
+				if err := p.processProjectionBatch(&batcher, service); err != nil {
+					return fmt.Errorf("couldn't process batch: %w", err)
+				}
+			} else if delivery.SenderType == end.SenderNeighbour {
 				service.NotifyCoordinator(msg)
 				delivery.RecvDelivery.Ack(false)
 			} else {
 				utils.Assert(false, "unknown type")
+			}
+		case <-time.After(MaxBatcherTimeout):
+			if batcher.IsEmpty() {
+				continue
+			}
+			if err := p.processProjectionBatch(&batcher, service); err != nil {
+				return fmt.Errorf("couldn't process batch: %w", err)
 			}
 		case <-ctx.Done():
 			return ctx.Err()
@@ -79,31 +90,37 @@ func (p *Projection) Run(ctx context.Context) error {
 	}
 }
 
-// TODO(fede) - Replace name for something else
-func (p *Projection) handleMessage(msg amqp091.Delivery, service *end.Service) error {
-	bytes := msg.Body
-	internalMsg := protocol.Message{}
-	err := internalMsg.Unmarshal(bytes)
-	if err != nil {
-		return err
+func (p *Projection) processProjectionBatch(batcher *batch.Batcher, endService *end.Service) error {
+	currentBatch := batcher.Batch()
+	for _, msg := range currentBatch {
+		err := p.handleMessage(msg, endService)
+		if err != nil {
+			return err
+		}
 	}
-	if internalMsg.ExpectKind(protocol.Data) {
-		if internalMsg.HasGameData() {
-			if err = p.handleGamesMessages(internalMsg); err != nil {
+	batcher.Acknowledge()
+	return nil
+}
+
+// TODO(fede) - Replace name for something else
+func (p *Projection) handleMessage(msg protocol.Message, service *end.Service) error {
+	if msg.ExpectKind(protocol.Data) {
+		if msg.HasGameData() {
+			if err := p.handleGamesMessages(msg); err != nil {
 				return err
 			}
-		} else if internalMsg.HasReviewData() {
-			if err = p.handleReviewsMessages(internalMsg); err != nil {
+		} else if msg.HasReviewData() {
+			if err := p.handleReviewsMessages(msg); err != nil {
 				return err
 			}
 		} else {
 			return fmt.Errorf("unexpected message that isn't games or reviews")
 		}
-	} else if internalMsg.ExpectKind(protocol.End) {
-		slog.Debug("received end", "game", internalMsg.HasGameData(), "reviews", internalMsg.HasReviewData())
-		service.NotifyNeighbours(internalMsg)
+	} else if msg.ExpectKind(protocol.End) {
+		slog.Debug("received end", "game", msg.HasGameData(), "reviews", msg.HasReviewData())
+		service.NotifyNeighbours(msg)
 	} else {
-		return fmt.Errorf("expected Data or End MessageType got %d", internalMsg.GetMessageType())
+		return fmt.Errorf("expected Data or End MessageType got %d", msg.GetMessageType())
 	}
 	return nil
 }
