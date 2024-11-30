@@ -1,6 +1,7 @@
 package boundary
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/cprotocol"
@@ -149,7 +150,7 @@ func (b *Boundary) handleClient(conn net.Conn) {
 	}
 	slog.Debug("waiting for results...")
 	for result := range resultsCh {
-		slog.Debug("receveived results")		
+		slog.Debug("received results")
 		if err := cprotocol.SendMsg(conn, result); err != nil {
 			b.errorsCh <- err
 			return
@@ -158,28 +159,33 @@ func (b *Boundary) handleClient(conn net.Conn) {
 }
 
 func (b *Boundary) handleRecvData(msg cprotocol.Message) error {
-	payloadBuffer := protocol.NewPayloadBuffer(1)
-	payloadBuffer.BeginPayloadElement()
-	payloadBuffer.WriteBytes(msg.Payload)
-	payloadBuffer.EndPayloadElement()
+	lines := bytes.Split(msg.Payload, []byte("\n"))
 
-	msgDataType := protocol.Games
-	if msg.IsGamesMsg() {
-		msgDataType = protocol.Games
-	} else if msg.IsReviewsMsg() {
-		msgDataType = protocol.Reviews
+	for _, line := range lines {
+		payloadBuffer := protocol.NewPayloadBuffer(1)
+		payloadBuffer.BeginPayloadElement()
+		payloadBuffer.WriteBytes(line)
+		payloadBuffer.EndPayloadElement()
+
+		msgDataType := protocol.Games
+		if msg.IsGamesMsg() {
+			msgDataType = protocol.Games
+		} else if msg.IsReviewsMsg() {
+			msgDataType = protocol.Reviews
+		}
+
+		internalMsg := protocol.NewDataMessage(msgDataType,
+			payloadBuffer.Bytes(),
+			protocol.MessageOptions{
+				ClientID:  uint32(msg.Header.ClientId),
+				RequestID: uint32(msg.Header.RequestId),
+				MessageID: b.state.GetClientNewMessageId(msg.Header.ClientId),
+			},
+		)
+
+		b.senderCh <- internalMsg
 	}
 
-	internalMsg := protocol.NewDataMessage(msgDataType,
-		payloadBuffer.Bytes(),
-		protocol.MessageOptions{
-			ClientID:  uint32(msg.Header.ClientId),
-			RequestID: uint32(msg.Header.RequestId),
-			MessageID: b.state.GetClientNewMessageId(msg.Header.ClientId),
-		},
-	)
-
-	b.senderCh <- internalMsg
 	return nil
 }
 

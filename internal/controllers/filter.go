@@ -3,7 +3,9 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/batch"
 	"log/slog"
+	"time"
 
 	filter2 "github.com/jab227/tp1-sistemas-distribuidos-2c/internal/filter"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/client"
@@ -12,6 +14,9 @@ import (
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/utils"
 	"github.com/pemistahl/lingua-go"
 )
+
+const MaxBatchingSize = 5000
+const MaxBatcherTimeout = 10 * time.Second
 
 type Filter struct {
 	io client.IOManager
@@ -85,12 +90,16 @@ func (f *Filter) Done() <-chan struct{} {
 func (f *Filter) Run(ctx context.Context) error {
 	consumerCh := f.io.Input.GetConsumer()
 	defer func() { f.done <- struct{}{} }()
+
+	// Configure and starts End service
 	options, err := end.GetServiceOptionsFromEnv()
 	if err != nil {
 		return err
 	}
 	service, err := end.NewService(options)
 	ch := service.MergeConsumers(consumerCh)
+
+	batcher := batch.NewBatcher(MaxBatchingSize)
 	for {
 		select {
 		case delivery := <-ch:
@@ -99,25 +108,17 @@ func (f *Filter) Run(ctx context.Context) error {
 			if err := msg.Unmarshal(msgBytes); err != nil {
 				return fmt.Errorf("couldn't unmarshal protocol message: %w", err)
 			}
+
 			if delivery.SenderType == end.SenderPrevious {
-				f.requestID = msg.GetRequestID()
-				f.clientID = msg.GetClientID()
-				// Detect type
-				if msg.ExpectKind(protocol.Data) {
-					// Handle filter
-					if f.hasGameFilter {
-						if err := f.handleGameFunc(msg); err != nil {
-							return fmt.Errorf("couldn't handle game function: %w", err)
-						}
-					} else {
-						if err := f.handleReviewFunc(msg); err != nil {
-							return fmt.Errorf("couldn't handle review function: %w", err)
-						}
-					}
-					delivery.RecvDelivery.Ack(false)
-				} else if msg.ExpectKind(protocol.End) {
-					service.NotifyNeighbours(msg)
-					delivery.RecvDelivery.Ack(false)
+				// Push to batcher and check if full
+				batcher.Push(msg, delivery.RecvDelivery)
+				if !batcher.IsFull() {
+					continue
+				}
+
+				// Process batch
+				if err := f.processBatch(&batcher, service); err != nil {
+					return fmt.Errorf("couldn't process batch: %w", err)
 				}
 			} else if delivery.SenderType == end.SenderNeighbour {
 				service.NotifyCoordinator(msg)
@@ -125,10 +126,43 @@ func (f *Filter) Run(ctx context.Context) error {
 			} else {
 				utils.Assert(false, "unknown type")
 			}
+		case <-time.After(MaxBatcherTimeout):
+			if batcher.IsEmpty() {
+				continue
+			}
+
+			// Process batch
+			if err := f.processBatch(&batcher, service); err != nil {
+				return fmt.Errorf("couldn't process batch: %w", err)
+			}
 		case <-ctx.Done():
 			return ctx.Err()
 		}
 	}
+}
+
+func (f *Filter) processBatch(batch *batch.Batcher, endService *end.Service) error {
+	currentBatch := batch.Batch()
+	for _, msg := range currentBatch {
+		// Detect type
+		if msg.ExpectKind(protocol.Data) {
+			// Handle filter
+			if f.hasGameFilter {
+				if err := f.handleGameFunc(msg); err != nil {
+					return fmt.Errorf("couldn't handle game function: %w", err)
+				}
+			} else {
+				if err := f.handleReviewFunc(msg); err != nil {
+					return fmt.Errorf("couldn't handle review function: %w", err)
+				}
+			}
+		} else if msg.ExpectKind(protocol.End) {
+			endService.NotifyNeighbours(msg)
+		}
+	}
+
+	batch.Acknowledge()
+	return nil
 }
 
 func (f *Filter) handleGameFunc(receivedMsg protocol.Message) error {

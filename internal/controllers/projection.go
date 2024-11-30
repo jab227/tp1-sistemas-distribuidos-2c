@@ -6,13 +6,14 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
+	"time"
 
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/batch"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/client"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/end"
 	models "github.com/jab227/tp1-sistemas-distribuidos-2c/internal/model"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/protocol"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/utils"
-	"github.com/rabbitmq/amqp091-go"
 )
 
 type Projection struct {
@@ -52,26 +53,36 @@ func (p *Projection) Run(ctx context.Context) error {
 		return err
 	}
 	ch := service.MergeConsumers(consumerChan)
+
+	batcher := batch.NewBatcher(10000)
 	for {
 		select {
 		case delivery := <-ch:
+			var msg protocol.Message
+			msgBytes := delivery.RecvDelivery.Body
+			if err := msg.Unmarshal(msgBytes); err != nil {
+				return fmt.Errorf("couldn't unmarshal protocol message: %w", err)
+			}
 			if delivery.SenderType == end.SenderPrevious {
-				err := p.handleMessage(delivery.RecvDelivery, service)
-				if err != nil {
-					return err
-				}
-				delivery.RecvDelivery.Ack(false)
-			} else if delivery.SenderType == end.SenderNeighbour {
-				msgBytes := delivery.RecvDelivery.Body
-				var msg protocol.Message
-				if err := msg.Unmarshal(msgBytes); err != nil {
-					slog.Error("couldn't unmarshal message", "error", err)
+				batcher.Push(msg, delivery.RecvDelivery)
+				if !batcher.IsFull() {
 					continue
 				}
+				if err := p.processProjectionBatch(&batcher, service); err != nil {
+					return fmt.Errorf("couldn't process batch: %w", err)
+				}
+			} else if delivery.SenderType == end.SenderNeighbour {
 				service.NotifyCoordinator(msg)
 				delivery.RecvDelivery.Ack(false)
 			} else {
 				utils.Assert(false, "unknown type")
+			}
+		case <-time.After(MaxBatcherTimeout):
+			if batcher.IsEmpty() {
+				continue
+			}
+			if err := p.processProjectionBatch(&batcher, service); err != nil {
+				return fmt.Errorf("couldn't process batch: %w", err)
 			}
 		case <-ctx.Done():
 			return ctx.Err()
@@ -79,46 +90,43 @@ func (p *Projection) Run(ctx context.Context) error {
 	}
 }
 
-// TODO(fede) - Replace name for something else
-func (p *Projection) handleMessage(msg amqp091.Delivery, service *end.Service) error {
-	bytes := msg.Body
-	internalMsg := protocol.Message{}
-	err := internalMsg.Unmarshal(bytes)
-	if err != nil {
-		return err
+func (p *Projection) processProjectionBatch(batcher *batch.Batcher, endService *end.Service) error {
+	currentBatch := batcher.Batch()
+	for _, msg := range currentBatch {
+		err := p.handleMessage(msg, endService)
+		if err != nil {
+			return err
+		}
 	}
-	if internalMsg.ExpectKind(protocol.Data) {
-		var res *protocol.Message
-		var tag string
-		if internalMsg.HasGameData() {
-			res, err = p.handleGamesMessages(internalMsg)
-			if err != nil {
+	batcher.Acknowledge()
+	return nil
+}
+
+// TODO(fede) - Replace name for something else
+func (p *Projection) handleMessage(msg protocol.Message, service *end.Service) error {
+	if msg.ExpectKind(protocol.Data) {
+		if msg.HasGameData() {
+			if err := p.handleGamesMessages(msg); err != nil {
 				return err
 			}
-			tag = "game"
-		} else if internalMsg.HasReviewData() {
-			res, err = p.handleReviewsMessages(internalMsg)
-			if err != nil {
+		} else if msg.HasReviewData() {
+			if err := p.handleReviewsMessages(msg); err != nil {
 				return err
 			}
-			tag = "review"
 		} else {
 			return fmt.Errorf("unexpected message that isn't games or reviews")
 		}
-		if err := p.iomanager.Write(res.Marshal(), tag); err != nil {
-			return err
-		}
-	} else if internalMsg.ExpectKind(protocol.End) {
-		slog.Debug("received end", "game", internalMsg.HasGameData(), "reviews", internalMsg.HasReviewData())
-		service.NotifyNeighbours(internalMsg)
+	} else if msg.ExpectKind(protocol.End) {
+		slog.Debug("received end", "game", msg.HasGameData(), "reviews", msg.HasReviewData())
+		service.NotifyNeighbours(msg)
 	} else {
-		return fmt.Errorf("expected Data or End MessageType got %d", internalMsg.GetMessageType())
+		return fmt.Errorf("expected Data or End MessageType got %d", msg.GetMessageType())
 	}
 	return nil
 }
 
 // TODO(fede) - Replace hardcoded separators
-func (p *Projection) handleGamesMessages(msg protocol.Message) (*protocol.Message, error) {
+func (p *Projection) handleGamesMessages(msg protocol.Message) error {
 	elements := msg.Elements()
 	var listOfGames []models.Game
 
@@ -131,34 +139,38 @@ func (p *Projection) handleGamesMessages(msg protocol.Message) (*protocol.Messag
 
 		listOfCsvGames, err := csvReader.ReadAll()
 		if err != nil {
-			return nil, fmt.Errorf("could not parse lines of csv %s: %w", csvData, err)
+			return fmt.Errorf("could not parse lines of csv %s: %w", csvData, err)
 		}
 
 		for _, line := range listOfCsvGames {
 			game, err := models.GameFromCSVLine(line)
 			if err != nil {
-				return nil, fmt.Errorf("could not parse game from csv line %s: %w", line, err)
+				return fmt.Errorf("could not parse game from csv line %s: %w", line, err)
 			}
 
 			listOfGames = append(listOfGames, *game)
 		}
 	}
 
-	payloadBuffer := protocol.NewPayloadBuffer(len(listOfGames))
 	for _, game := range listOfGames {
+		payloadBuffer := protocol.NewPayloadBuffer(1)
 		game.BuildPayload(payloadBuffer)
+
+		responseMsg := protocol.NewDataMessage(protocol.Games, payloadBuffer.Bytes(), protocol.MessageOptions{
+			MessageID: msg.GetMessageID(),
+			ClientID:  msg.GetClientID(),
+			RequestID: msg.GetRequestID(),
+		})
+
+		if err := p.iomanager.Write(responseMsg.Marshal(), "game"); err != nil {
+			return err
+		}
 	}
 
-	responseMsg := protocol.NewDataMessage(protocol.Games, payloadBuffer.Bytes(), protocol.MessageOptions{
-		MessageID: msg.GetMessageID(),
-		ClientID:  msg.GetClientID(),
-		RequestID: msg.GetRequestID(),
-	})
-
-	return &responseMsg, nil
+	return nil
 }
 
-func (p *Projection) handleReviewsMessages(msg protocol.Message) (*protocol.Message, error) {
+func (p *Projection) handleReviewsMessages(msg protocol.Message) error {
 	elements := msg.Elements()
 	var listOfReviews []models.Review
 
@@ -171,31 +183,35 @@ func (p *Projection) handleReviewsMessages(msg protocol.Message) (*protocol.Mess
 
 		listOfCsvReviews, err := csvReader.ReadAll()
 		if err != nil {
-			return nil, fmt.Errorf("could not parse lines of csv %s: %w", csvData, err)
+			return fmt.Errorf("could not parse lines of csv %s: %w", csvData, err)
 		}
 
 		for _, line := range listOfCsvReviews {
 			review, err := models.ReviewFromCSVLine(line)
 			if err != nil {
-				return nil, fmt.Errorf("could not parse review from csv line %s: %w", line, err)
+				return fmt.Errorf("could not parse review from csv line %s: %w", line, err)
 			}
 
 			listOfReviews = append(listOfReviews, *review)
 		}
 	}
 
-	payloadBuffer := protocol.NewPayloadBuffer(len(listOfReviews))
 	for _, review := range listOfReviews {
+		payloadBuffer := protocol.NewPayloadBuffer(1)
 		review.BuildPayload(payloadBuffer)
+
+		responseMsg := protocol.NewDataMessage(protocol.Reviews, payloadBuffer.Bytes(), protocol.MessageOptions{
+			MessageID: msg.GetMessageID(),
+			ClientID:  msg.GetClientID(),
+			RequestID: msg.GetRequestID(),
+		})
+
+		if err := p.iomanager.Write(responseMsg.Marshal(), "review"); err != nil {
+			return err
+		}
 	}
 
-	responseMsg := protocol.NewDataMessage(protocol.Reviews, payloadBuffer.Bytes(), protocol.MessageOptions{
-		MessageID: msg.GetMessageID(),
-		ClientID:  msg.GetClientID(),
-		RequestID: msg.GetRequestID(),
-	})
-
-	return &responseMsg, nil
+	return nil
 }
 
 func (p *Projection) Close() {

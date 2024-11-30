@@ -2,10 +2,12 @@ package controllers
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
 	"encoding/gob"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"time"
@@ -20,17 +22,33 @@ import (
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/utils"
 )
 
+type EndSet byte
+type EndType byte
+
+const (
+	EndTypeGames   EndType = 0b01
+	EndTypeReviews EndType = 0b10
+	EndTypeAll     EndType = 0b11
+)
+
+func (e *EndSet) Set(t EndType) {
+	*e |= EndSet(t)
+}
+
+func (e EndSet) HasBoth() bool {
+	return e == EndSet(EndTypeAll)
+}
+
 type joinerState struct {
 	Games   map[string]models.Game
-	Reviews map[string]int
-	Ends    int
+	Reviews map[string]map[uint32]struct{}
+	Ends    EndSet
 }
 
 func (j *joinerState) Reset() {
 	*j = joinerState{
 		Games:   make(map[string]models.Game),
-		Reviews: make(map[string]int),
-		Ends:    2,
+		Reviews: make(map[string]map[uint32]struct{}),
 	}
 }
 
@@ -40,12 +58,25 @@ func MarshalStore(s store.Store[joinerState]) ([]byte, error) {
 	if err := encoder.Encode(s); err != nil {
 		return nil, err
 	}
-	return buf.Bytes(), nil
+
+	var compressedBuffer bytes.Buffer
+	w, err := gzip.NewWriterLevel(&compressedBuffer, gzip.BestSpeed)
+	if err != nil {
+		return nil, err
+	}
+	io.Copy(w, &buf)
+	w.Close()
+	return compressedBuffer.Bytes(), nil
 }
 
 func UnmarshalStore(p []byte) (store.Store[joinerState], error) {
 	buf := bytes.NewBuffer(p)
-	decoder := gob.NewDecoder(buf)
+	r, err := gzip.NewReader(buf)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+	decoder := gob.NewDecoder(r)
 	s := store.NewStore[joinerState]()
 	if err := decoder.Decode(&s); err != nil {
 		return nil, err
@@ -103,7 +134,7 @@ func applyJoinerBatch(
 	return nil
 }
 
-func reloadJoiner() (store.Store[joinerState], *persistence.TransactionLog, MessageIDSet, error) {
+func reloadJoiner() (store.Store[joinerState], *persistence.TransactionLog, error) {
 	stateStore := store.NewStore[joinerState]()
 	idptr, err := utils.GetFromEnv("NODE_ID")
 	if err != nil {
@@ -111,30 +142,24 @@ func reloadJoiner() (store.Store[joinerState], *persistence.TransactionLog, Mess
 	}
 	id := *idptr
 	logFile := fmt.Sprintf("../logs/joiner-%s.log", id)
-	idSet := NewMessageIDSet()
 	log := persistence.NewTransactionLog(logFile)
 	logBytes, err := os.ReadFile(logFile)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return stateStore, log, idSet, nil
+			return stateStore, log, nil
 		}
-		return stateStore, log, idSet, err
+		return stateStore, log, err
 	}
 	if err := log.Unmarshal(logBytes); err != nil {
 		err = fmt.Errorf("couldn't unmarshal log: %w", err)
-		return stateStore, log, idSet, err
+		return stateStore, log, err
 	}
 	for _, entry := range log.GetLog() {
 		switch TXN(entry.Kind) {
-		case TXNSet:
-			err := idSet.Unmarshal(entry.Data)
-			if err != nil {
-				return stateStore, log, idSet, err
-			}
 		case TXNEnd:
 			var endMessage protocol.Message
 			if err := endMessage.Unmarshal(entry.Data); err != nil {
-				return stateStore, log, idSet, err
+				return stateStore, log, err
 			}
 			utils.Assert(endMessage.ExpectKind(protocol.End), "expected end message")
 			clientID := endMessage.GetClientID()
@@ -142,21 +167,21 @@ func reloadJoiner() (store.Store[joinerState], *persistence.TransactionLog, Mess
 			if !ok {
 				state.Reset()
 			}
-			state.Ends--
+			state.Ends.Set(chooseEndType(endMessage))
 			// if the second end is already in disk it
 			// means that the data was already sent and we
 			// can delete the client from the store
-			if state.Ends == 0 {
+			if state.Ends.HasBoth() {
 				stateStore.Delete(endMessage.GetClientID())
 			}
 		case TXNBatch:
 			stateStore, err = UnmarshalStore(entry.Data)
 			if err != nil {
-				return stateStore, log, idSet, err
+				return stateStore, log, err
 			}
 		}
 	}
-	return stateStore, log, idSet, nil
+	return stateStore, log, nil
 }
 
 func (j *Joiner) Run(ctx context.Context) error {
@@ -170,7 +195,7 @@ func (j *Joiner) Run(ctx context.Context) error {
 	}
 	service, err := end.NewService(options)
 	ch := service.MergeConsumers(consumerCh)
-	joinerStateStore, log, idSet, err := reloadJoiner()
+	joinerStateStore, log, err := reloadJoiner()
 	if err != nil {
 		return err
 	}
@@ -194,32 +219,23 @@ func (j *Joiner) Run(ctx context.Context) error {
 					return err
 				}
 				log.Append(storeData, uint32(TXNBatch))
-				slog.Debug("processing batch")
 
-				if err := processBatch(currentBatch, joinerStateStore, service,idSet); err != nil {
+				if err := processBatch(currentBatch, joinerStateStore, service); err != nil {
 					return err
 				}
-				slog.Debug("storing new message id set")
-				idSet.Clear()
-				idSet.Insert(currentBatch)
-				log.Append(idSet.Marshal(), uint32(TXNSet))
-				slog.Debug("commit")
 				if err := log.Commit(); err != nil {
 					return fmt.Errorf("couldn't commit to disk: %w", err)
 				}
-				slog.Debug("acknowledge")
 				batcher.Acknowledge()
 			} else if delivery.SenderType == end.SenderNeighbour {
-				idSet.InsertOne(msg)
-				log.Append(idSet.Marshal(), uint32(TXNSet))
 				clientID := msg.GetClientID()
 				log.Append(msg.Marshal(), uint32(TXNEnd))
 				state, ok := joinerStateStore.Get(clientID)
 				if !ok {
 					state.Reset()
 				}
-				state.Ends--
-				if state.Ends != 0 {
+				state.Ends.Set(chooseEndType(msg))
+				if !state.Ends.HasBoth() {
 					if err := log.Commit(); err != nil {
 						return fmt.Errorf("couldn't commit to disk: %w", err)
 					}
@@ -260,19 +276,12 @@ func (j *Joiner) Run(ctx context.Context) error {
 				return err
 			}
 			log.Append(storeData, uint32(TXNBatch))
-			slog.Debug("processing batch")
-			if err := processBatch(currentBatch, joinerStateStore, service, idSet); err != nil {
+			if err := processBatch(currentBatch, joinerStateStore, service); err != nil {
 				return err
 			}
-			slog.Debug("storing new message id set")
-			idSet.Clear()
-			idSet.Insert(currentBatch)
-			log.Append(idSet.Marshal(), uint32(TXNSet))
-			slog.Debug("commit")
 			if err := log.Commit(); err != nil {
 				return fmt.Errorf("couldn't commit to disk: %w", err)
 			}
-			slog.Debug("acknowledge")
 			batcher.Acknowledge()
 		case <-ctx.Done():
 			return ctx.Err()
@@ -280,11 +289,8 @@ func (j *Joiner) Run(ctx context.Context) error {
 	}
 }
 
-func processBatch(batch []protocol.Message, joinerStateStore store.Store[joinerState], service *end.Service, idSet MessageIDSet) error {
+func processBatch(batch []protocol.Message, joinerStateStore store.Store[joinerState], service *end.Service) error {
 	for _, m := range batch {
-		if idSet.Contains(m.GetMessageID()) && !m.ExpectKind(protocol.End) {
-			continue
-		}
 		clientID := m.GetClientID()
 		if m.ExpectKind(protocol.Data) {
 			elements := m.Elements()
@@ -306,12 +312,12 @@ func processBatch(batch []protocol.Message, joinerStateStore store.Store[joinerS
 }
 
 func joinAndSend(j *Joiner, s *joinerState, opts protocol.MessageOptions) error {
-	for appid, count := range s.Reviews {
+	for appid, set := range s.Reviews {
 		game := s.Games[appid]
 		if game.Name == "" {
 			continue
 		}
-		game.ReviewsCount = uint32(count)
+		game.ReviewsCount = uint32(len(set))
 		builder := protocol.NewPayloadBuffer(1)
 		game.BuildPayload(builder)
 
@@ -333,10 +339,25 @@ func handleDataMessage(msg protocol.Message, s *joinerState, elements *protocol.
 	} else if msg.HasReviewData() {
 		for _, element := range elements.Iter() {
 			review := models.ReadReview(&element)
-			s.Reviews[review.AppID] += 1
+			v, ok := s.Reviews[review.AppID]
+			if !ok {
+				v = make(map[uint32]struct{})
+				s.Reviews[review.AppID] = v
+			}
+			v[msg.GetMessageID()] = struct{}{}
 		}
 	} else {
 		return fmt.Errorf("unexpected data type")
 	}
 	return nil
+}
+
+func chooseEndType(msg protocol.Message) EndType {
+	if msg.HasGameData() {
+		return EndTypeGames
+	} else if msg.HasReviewData() {
+		return EndTypeReviews
+	} else {
+		panic("shouldn't happen because there isn't another data type")
+	}
 }
