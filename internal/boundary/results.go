@@ -159,7 +159,7 @@ func (r *ResultsService) Run(ctx context.Context) error {
 					if clientCh == nil {
 						return fmt.Errorf("chan is nil for client %d", msg.GetClientID())
 					}
-					clientCh <- clientMsg
+					safeChannelWrite(clientCh, clientMsg)
 				case 2:
 					slog.Debug("received result", "query", 2, "clientId", msg.GetClientID())
 					for _, element := range elements.Iter() {
@@ -201,7 +201,7 @@ func (r *ResultsService) Run(ctx context.Context) error {
 					if clientCh == nil {
 						return fmt.Errorf("chan is nil for client %d", msg.GetClientID())
 					}
-					clientCh <- clientMsg
+					safeChannelWrite(clientCh, clientMsg)
 				case 3:
 					// Update results state
 					slog.Debug("sending result", "query", 3, "clientId", msg.GetClientID())
@@ -217,7 +217,7 @@ func (r *ResultsService) Run(ctx context.Context) error {
 					if clientCh == nil {
 						return fmt.Errorf("chan is nil for client %d", msg.GetClientID())
 					}
-					clientCh <- clientMsg
+					safeChannelWrite(clientCh, clientMsg)
 				case 4:
 					// Update results state
 					slog.Debug("sending result", "query", 4, "clientId", msg.GetClientID())
@@ -234,7 +234,7 @@ func (r *ResultsService) Run(ctx context.Context) error {
 					if clientCh == nil {
 						return fmt.Errorf("chan is nil for client %d", msg.GetClientID())
 					}
-					clientCh <- clientMsg
+					safeChannelWrite(clientCh, clientMsg)
 				case 5:
 					// Update results state
 					slog.Debug("sending result", "query", 5, "clientId", msg.GetClientID())
@@ -251,7 +251,7 @@ func (r *ResultsService) Run(ctx context.Context) error {
 					if clientCh == nil {
 						return fmt.Errorf("chan is nil for client %d", msg.GetClientID())
 					}
-					clientCh <- clientMsg
+					safeChannelWrite(clientCh, clientMsg)
 				default:
 					utils.Assertf(false, "query number %d should not happen in end", queryNumber)
 				}
@@ -270,4 +270,13 @@ func (r *ResultsService) Run(ctx context.Context) error {
 		}
 	}
 	return nil
+}
+
+func safeChannelWrite(ch chan cprotocol.Message, value cprotocol.Message) {
+	defer func() {
+		if r := recover(); r != nil {
+			slog.Debug("Writing to a closed channel. Client has already received all results")
+		}
+	}()
+	ch <- value
 }
