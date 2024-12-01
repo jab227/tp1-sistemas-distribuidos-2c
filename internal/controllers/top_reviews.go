@@ -107,7 +107,7 @@ func (tr *TopReviews) Run(ctx context.Context) error {
 	}
 }
 
-func reloadTopReviews(tr *TopReviews) (store.Store[*topReviewsState], *persistence.TransactionLog,  error) {
+func reloadTopReviews(tr *TopReviews) (store.Store[*topReviewsState], *persistence.TransactionLog, error) {
 	stateStore := store.NewStore[*topReviewsState]()
 	log := persistence.NewTransactionLog("../logs/top_reviews.log")
 	logBytes, err := os.ReadFile("../logs/top_reviews.log")
@@ -196,9 +196,11 @@ func (tr *TopReviews) processReviewsData(state *topReviewsState, internalMsg pro
 func (tr *TopReviews) writeResult(state *topReviewsState, internalMsg protocol.Message) error {
 	values := make([]heap.Value, 0, len(state.appByReviewScore))
 	for k, v := range state.appByReviewScore {
-		name := strings.Split(k, "||")[1]
+		sliceOfKeys := strings.Split(k, "||")
+		appId := sliceOfKeys[0]
+		name := sliceOfKeys[1]
 		count := v
-		values = append(values, heap.Value{Name: name, Count: count})
+		values = append(values, heap.Value{AppId: appId, Name: name, Count: count})
 	}
 	h := heap.NewHeap()
 	for _, value := range values {
@@ -209,8 +211,9 @@ func (tr *TopReviews) writeResult(state *topReviewsState, internalMsg protocol.M
 	slog.Debug("topn results", "results", results)
 	for _, value := range results {
 		buffer := protocol.NewPayloadBuffer(1)
+		data := fmt.Sprintf("%s,%s", value.AppId, value.Name)
 		buffer.BeginPayloadElement()
-		buffer.WriteBytes([]byte(value.Name))
+		buffer.WriteBytes([]byte(data))
 		buffer.EndPayloadElement()
 		response := protocol.NewResultsMessage(protocol.Query3, buffer.Bytes(), protocol.MessageOptions{
 			MessageID: internalMsg.GetMessageID(),

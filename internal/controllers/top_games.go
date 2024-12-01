@@ -197,9 +197,11 @@ func (tg *TopGames) processGamesData(state *topGamesState, internalMsg protocol.
 func (tg *TopGames) writeResult(state *topGamesState, internalMsg protocol.Message) error {
 	values := make([]heap.Value, 0, len(state.appByGameScore))
 	for k, v := range state.appByGameScore {
-		name := strings.Split(k, "||")[1]
+		sliceOfKeys := strings.Split(k, "||")
+		appId := sliceOfKeys[0]
+		name := sliceOfKeys[1]
 		avgPlayTime := v
-		values = append(values, heap.Value{Name: name, Count: avgPlayTime})
+		values = append(values, heap.Value{AppId: appId, Name: name, Count: avgPlayTime})
 	}
 	h := heap.NewHeap()
 	for _, value := range values {
@@ -210,8 +212,9 @@ func (tg *TopGames) writeResult(state *topGamesState, internalMsg protocol.Messa
 	slog.Debug("top10", "games", listOfGames)
 	for _, game := range listOfGames {
 		buffer := protocol.NewPayloadBuffer(1)
+		data := fmt.Sprintf("%s,%s", game.AppId, game.Name)
 		buffer.BeginPayloadElement()
-		buffer.WriteBytes([]byte(game.Name))
+		buffer.WriteBytes([]byte(data))
 		buffer.EndPayloadElement()
 		response := protocol.NewResultsMessage(protocol.Query2, buffer.Bytes(), protocol.MessageOptions{
 			MessageID: internalMsg.GetMessageID(),

@@ -13,7 +13,7 @@ import (
 
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/batch"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/client"
-	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/model"
+	models "github.com/jab227/tp1-sistemas-distribuidos-2c/internal/model"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/persistence"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/protocol"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/store"
@@ -21,6 +21,7 @@ import (
 )
 
 type innerPercentile struct {
+	appId   string
 	name    string
 	counter uint
 }
@@ -30,7 +31,7 @@ type percentileState map[string]innerPercentile
 func (p percentileState) insertOrUpdate(game models.Game) {
 	v, ok := p[game.AppID]
 	if !ok {
-		p[game.AppID] = innerPercentile{game.Name, uint(game.ReviewsCount)}
+		p[game.AppID] = innerPercentile{game.AppID, game.Name, uint(game.ReviewsCount)}
 		return
 	}
 	v.counter = uint(game.ReviewsCount)
@@ -65,7 +66,7 @@ func (r *Percentile) Done() <-chan struct{} {
 	return r.done
 }
 
-func reloadPercentile() (store.Store[percentileState], *persistence.TransactionLog,  error) {
+func reloadPercentile() (store.Store[percentileState], *persistence.TransactionLog, error) {
 	stateStore := store.NewStore[percentileState]()
 	log := persistence.NewTransactionLog("../logs/percentile.log")
 	logBytes, err := os.ReadFile("../logs/percentile.log")
@@ -77,7 +78,7 @@ func reloadPercentile() (store.Store[percentileState], *persistence.TransactionL
 	}
 	if err := log.Unmarshal(logBytes); err != nil {
 		err = fmt.Errorf("couldn't unmarshal log: %w", err)
-		return stateStore, log,  err
+		return stateStore, log, err
 	}
 	for _, entry := range log.GetLog() {
 		switch TXN(entry.Kind) {
@@ -89,7 +90,7 @@ func reloadPercentile() (store.Store[percentileState], *persistence.TransactionL
 			applyPercentileBatch(currentBatch, stateStore)
 		}
 	}
-	return stateStore, log,  nil
+	return stateStore, log, nil
 }
 
 func (r *Percentile) Run(ctx context.Context) error {
@@ -233,8 +234,9 @@ func marshalAndSendPercentileResults(results []innerPercentile, msg protocol.Mes
 	slog.Debug("message result", "clientID", msg.GetClientID())
 	for _, result := range results {
 		builder := protocol.NewPayloadBuffer(1)
+		data := fmt.Sprintf("%s,%s", result.appId, result.name)
 		builder.BeginPayloadElement()
-		builder.WriteBytes([]byte(result.name))
+		builder.WriteBytes([]byte(data))
 		builder.EndPayloadElement()
 		res := protocol.NewResultsMessage(protocol.Query5, builder.Bytes(), protocol.MessageOptions{
 			MessageID: msg.GetMessageID(),
