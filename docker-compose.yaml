@@ -45,7 +45,23 @@ services:
       rabbitmq:
         condition: service_healthy
 
-
+#  healthcheck:
+#    container_name: healthcheck
+#    build:
+#      context: ./
+#      dockerfile: cmd/Dockerfile
+#    entrypoint: /cmd/healthcheck
+#    environment:
+#      - LOGGER_LEVEL=info
+#      - HEALTH_EXCLUDED_NODES=healthcheck,rabbitmq
+#      - HEALTH_NETWORK=rabbitmq_go_net
+#    volumes:
+#      - /var/run/docker.sock:/var/run/docker.sock
+#    networks:
+#      - rabbitmq_go_net
+#    depends_on:
+#      rabbitmq:
+#        condition: service_healthy
 
   # Projection controllers
   projection0:
@@ -245,6 +261,7 @@ services:
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
       - EXPECTED_NODES=6
+      - TRANSACTION_LOG_FILE=coordinator-projection.log
       - OUTPUT_TYPE=direct
       - INPUT_WORKER_QUEUE=projection-control
       - INPUT_WORKER_QUEUE_TIMEOUT=5
@@ -256,6 +273,8 @@ services:
       - ROUTER_TYPE=game-review 
     networks:
       - rabbitmq_go_net
+    volumes:
+      - ./logs/:/logs/
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -364,6 +383,7 @@ services:
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
       - EXPECTED_NODES=2
+      - TRANSACTION_LOG_FILE=coordinator-indie.log
       - OUTPUT_TYPE=direct
       - INPUT_WORKER_QUEUE=indie-filter-control
       - INPUT_WORKER_QUEUE_TIMEOUT=5
@@ -374,6 +394,8 @@ services:
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
+    volumes:
+      - ./logs/:/logs/
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -453,6 +475,7 @@ services:
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
       - EXPECTED_NODES=2
+      - TRANSACTION_LOG_FILE=coordinator-decade.log
       - OUTPUT_TYPE=worker
       - INPUT_WORKER_QUEUE=decade-filter-control
       - INPUT_WORKER_QUEUE_TIMEOUT=5
@@ -463,6 +486,8 @@ services:
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
+    volumes:
+      - ./logs/:/logs/
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -632,6 +657,7 @@ services:
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
       - EXPECTED_NODES=4
+      - TRANSACTION_LOG_FILE=coordinator-positive.log
       - OUTPUT_TYPE=direct
       - INPUT_WORKER_QUEUE=positive-filter-control
       - INPUT_WORKER_QUEUE_TIMEOUT=5
@@ -642,6 +668,8 @@ services:
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
+    volumes:
+      - ./logs/:/logs/
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -921,6 +949,7 @@ services:
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
       - EXPECTED_NODES=8
+      - TRANSACTION_LOG_FILE=coordinator-joiner-query3.log
       - OUTPUT_TYPE=direct
       - INPUT_WORKER_QUEUE=joiner-query3-control
       - INPUT_WORKER_QUEUE_TIMEOUT=5
@@ -930,7 +959,9 @@ services:
       - OUTPUT_ROUTER_TAGS=1 # Affects Joinner Query 3
       - LOGGER_LEVEL=debug
     networks:
-      - rabbitmq_go_net            
+      - rabbitmq_go_net
+    volumes:
+      - ./logs/:/logs/
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -1039,6 +1070,7 @@ services:
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
       - EXPECTED_NODES=2
+      - TRANSACTION_LOG_FILE=coordinator-action.log
       - OUTPUT_TYPE=direct
       - INPUT_WORKER_QUEUE=action-filter-control
       - INPUT_WORKER_QUEUE_TIMEOUT=5
@@ -1049,6 +1081,8 @@ services:
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
+    volumes:
+      - ./logs/:/logs/
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -1191,6 +1225,7 @@ services:
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
       - EXPECTED_NODES=4
+      - TRANSACTION_LOG_FILE=coordinator-negative.log
       - OUTPUT_TYPE=direct
       - INPUT_WORKER_QUEUE=negative-filter-control
       - INPUT_WORKER_QUEUE_TIMEOUT=5
@@ -1201,6 +1236,8 @@ services:
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
+    volumes:
+      - ./logs/:/logs/
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -1466,6 +1503,7 @@ services:
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
       - EXPECTED_NODES=8
+      - TRANSACTION_LOG_FILE=coordinator-english.log
       - OUTPUT_TYPE=direct
       - INPUT_WORKER_QUEUE=english-filter-control
       - INPUT_WORKER_QUEUE_TIMEOUT=5
@@ -1476,6 +1514,8 @@ services:
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
+    volumes:
+      - ./logs/:/logs/
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -1592,6 +1632,7 @@ services:
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
       - EXPECTED_NODES=3
+      - TRANSACTION_LOG_FILE=coordinator-joiner-query4.log
       - OUTPUT_TYPE=direct
       - INPUT_WORKER_QUEUE=joiner-query4-control
       - INPUT_WORKER_QUEUE_TIMEOUT=5
@@ -1601,7 +1642,9 @@ services:
       - OUTPUT_ROUTER_TAGS=1 # Affects Joinner Query 4
       - LOGGER_LEVEL=debug
     networks:
-      - rabbitmq_go_net            
+      - rabbitmq_go_net
+    volumes:
+      - ./logs/:/logs/
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -1744,6 +1787,7 @@ services:
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
       - EXPECTED_NODES=3
+      - TRANSACTION_LOG_FILE=coordinator-joiner-query5.log
       - OUTPUT_TYPE=direct
       - INPUT_WORKER_QUEUE=joiner-query5-control
       - INPUT_WORKER_QUEUE_TIMEOUT=5
@@ -1753,7 +1797,9 @@ services:
       - OUTPUT_ROUTER_TAGS=1 # Affects Joinner Query 5
       - LOGGER_LEVEL=debug
     networks:
-      - rabbitmq_go_net      
+      - rabbitmq_go_net
+    volumes:
+      - ./logs/:/logs/
     depends_on:
       rabbitmq:
         condition: service_healthy      

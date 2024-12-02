@@ -8,6 +8,16 @@ import (
 
 const OutputTypeEnv = "OUTPUT_TYPE"
 const ExpectedNodes = "EXPECTED_NODES"
+const TransactionLogFile = "TRANSACTION_LOG_FILE"
+
+func GetTransactionLogFile() (string, error) {
+	value, err := utils.GetFromEnv(TransactionLogFile)
+	if err != nil {
+		return "", nil
+	}
+
+	return *value, nil
+}
 
 func GetExpectedNodes() (uint32, error) {
 	value, err := utils.GetFromEnvUint(ExpectedNodes)

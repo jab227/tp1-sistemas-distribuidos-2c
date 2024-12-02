@@ -30,6 +30,12 @@ func main() {
 		return
 	}
 
+	transactionLogFile, err := coordinator2.GetTransactionLogFile()
+	if err != nil {
+		slog.Error("error getting transaction log file", "error", err.Error())
+		return
+	}
+
 	// Set up the healthcheck service
 	config := healthcheck.NewHealthServiceConfigFromEnv()
 	service := healthcheck.NewHealthService(config)
@@ -45,7 +51,7 @@ func main() {
 
 	slog.Info("starting coordinator")
 	go func() {
-		if err := coordinator.Run(ctx); err != nil {
+		if err := coordinator.Run(ctx, transactionLogFile); err != nil {
 			slog.Error("error running coordinator", "error", err.Error())
 			return
 		}

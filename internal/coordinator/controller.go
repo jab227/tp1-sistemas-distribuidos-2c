@@ -3,133 +3,19 @@ package coordinator
 import (
 	"context"
 	"fmt"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/controllers"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/client"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/protocol"
 	"log/slog"
 	"time"
 )
 
-type EndState struct {
-	Games   map[uint32]map[uint32]struct{} // Map with nodes ID, each with a set of clientIds
-	Reviews map[uint32]map[uint32]struct{} // Map with nodes ID, each with a set of clientsId
-
-	SentGames   map[uint32]struct{}
-	SentReviews map[uint32]struct{}
-}
-
-func NewEndState(numberOfNodes uint32) *EndState {
-	games := make(map[uint32]map[uint32]struct{}, numberOfNodes)
-	reviews := make(map[uint32]map[uint32]struct{}, numberOfNodes)
-
-	for i := uint32(1); i <= numberOfNodes; i++ {
-		games[i] = make(map[uint32]struct{})
-		reviews[i] = make(map[uint32]struct{})
-	}
-
-	return &EndState{
-		Games:       games,
-		Reviews:     reviews,
-		SentGames:   make(map[uint32]struct{}),
-		SentReviews: make(map[uint32]struct{}),
-	}
-}
-
-// TODO - Delete
-func (s *EndState) PrintState() {
-	slog.Info("State", "games", s.Games, "reviews", s.Reviews, "sentGames", s.SentGames, "sentReviews", s.SentReviews)
-}
-
-func (s *EndState) WasSentGame(clientId uint32) bool {
-	_, ok := s.SentGames[clientId]
-	return ok
-}
-
-func (s *EndState) WasSentReview(clientId uint32) bool {
-	_, ok := s.SentReviews[clientId]
-	return ok
-}
-
-func (s *EndState) SetGameSent(clientId uint32) {
-	if _, ok := s.SentGames[clientId]; !ok {
-		s.SentGames[clientId] = struct{}{}
-	}
-	s.SentGames[clientId] = struct{}{}
-}
-
-func (s *EndState) SetReviewSent(clientId uint32) {
-	if _, ok := s.SentReviews[clientId]; !ok {
-		s.SentReviews[clientId] = struct{}{}
-	}
-	s.SentReviews[clientId] = struct{}{}
-}
-
-func (s *EndState) AddGame(nodeId uint32, clientId uint32) {
-	nodeState, ok := s.Games[nodeId]
-	if !ok {
-		nodeState = make(map[uint32]struct{})
-	}
-
-	v, ok := nodeState[clientId]
-	if !ok {
-		v = struct{}{}
-		nodeState[clientId] = v
-	}
-
-	s.Games[nodeId] = nodeState
-}
-
-func (s *EndState) AddReview(nodeId uint32, clientId uint32) {
-	nodeState, ok := s.Reviews[nodeId]
-	if !ok {
-		nodeState = make(map[uint32]struct{})
-	}
-
-	v, ok := nodeState[clientId]
-	if !ok {
-		v = struct{}{}
-		nodeState[clientId] = v
-	}
-
-	s.Reviews[nodeId] = nodeState
-}
-
-func (s *EndState) AllGamesForId(clientId uint32) bool {
-	for _, value := range s.Games {
-		if _, ok := value[clientId]; !ok {
-			return false
-		}
-	}
-
-	return true
-}
-
-func (s *EndState) AllReviewsForId(clientId uint32) bool {
-	for _, value := range s.Reviews {
-		if _, ok := value[clientId]; !ok {
-			return false
-		}
-	}
-
-	return true
-}
-
-func (s *EndState) ResetGame(clientId uint32) {
-	for _, value := range s.Games {
-		delete(value, clientId)
-	}
-}
-
-func (s *EndState) ResetReview(clientId uint32) {
-	for _, value := range s.Reviews {
-		delete(value, clientId)
-	}
-}
-
 type EndCoordinatorController struct {
 	output client.OutputType
 	io     client.IOManager
 
-	state EndState
+	state         EndState
+	numberOfNodes uint32
 
 	done chan struct{}
 }
@@ -141,14 +27,22 @@ func NewEndCoordinatorController(output client.OutputType, numberOfNodes uint32)
 	}
 
 	return &EndCoordinatorController{
-		output: output,
-		io:     io,
-		state:  *NewEndState(numberOfNodes),
-		done:   make(chan struct{}),
+		output:        output,
+		io:            io,
+		state:         *NewEndState(numberOfNodes),
+		numberOfNodes: numberOfNodes,
+		done:          make(chan struct{}),
 	}, nil
 }
 
-func (c *EndCoordinatorController) Run(ctx context.Context) error {
+func (c *EndCoordinatorController) Run(ctx context.Context, logFile string) error {
+	endState, log, err := reloadEndState(logFile, c.numberOfNodes)
+	if err != nil {
+		return fmt.Errorf("error reloading EndState: %s", err)
+	}
+
+	c.state = endState
+
 	consumer := c.io.Input.GetConsumer()
 	defer func() {
 		c.done <- struct{}{}
@@ -180,7 +74,7 @@ func (c *EndCoordinatorController) Run(ctx context.Context) error {
 							ClientID:  msg.GetClientID(),
 							RequestID: msg.GetRequestID(),
 						})
-						<-time.After(3 * time.Second)
+						<-time.After(5 * time.Second)
 						slog.Info("Propagating END games", "counter", len(c.state.Games))
 						if err := c.io.Write(endMsg.Marshal(), "game"); err != nil {
 							return fmt.Errorf("couldn't write end message: %w", err)
@@ -192,6 +86,14 @@ func (c *EndCoordinatorController) Run(ctx context.Context) error {
 						c.state.PrintState()
 					}
 
+					stateBytes, err := MarshalState(&c.state)
+					if err != nil {
+						return fmt.Errorf("couldn't marshal state: %w", err)
+					}
+					log.Append(stateBytes, uint32(controllers.TXNSet))
+					if err := log.Commit(); err != nil {
+						return fmt.Errorf("couldn't commit log: %w", err)
+					}
 					delivery.Ack(false)
 
 				} else if msg.HasReviewData() {
@@ -221,6 +123,14 @@ func (c *EndCoordinatorController) Run(ctx context.Context) error {
 						c.state.PrintState()
 					}
 
+					stateBytes, err := MarshalState(&c.state)
+					if err != nil {
+						return fmt.Errorf("couldn't marshal state: %w", err)
+					}
+					log.Append(stateBytes, uint32(controllers.TXNSet))
+					if err := log.Commit(); err != nil {
+						return fmt.Errorf("couldn't commit log: %w", err)
+					}
 					delivery.Ack(false)
 				} else {
 					// Should never happen

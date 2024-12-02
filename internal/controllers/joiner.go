@@ -108,32 +108,6 @@ func (j *Joiner) Done() <-chan struct{} {
 	return j.done
 }
 
-func applyJoinerBatch(
-	batch []protocol.Message,
-	joinerStateStore store.Store[joinerState],
-) error {
-
-	for _, m := range batch {
-		clientID := m.GetClientID()
-		if m.ExpectKind(protocol.Data) {
-			elements := m.Elements()
-			state, ok := joinerStateStore.Get(clientID)
-			if !ok {
-				state.Reset()
-			}
-			if err := handleDataMessage(m, &state, elements); err != nil {
-				return err
-			}
-			joinerStateStore.Set(clientID, state)
-		} else if m.ExpectKind(protocol.End) {
-			continue
-		} else {
-			utils.Assertf(false, "unexpected message type: %s", m.GetMessageType())
-		}
-	}
-	return nil
-}
-
 func reloadJoiner() (store.Store[joinerState], *persistence.TransactionLog, error) {
 	stateStore := store.NewStore[joinerState]()
 	idptr, err := utils.GetFromEnv("NODE_ID")
