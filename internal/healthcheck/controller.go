@@ -87,164 +87,242 @@ func (h *HealthController) Done() <-chan struct{} {
 	return h.done
 }
 
+type electionState struct {
+	NeighbourIDs   []int
+	NodeID         int
+	LeaderID       int
+	MaxRetries     int
+	Port           int
+	CheckInterval  time.Duration
+	RequestTimeout time.Duration
+	State          leader.State
+}
+
+func newElectionState(
+	nodeID int,
+	neighbourIDs []int,
+	maxRetries,
+	port int,
+	checkInterval,
+	requestTimeout time.Duration,
+) electionState {
+	return electionState{
+		NeighbourIDs:   neighbourIDs,
+		NodeID:         nodeID,
+		LeaderID:       -1,
+		MaxRetries:     maxRetries,
+		Port:           port,
+		CheckInterval:  checkInterval,
+		RequestTimeout: requestTimeout,
+		State:          leader.StateElecting,
+	}
+}
+
+func (e electionState) isLeader() bool {
+	isLeader := true
+	for _, neighbourID := range e.NeighbourIDs {
+		if e.NodeID < neighbourID {
+			isLeader = false
+			break
+		}
+	}
+	return isLeader
+}
+
+func (e *electionState) handleElection(ctx context.Context, m *middleware.LeaderMiddleware, reader <-chan middleware.Message) error {
+	slog.Debug("state electing")
+	if e.isLeader() {
+		slog.Debug("I have the biggest ID so im the leader")
+		if err := sendCoordinatorToAll(ctx, m, e.NodeID, e.NeighbourIDs); err != nil {
+			return err
+		}
+		// Become the leader
+		e.State = leader.StateLeading
+		e.LeaderID = e.NodeID
+	} else {
+		slog.Debug("starting election")
+		if err := startElection(ctx, m, e.NodeID, e.NeighbourIDs); err != nil {
+			return err
+		}
+		var receivedAlive bool
+	Exit:
+		for {
+			select {
+			case <-time.After(20 * time.Second):
+				if receivedAlive {
+					// received alive, so im expected to wait for a coordinator
+					// reset variable, so the next time it triggers I will assume that im the leader
+					receivedAlive = false
+					continue
+				}
+				// Send coordinator message
+				if err := sendCoordinatorToAll(ctx, m, e.NodeID, e.NeighbourIDs); err != nil {
+					return err
+				}
+				// Become the leader
+
+				e.State = leader.StateLeading
+				e.LeaderID = e.NodeID
+				break Exit
+			case msg := <-reader:
+				body := msg.GetBody()
+				var electionMessage leader.ElectionMessage
+				electionMessage.Unmarshal(body)
+				switch electionMessage.Type {
+				case leader.ElectionMessageTypeAnnounceElection:
+					slog.Debug("received announce election message", "from", electionMessage.ID)
+					// Send alive message
+					sendAliveTo(ctx, m, e.NodeID, int(electionMessage.ID))
+				case leader.ElectionMessageTypeAlive:
+					slog.Debug("received alive message", "from", electionMessage.ID)
+					receivedAlive = true
+				case leader.ElectionMessageTypeCoordinator:
+					slog.Debug("received coordinator message", "leader", electionMessage.ID)
+					e.State = leader.StateMonitoring
+					e.LeaderID = int(electionMessage.ID)
+					break Exit
+				}
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+		}
+	}
+	return nil
+}
+
+func (e *electionState) handleMonitoring(ctx context.Context, m *middleware.LeaderMiddleware, reader <-chan middleware.Message) error {
+	slog.Debug("state monitoring")
+	slog.Debug("elections state", "value", *e)
+Exit:
+	for {
+		select {
+		case <-time.After(e.CheckInterval):
+			retries := e.MaxRetries
+			for retries > 0 {
+				leaderStr := fmt.Sprintf("healthcheck_%d", e.LeaderID)
+				if !CheckLeader(leaderStr, e.Port, e.RequestTimeout) {
+					retries--
+				} else {
+					break
+				}
+			}
+			if retries <= 0 {
+				slog.Debug("leader is dead, starting election")
+				e.State = leader.StateElecting
+				break Exit
+			}
+			slog.Debug("monitoring ", "retries", retries)
+		case msg := <-reader:
+			body := msg.GetBody()
+			var electionMessage leader.ElectionMessage
+			electionMessage.Unmarshal(body)
+			switch electionMessage.Type {
+			case leader.ElectionMessageTypeAnnounceElection:
+				slog.Debug("received announce election message", "from", electionMessage.ID)
+				// Send alive message
+				sendAliveTo(ctx, m, e.NodeID, int(electionMessage.ID))
+				e.State = leader.StateElecting
+				break Exit
+			default:
+				utils.Assert(false, "shouldnt happen")
+			}
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+	return nil
+}
+
+func (e *electionState) handleLeading(
+	ctx context.Context,
+	m *middleware.LeaderMiddleware,
+	h *HealthController,
+	reader <-chan middleware.Message,
+	reviveCh chan string,
+) error {
+	slog.Debug("state leading")
+	var wg sync.WaitGroup
+Exit:
+	for {
+		select {
+		case <-time.After(e.CheckInterval):
+			for node, info := range h.State.GetAllNodes() {
+				wg.Add(1)
+				go h.CheckNode(node, info, reviveCh, &wg)
+			}
+			wg.Wait()
+		case msg := <-reader:
+			body := msg.GetBody()
+			var electionMessage leader.ElectionMessage
+			electionMessage.Unmarshal(body)
+			switch electionMessage.Type {
+			case leader.ElectionMessageTypeAnnounceElection:
+				slog.Debug("received announce election message", "from", electionMessage.ID)
+				// Send alive message
+				sendAliveTo(ctx, m, e.NodeID, int(electionMessage.ID))
+				e.State = leader.StateElecting
+				break Exit
+			case leader.ElectionMessageTypeAlive:
+				utils.Assert(false, "shouldn't happen")
+			case leader.ElectionMessageTypeCoordinator:
+				slog.Debug("received coordinator message", "leader", electionMessage.ID)
+				e.State = leader.StateMonitoring
+				e.LeaderID = int(electionMessage.ID)
+				break Exit
+			}
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+	return nil
+}
+
 func (h *HealthController) Run(ctx context.Context) error {
 	defer func() {
 		h.done <- struct{}{}
 	}()
 
-	reviveCh := make(chan string)
-	state := leader.StateElecting
+	reviveCh := make(chan string, 1)
 	id := h.Config.ID
-	leaderID := -1
 	options, err := middleware.GetOptionsFromEnv()
 	if err != nil {
 		return err
 	}
 	m, err := middleware.NewLeaderMiddleware(id, &options)
+	if err != nil {
+		return err
+	}
 	defer m.Close()
+	s := newElectionState(
+		h.Config.ID,
+		h.Config.NeighboursIDs,
+		h.Config.MaxRetries,
+		h.Config.Port,
+		time.Duration(h.Config.HealthCheckInterval)*time.Second,
+		time.Duration(h.Config.MaxTimeout)*time.Second,
+	)
+
 	go h.RunReviver(ctx, reviveCh)
 	reader, err := m.Reader()
 	if err != nil {
-		slog.Debug("HERE 4", "error", err)
 		return err
 	}
-	slog.Debug("HERE 5")
 	for {
-		switch state {
+		switch s.State {
 		case leader.StateElecting:
-			slog.Debug("state electing")
-			if IsLeader(id, h.Config.NeighboursIDs) {
-				slog.Debug("I have the biggest ID so im the leader")
-				if err := sendCoordinatorToAll(ctx, m, id, h.Config.NeighboursIDs); err != nil {
-					return err
-				}
-				// Become the leader
-				state = leader.StateLeading
-				leaderID = id
-			} else {
-				slog.Debug("starting election")
-				if err := startElection(ctx, m, id, h.Config.NeighboursIDs); err != nil {
-					return err
-				}
-				var receivedAlive bool
-			Exit:
-				for {
-					select {
-					case <-time.After(20 * time.Second):
-						if receivedAlive {
-							// received alive, so im expected to wait for a coordinator
-							// reset variable, so the next time it triggers I will assume that im the leader
-							receivedAlive = false
-							continue
-						}
-						// Send coordinator message
-						if err := sendCoordinatorToAll(ctx, m, id, h.Config.NeighboursIDs); err != nil {
-							return err
-						}
-						// Become the leader
-						state = leader.StateLeading
-						leaderID = id
-						break Exit
-					case msg := <-reader:
-						body := msg.GetBody()
-						var electionMessage leader.ElectionMessage
-						electionMessage.Unmarshal(body)
-						switch electionMessage.Type {
-						case leader.ElectionMessageTypeAnnounceElection:
-							slog.Debug("received announce election message", "from", electionMessage.ID)
-							// Send alive message
-							sendAliveTo(ctx, m, id, int(electionMessage.ID))
-						case leader.ElectionMessageTypeAlive:
-							slog.Debug("received alive message", "from", electionMessage.ID)
-							receivedAlive = true
-						case leader.ElectionMessageTypeCoordinator:
-							slog.Debug("received coordinator message", "leader", electionMessage.ID)
-							state = leader.StateMonitoring
-							leaderID = int(electionMessage.ID)
-							break Exit
-						}
-					case <-ctx.Done():
-						return ctx.Err()
-					}
-				}
+			if err := s.handleElection(ctx, m, reader); err != nil {
+				return err
 			}
 		case leader.StateMonitoring:
-			slog.Debug("state monitoring")
-		Exit2:
-			for {
-				select {
-				case <-time.After(time.Second * time.Duration(h.Config.HealthCheckInterval)):
-					retries := h.Config.MaxRetries
-					for retries > 0 {
-						leaderStr := fmt.Sprintf("healthcheck_%d", leaderID)
-						if !CheckLeader(leaderStr, h.Config.NodesPort, h.Config.MaxTimeout) {
-							retries--
-						} else {
-							break
-						}
-					}
-					if retries <= 0 {
-						slog.Debug("leader is dead, starting election")
-						state = leader.StateElecting
-						break Exit2
-					}
-					slog.Debug("monitoring ", "retries", retries)
-				case msg := <-reader:
-					body := msg.GetBody()
-					var electionMessage leader.ElectionMessage
-					electionMessage.Unmarshal(body)
-					switch electionMessage.Type {
-					case leader.ElectionMessageTypeAnnounceElection:
-						slog.Debug("received announce election message", "from", electionMessage.ID)
-						// Send alive message
-						sendAliveTo(ctx, m, id, int(electionMessage.ID))
-						state = leader.StateElecting
-						break Exit2
-					default:
-						utils.Assert(false, "shouldnt happen")
-					}
-				case <-ctx.Done():
-					return ctx.Err()
-				}
+			if err := s.handleMonitoring(ctx, m, reader); err != nil {
+				return err
 			}
 		case leader.StateLeading:
-			slog.Debug("state leading")
-			var wg sync.WaitGroup
-		Exit1:
-			for {
-				select {
-				case <-time.After(time.Second * time.Duration(h.Config.HealthCheckInterval)):
-					for node, info := range h.State.GetAllNodes() {
-						wg.Add(1)
-						go h.CheckNode(node, info, reviveCh, &wg)
-					}
-					wg.Wait()
-				case msg := <-reader:
-					body := msg.GetBody()
-					var electionMessage leader.ElectionMessage
-					electionMessage.Unmarshal(body)
-					switch electionMessage.Type {
-					case leader.ElectionMessageTypeAnnounceElection:
-						slog.Debug("received announce election message", "from", electionMessage.ID)
-						// Send alive message
-						sendAliveTo(ctx, m, id, int(electionMessage.ID))
-						state = leader.StateElecting
-						break Exit1
-					case leader.ElectionMessageTypeAlive:
-						utils.Assert(false, "shouldn't happen")
-					case leader.ElectionMessageTypeCoordinator:
-						slog.Debug("received coordinator message", "leader", electionMessage.ID)
-						state = leader.StateMonitoring
-						leaderID = int(electionMessage.ID)
-						break Exit1
-					}
-				case <-ctx.Done():
-					return ctx.Err()
-				}
+			if err := s.handleLeading(ctx, m, h, reader, reviveCh); err != nil {
+				return err
 			}
 		}
 	}
-	return nil
 }
 
 func startElection(ctx context.Context, m *middleware.LeaderMiddleware, id int, ids []int) error {
@@ -391,7 +469,7 @@ func (h *HealthController) CheckNode(node string, nodeInfo NodeInfo, reviveCh ch
 	}
 }
 
-func CheckLeader(node string, port int, timeout int) bool {
+func CheckLeader(node string, port int, timeout time.Duration) bool {
 	// Creates Dial for UDP messaging
 	udpAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", node, port))
 	conn, err := net.DialUDP("udp", nil, udpAddr)
@@ -416,21 +494,10 @@ func CheckLeader(node string, port int, timeout int) bool {
 	}
 
 	// Set Timeout for recv the node response and wait to recv
-	response, _, err := ReadOkMSG(conn, time.Duration(timeout)*time.Second)
+	response, _, err := ReadOkMSG(conn, timeout)
 	if err != nil {
 		return false
 	}
 	slog.Debug("received response from node", "node", node, "response", response)
 	return true
-}
-
-func IsLeader(id int, neighbours []int) bool {
-	isLeader := true
-	for _, neighbourID := range neighbours {
-		if id < neighbourID {
-			isLeader = false
-			break
-		}
-	}
-	return isLeader
 }
