@@ -75,16 +75,16 @@ func (tg *TopGames) Run(ctx context.Context) error {
 			}
 			currentBatch := batcher.Batch()
 			log.Append(batch.MarshalBatch(currentBatch), uint32(TXNBatch))
-			slog.Debug("processing batch")
+
 			if err := processTopGamesBatch(currentBatch, topGamesStateStore, tg); err != nil {
 				return err
 			}
-			slog.Debug("commit")
+
 			if err := log.Commit(); err != nil {
 				return fmt.Errorf("couldn't commit to disk: %w", err)
 			}
 			time.Sleep(5 * time.Second)
-			slog.Debug("acknowledge")
+
 			batcher.Acknowledge()
 		case <-time.After(10 * time.Second):
 			if batcher.IsEmpty() {
@@ -92,16 +92,16 @@ func (tg *TopGames) Run(ctx context.Context) error {
 			}
 			currentBatch := batcher.Batch()
 			log.Append(batch.MarshalBatch(currentBatch), uint32(TXNBatch))
-			slog.Debug("processing batch")
+
 			if err := processTopGamesBatch(currentBatch, topGamesStateStore, tg); err != nil {
 				return err
 			}
-			slog.Debug("commit")
+
 			if err := log.Commit(); err != nil {
 				return fmt.Errorf("couldn't commit to disk: %w", err)
 			}
 			time.Sleep(5 * time.Second)
-			slog.Debug("acknowledge")
+
 			batcher.Acknowledge()
 		case <-ctx.Done():
 			return ctx.Err()

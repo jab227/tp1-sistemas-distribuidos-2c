@@ -24,15 +24,15 @@ func main() {
 		return
 	}
 
-	expectedGames, err := coordinator2.GetExpectedGames()
+	expectedNodes, err := coordinator2.GetExpectedNodes()
 	if err != nil {
-		slog.Error("error getting expected games", "error", err.Error())
+		slog.Error("error getting expected nodes", "error", err.Error())
 		return
 	}
 
-	expectedReviews, err := coordinator2.GetExpectedRevisions()
+	transactionLogFile, err := coordinator2.GetTransactionLogFile()
 	if err != nil {
-		slog.Error("error getting expected revisions", "error", err.Error())
+		slog.Error("error getting transaction log file", "error", err.Error())
 		return
 	}
 
@@ -42,7 +42,7 @@ func main() {
 
 	go service.Run(ctx)
 
-	coordinator, err := coordinator2.NewEndCoordinator(outputType, expectedGames, expectedReviews)
+	coordinator, err := coordinator2.NewEndCoordinatorController(outputType, expectedNodes)
 	defer coordinator.Close()
 	if err != nil {
 		slog.Error("error creating coordinator", "error", err.Error())
@@ -51,11 +51,11 @@ func main() {
 
 	slog.Info("starting coordinator")
 	go func() {
-		if err := coordinator.Run(ctx); err != nil {
+		if err := coordinator.Run(ctx, transactionLogFile); err != nil {
 			slog.Error("error running coordinator", "error", err.Error())
 			return
 		}
 	}()
 
-	utils.BlockUntilSignal(signal, coordinator.GetDone(), cancel)
+	utils.BlockUntilSignal(signal, coordinator.Done(), cancel)
 }

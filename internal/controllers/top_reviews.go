@@ -73,16 +73,16 @@ func (tr *TopReviews) Run(ctx context.Context) error {
 			}
 			currentBatch := batcher.Batch()
 			log.Append(batch.MarshalBatch(currentBatch), uint32(TXNBatch))
-			slog.Debug("processing batch")
+
 			if err := processTopReviewsBatch(currentBatch, topReviewsStateStore, tr); err != nil {
 				return err
 			}
-			slog.Debug("commit")
+
 			if err := log.Commit(); err != nil {
 				return fmt.Errorf("couldn't commit to disk: %w", err)
 			}
 			time.Sleep(5 * time.Second)
-			slog.Debug("acknowledge")
+
 			batcher.Acknowledge()
 		case <-time.After(10 * time.Second):
 			if batcher.IsEmpty() {
@@ -90,16 +90,16 @@ func (tr *TopReviews) Run(ctx context.Context) error {
 			}
 			currentBatch := batcher.Batch()
 			log.Append(batch.MarshalBatch(currentBatch), uint32(TXNBatch))
-			slog.Debug("processing batch")
+
 			if err := processTopReviewsBatch(currentBatch, topReviewsStateStore, tr); err != nil {
 				return err
 			}
-			slog.Debug("commit")
+
 			if err := log.Commit(); err != nil {
 				return fmt.Errorf("couldn't commit to disk: %w", err)
 			}
 			time.Sleep(5 * time.Second)
-			slog.Debug("acknowledge")
+
 			batcher.Acknowledge()
 		case <-ctx.Done():
 			return ctx.Err()
@@ -107,7 +107,7 @@ func (tr *TopReviews) Run(ctx context.Context) error {
 	}
 }
 
-func reloadTopReviews(tr *TopReviews) (store.Store[*topReviewsState], *persistence.TransactionLog,  error) {
+func reloadTopReviews(tr *TopReviews) (store.Store[*topReviewsState], *persistence.TransactionLog, error) {
 	stateStore := store.NewStore[*topReviewsState]()
 	log := persistence.NewTransactionLog("../logs/top_reviews.log")
 	logBytes, err := os.ReadFile("../logs/top_reviews.log")

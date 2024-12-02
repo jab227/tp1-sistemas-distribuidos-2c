@@ -52,10 +52,16 @@ services:
       dockerfile: cmd/Dockerfile
     entrypoint: /cmd/healthcheck
     environment:
-      - LOGGER_LEVEL=info
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - LOGGER_LEVEL=debug
       - HEALTH_EXCLUDED_NODES=healthcheck_1,rabbitmq
       - HEALTH_NETWORK=rabbitmq_go_net
       - HEALTHCHECK_NODE_ID=1
+      - HEALTHCHECK_NEIGHBOURS=2,3
+      - LOGGER_LEVEL=debug
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
@@ -63,6 +69,56 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+
+  healthcheck_2:
+    container_name: healthcheck_2
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/healthcheck
+    environment:
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - LOGGER_LEVEL=debug
+      - HEALTH_EXCLUDED_NODES=healthcheck_2,rabbitmq
+      - HEALTH_NETWORK=rabbitmq_go_net
+      - HEALTHCHECK_NODE_ID=2
+      - HEALTHCHECK_NEIGHBOURS=1,3
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  healthcheck_3:
+    container_name: healthcheck_3
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/healthcheck
+    environment:
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - LOGGER_LEVEL=debug
+      - HEALTH_EXCLUDED_NODES=healthcheck_3,rabbitmq
+      - HEALTH_NETWORK=rabbitmq_go_net
+      - HEALTHCHECK_NODE_ID=3
+      - HEALTHCHECK_NEIGHBOURS=1,2
+      - LOGGER_LEVEL=debug
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
 
   # Projection controllers
   projection0:
@@ -88,6 +144,7 @@ services:
       - END_SERVICE_EXCHANGE=projection-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=projection-peer-queue-0
       - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_NODE_ID=1
       - ROUTER_TYPE=game-review      
     networks:
       - rabbitmq_go_net
@@ -117,6 +174,7 @@ services:
       - END_SERVICE_EXCHANGE=projection-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=projection-peer-queue-1
       - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_NODE_ID=2
       - ROUTER_TYPE=game-review      
     networks:
       - rabbitmq_go_net
@@ -147,6 +205,7 @@ services:
       - END_SERVICE_EXCHANGE=projection-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=projection-peer-queue-2
       - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_NODE_ID=3
       - ROUTER_TYPE=game-review
     networks:
       - rabbitmq_go_net
@@ -177,6 +236,7 @@ services:
       - END_SERVICE_EXCHANGE=projection-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=projection-peer-queue-3
       - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_NODE_ID=4
       - ROUTER_TYPE=game-review
     networks:
       - rabbitmq_go_net
@@ -206,6 +266,7 @@ services:
       - END_SERVICE_COORDINATOR_QUEUE=projection-control
       - END_SERVICE_EXCHANGE=projection-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=projection-peer-queue-4
+      - END_SERVICE_NODE_ID=5
       - END_SERVICE_TIMEOUT=5
       - ROUTER_TYPE=game-review
     networks:
@@ -237,6 +298,7 @@ services:
       - END_SERVICE_EXCHANGE=projection-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=projection-peer-queue-5
       - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_NODE_ID=6
       - ROUTER_TYPE=game-review
     networks:
       - rabbitmq_go_net
@@ -255,8 +317,8 @@ services:
       - RABBITMQ_PORT=5672
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
-      - EXPECTED_GAMES=6
-      - EXPECTED_REVIEWS=6
+      - EXPECTED_NODES=6
+      - TRANSACTION_LOG_FILE=coordinator-projection.log
       - OUTPUT_TYPE=direct
       - INPUT_WORKER_QUEUE=projection-control
       - INPUT_WORKER_QUEUE_TIMEOUT=5
@@ -268,6 +330,8 @@ services:
       - ROUTER_TYPE=game-review 
     networks:
       - rabbitmq_go_net
+    volumes:
+      - ./logs/:/logs/
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -325,6 +389,7 @@ services:
       - END_SERVICE_EXCHANGE=indie-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=indie-peer-queue-1
       - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_NODE_ID=1
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
@@ -355,6 +420,7 @@ services:
       - END_SERVICE_EXCHANGE=indie-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=indie-peer-queue-2
       - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_NODE_ID=2
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
@@ -373,8 +439,8 @@ services:
       - RABBITMQ_PORT=5672
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
-      - EXPECTED_GAMES=2
-      - EXPECTED_REVIEWS=0
+      - EXPECTED_NODES=2
+      - TRANSACTION_LOG_FILE=coordinator-indie.log
       - OUTPUT_TYPE=direct
       - INPUT_WORKER_QUEUE=indie-filter-control
       - INPUT_WORKER_QUEUE_TIMEOUT=5
@@ -385,6 +451,8 @@ services:
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
+    volumes:
+      - ./logs/:/logs/
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -413,6 +481,7 @@ services:
       - END_SERVICE_EXCHANGE=decade-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=decade-peer-queue-1
       - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_NODE_ID=1
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
@@ -443,6 +512,7 @@ services:
       - END_SERVICE_EXCHANGE=decade-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=decade-peer-queue-2
       - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_NODE_ID=2
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
@@ -461,8 +531,8 @@ services:
       - RABBITMQ_PORT=5672
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
-      - EXPECTED_GAMES=2
-      - EXPECTED_REVIEWS=0
+      - EXPECTED_NODES=2
+      - TRANSACTION_LOG_FILE=coordinator-decade.log
       - OUTPUT_TYPE=worker
       - INPUT_WORKER_QUEUE=decade-filter-control
       - INPUT_WORKER_QUEUE_TIMEOUT=5
@@ -473,6 +543,8 @@ services:
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
+    volumes:
+      - ./logs/:/logs/
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -529,6 +601,7 @@ services:
       - END_SERVICE_EXCHANGE=positive-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=positive-peer-queue-1
       - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_NODE_ID=1
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
@@ -559,6 +632,7 @@ services:
       - END_SERVICE_EXCHANGE=positive-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=positive-peer-queue-2
       - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_NODE_ID=2
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
@@ -589,6 +663,7 @@ services:
       - END_SERVICE_EXCHANGE=positive-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=positive-peer-queue-3
       - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_NODE_ID=3
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
@@ -619,6 +694,7 @@ services:
       - END_SERVICE_EXCHANGE=positive-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=positive-peer-queue-4
       - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_NODE_ID=4
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
@@ -637,8 +713,8 @@ services:
       - RABBITMQ_PORT=5672
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
-      - EXPECTED_GAMES=0
-      - EXPECTED_REVIEWS=4
+      - EXPECTED_NODES=4
+      - TRANSACTION_LOG_FILE=coordinator-positive.log
       - OUTPUT_TYPE=direct
       - INPUT_WORKER_QUEUE=positive-filter-control
       - INPUT_WORKER_QUEUE_TIMEOUT=5
@@ -649,6 +725,8 @@ services:
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
+    volumes:
+      - ./logs/:/logs/
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -676,7 +754,8 @@ services:
       - END_SERVICE_COORDINATOR_QUEUE=joiner-query3-control
       - END_SERVICE_EXCHANGE=joiner-query3-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=joiner-query3-peer-queue-1
-      - END_SERVICE_TIMEOUT=5      
+      - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_NODE_ID=1
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
@@ -707,7 +786,8 @@ services:
       - END_SERVICE_COORDINATOR_QUEUE=joiner-query3-control
       - END_SERVICE_EXCHANGE=joiner-query3-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=joiner-query3-peer-queue-2
-      - END_SERVICE_TIMEOUT=5      
+      - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_NODE_ID=2
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
@@ -739,7 +819,8 @@ services:
       - END_SERVICE_COORDINATOR_QUEUE=joiner-query3-control
       - END_SERVICE_EXCHANGE=joiner-query3-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=joiner-query3-peer-queue-3
-      - END_SERVICE_TIMEOUT=5      
+      - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_NODE_ID=3
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
@@ -771,7 +852,8 @@ services:
       - END_SERVICE_COORDINATOR_QUEUE=joiner-query3-control
       - END_SERVICE_EXCHANGE=joiner-query3-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=joiner-query3-peer-queue-4
-      - END_SERVICE_TIMEOUT=5      
+      - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_NODE_ID=4
       - LOGGER_LEVEL=info
     networks:
       - rabbitmq_go_net
@@ -802,7 +884,8 @@ services:
       - END_SERVICE_COORDINATOR_QUEUE=joiner-query3-control
       - END_SERVICE_EXCHANGE=joiner-query3-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=joiner-query3-peer-queue-5
-      - END_SERVICE_TIMEOUT=5      
+      - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_NODE_ID=5
       - LOGGER_LEVEL=info
     networks:
       - rabbitmq_go_net
@@ -834,7 +917,8 @@ services:
       - END_SERVICE_COORDINATOR_QUEUE=joiner-query3-control
       - END_SERVICE_EXCHANGE=joiner-query3-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=joiner-query3-peer-queue-6
-      - END_SERVICE_TIMEOUT=5      
+      - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_NODE_ID=6
       - LOGGER_LEVEL=info
     networks:
       - rabbitmq_go_net
@@ -866,7 +950,8 @@ services:
       - END_SERVICE_COORDINATOR_QUEUE=joiner-query3-control
       - END_SERVICE_EXCHANGE=joiner-query3-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=joiner-query3-peer-queue-7
-      - END_SERVICE_TIMEOUT=5      
+      - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_NODE_ID=7
       - LOGGER_LEVEL=info
     networks:
       - rabbitmq_go_net
@@ -898,7 +983,8 @@ services:
       - END_SERVICE_COORDINATOR_QUEUE=joiner-query3-control
       - END_SERVICE_EXCHANGE=joiner-query3-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=joiner-query3-peer-queue-8
-      - END_SERVICE_TIMEOUT=5      
+      - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_NODE_ID=8
       - LOGGER_LEVEL=info
     networks:
       - rabbitmq_go_net
@@ -919,8 +1005,8 @@ services:
       - RABBITMQ_PORT=5672
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
-      - EXPECTED_GAMES=0
-      - EXPECTED_REVIEWS=8
+      - EXPECTED_NODES=8
+      - TRANSACTION_LOG_FILE=coordinator-joiner-query3.log
       - OUTPUT_TYPE=direct
       - INPUT_WORKER_QUEUE=joiner-query3-control
       - INPUT_WORKER_QUEUE_TIMEOUT=5
@@ -930,7 +1016,9 @@ services:
       - OUTPUT_ROUTER_TAGS=1 # Affects Joinner Query 3
       - LOGGER_LEVEL=debug
     networks:
-      - rabbitmq_go_net            
+      - rabbitmq_go_net
+    volumes:
+      - ./logs/:/logs/
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -988,6 +1076,7 @@ services:
       - END_SERVICE_EXCHANGE=action-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=action-peer-queue-1
       - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_NODE_ID=1
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
@@ -1018,6 +1107,7 @@ services:
       - END_SERVICE_EXCHANGE=action-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=action-peer-queue-2
       - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_NODE_ID=2
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
@@ -1036,8 +1126,8 @@ services:
       - RABBITMQ_PORT=5672
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
-      - EXPECTED_GAMES=2
-      - EXPECTED_REVIEWS=0
+      - EXPECTED_NODES=2
+      - TRANSACTION_LOG_FILE=coordinator-action.log
       - OUTPUT_TYPE=direct
       - INPUT_WORKER_QUEUE=action-filter-control
       - INPUT_WORKER_QUEUE_TIMEOUT=5
@@ -1048,6 +1138,8 @@ services:
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
+    volumes:
+      - ./logs/:/logs/
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -1076,6 +1168,7 @@ services:
       - END_SERVICE_EXCHANGE=negative-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=negative-peer-queue-1
       - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_NODE_ID=1
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
@@ -1106,6 +1199,7 @@ services:
       - END_SERVICE_EXCHANGE=negative-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=negative-peer-queue-2
       - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_NODE_ID=2
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
@@ -1136,6 +1230,7 @@ services:
       - END_SERVICE_EXCHANGE=negative-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=negative-peer-queue-3
       - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_NODE_ID=3
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
@@ -1167,6 +1262,7 @@ services:
       - END_SERVICE_EXCHANGE=negative-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=negative-peer-queue-4
       - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_NODE_ID=4
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
@@ -1185,8 +1281,8 @@ services:
       - RABBITMQ_PORT=5672
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
-      - EXPECTED_GAMES=0
-      - EXPECTED_REVIEWS=4
+      - EXPECTED_NODES=4
+      - TRANSACTION_LOG_FILE=coordinator-negative.log
       - OUTPUT_TYPE=direct
       - INPUT_WORKER_QUEUE=negative-filter-control
       - INPUT_WORKER_QUEUE_TIMEOUT=5
@@ -1197,6 +1293,8 @@ services:
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
+    volumes:
+      - ./logs/:/logs/
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -1225,6 +1323,7 @@ services:
       - END_SERVICE_EXCHANGE=english-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=english-peer-queue-1
       - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_NODE_ID=1
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
@@ -1255,6 +1354,7 @@ services:
       - END_SERVICE_EXCHANGE=english-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=english-peer-queue-2
       - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_NODE_ID=2
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
@@ -1285,6 +1385,7 @@ services:
       - END_SERVICE_EXCHANGE=english-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=english-peer-queue-3
       - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_NODE_ID=3
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
@@ -1315,6 +1416,7 @@ services:
       - END_SERVICE_EXCHANGE=english-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=english-peer-queue-4
       - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_NODE_ID=4
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
@@ -1345,6 +1447,7 @@ services:
       - END_SERVICE_EXCHANGE=english-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=english-peer-queue-5
       - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_NODE_ID=5
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
@@ -1375,6 +1478,7 @@ services:
       - END_SERVICE_EXCHANGE=english-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=english-peer-queue-6
       - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_NODE_ID=6
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
@@ -1405,6 +1509,7 @@ services:
       - END_SERVICE_EXCHANGE=english-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=english-peer-queue-7
       - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_NODE_ID=7
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
@@ -1435,6 +1540,7 @@ services:
       - END_SERVICE_EXCHANGE=english-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=english-peer-queue-8
       - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_NODE_ID=8
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
@@ -1453,8 +1559,8 @@ services:
       - RABBITMQ_PORT=5672
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
-      - EXPECTED_GAMES=0
-      - EXPECTED_REVIEWS=8
+      - EXPECTED_NODES=8
+      - TRANSACTION_LOG_FILE=coordinator-english.log
       - OUTPUT_TYPE=direct
       - INPUT_WORKER_QUEUE=english-filter-control
       - INPUT_WORKER_QUEUE_TIMEOUT=5
@@ -1465,6 +1571,8 @@ services:
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
+    volumes:
+      - ./logs/:/logs/
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -1492,7 +1600,8 @@ services:
       - END_SERVICE_COORDINATOR_QUEUE=joiner-query4-control
       - END_SERVICE_EXCHANGE=joiner-query4-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=joiner-query4-peer-queue-1
-      - END_SERVICE_TIMEOUT=5            
+      - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_NODE_ID=1
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
@@ -1524,7 +1633,8 @@ services:
       - END_SERVICE_COORDINATOR_QUEUE=joiner-query4-control
       - END_SERVICE_EXCHANGE=joiner-query4-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=joiner-query4-peer-queue-2
-      - END_SERVICE_TIMEOUT=5            
+      - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_NODE_ID=2
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
@@ -1556,7 +1666,8 @@ services:
       - END_SERVICE_COORDINATOR_QUEUE=joiner-query4-control
       - END_SERVICE_EXCHANGE=joiner-query4-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=joiner-query4-peer-queue-3
-      - END_SERVICE_TIMEOUT=5            
+      - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_NODE_ID=3
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
@@ -1577,8 +1688,8 @@ services:
       - RABBITMQ_PORT=5672
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
-      - EXPECTED_GAMES=0
-      - EXPECTED_REVIEWS=3
+      - EXPECTED_NODES=3
+      - TRANSACTION_LOG_FILE=coordinator-joiner-query4.log
       - OUTPUT_TYPE=direct
       - INPUT_WORKER_QUEUE=joiner-query4-control
       - INPUT_WORKER_QUEUE_TIMEOUT=5
@@ -1588,7 +1699,9 @@ services:
       - OUTPUT_ROUTER_TAGS=1 # Affects Joinner Query 4
       - LOGGER_LEVEL=debug
     networks:
-      - rabbitmq_go_net            
+      - rabbitmq_go_net
+    volumes:
+      - ./logs/:/logs/
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -1642,7 +1755,8 @@ services:
       - END_SERVICE_COORDINATOR_QUEUE=joiner-query5-control
       - END_SERVICE_EXCHANGE=joiner-query5-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=joiner-query5-peer-queue-1
-      - END_SERVICE_TIMEOUT=5                  
+      - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_NODE_ID=1
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
@@ -1674,7 +1788,8 @@ services:
       - END_SERVICE_COORDINATOR_QUEUE=joiner-query5-control
       - END_SERVICE_EXCHANGE=joiner-query5-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=joiner-query5-peer-queue-2
-      - END_SERVICE_TIMEOUT=5                  
+      - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_NODE_ID=2
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
@@ -1706,7 +1821,8 @@ services:
       - END_SERVICE_COORDINATOR_QUEUE=joiner-query5-control
       - END_SERVICE_EXCHANGE=joiner-query5-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=joiner-query5-peer-queue-3
-      - END_SERVICE_TIMEOUT=5                  
+      - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_NODE_ID=3
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
@@ -1727,8 +1843,8 @@ services:
       - RABBITMQ_PORT=5672
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
-      - EXPECTED_GAMES=0
-      - EXPECTED_REVIEWS=3
+      - EXPECTED_NODES=3
+      - TRANSACTION_LOG_FILE=coordinator-joiner-query5.log
       - OUTPUT_TYPE=direct
       - INPUT_WORKER_QUEUE=joiner-query5-control
       - INPUT_WORKER_QUEUE_TIMEOUT=5
@@ -1738,7 +1854,9 @@ services:
       - OUTPUT_ROUTER_TAGS=1 # Affects Joinner Query 5
       - LOGGER_LEVEL=debug
     networks:
-      - rabbitmq_go_net      
+      - rabbitmq_go_net
+    volumes:
+      - ./logs/:/logs/
     depends_on:
       rabbitmq:
         condition: service_healthy      

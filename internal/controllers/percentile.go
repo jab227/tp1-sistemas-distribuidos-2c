@@ -65,7 +65,7 @@ func (r *Percentile) Done() <-chan struct{} {
 	return r.done
 }
 
-func reloadPercentile() (store.Store[percentileState], *persistence.TransactionLog,  error) {
+func reloadPercentile() (store.Store[percentileState], *persistence.TransactionLog, error) {
 	stateStore := store.NewStore[percentileState]()
 	log := persistence.NewTransactionLog("../logs/percentile.log")
 	logBytes, err := os.ReadFile("../logs/percentile.log")
@@ -77,7 +77,7 @@ func reloadPercentile() (store.Store[percentileState], *persistence.TransactionL
 	}
 	if err := log.Unmarshal(logBytes); err != nil {
 		err = fmt.Errorf("couldn't unmarshal log: %w", err)
-		return stateStore, log,  err
+		return stateStore, log, err
 	}
 	for _, entry := range log.GetLog() {
 		switch TXN(entry.Kind) {
@@ -89,7 +89,7 @@ func reloadPercentile() (store.Store[percentileState], *persistence.TransactionL
 			applyPercentileBatch(currentBatch, stateStore)
 		}
 	}
-	return stateStore, log,  nil
+	return stateStore, log, nil
 }
 
 func (r *Percentile) Run(ctx context.Context) error {
@@ -118,7 +118,7 @@ func (r *Percentile) Run(ctx context.Context) error {
 
 			currentBatch := batcher.Batch()
 			log.Append(batch.MarshalBatch(currentBatch), uint32(TXNBatch))
-			slog.Debug("processing batch")
+
 			if err := processPercentileBatch(
 				currentBatch,
 				percentileStateStore,
@@ -126,12 +126,12 @@ func (r *Percentile) Run(ctx context.Context) error {
 			); err != nil {
 				return err
 			}
-			slog.Debug("commit")
+
 			if err := log.Commit(); err != nil {
 				return fmt.Errorf("couldn't commit to disk: %w", err)
 			}
 			time.Sleep(5 * time.Second)
-			slog.Debug("acknowledge")
+
 			batcher.Acknowledge()
 		case <-time.After(10 * time.Second):
 			if batcher.IsEmpty() {

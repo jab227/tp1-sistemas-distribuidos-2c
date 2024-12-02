@@ -6,26 +6,26 @@ import (
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/utils"
 )
 
-const ExpectedGamesEnv = "EXPECTED_GAMES"
-const ExpectedReviewsEnv = "EXPECTED_REVIEWS"
 const OutputTypeEnv = "OUTPUT_TYPE"
+const ExpectedNodes = "EXPECTED_NODES"
+const TransactionLogFile = "TRANSACTION_LOG_FILE"
 
-func GetExpectedGames() (int, error) {
-	value, err := utils.GetFromEnvInt(ExpectedGamesEnv)
+func GetTransactionLogFile() (string, error) {
+	value, err := utils.GetFromEnv(TransactionLogFile)
 	if err != nil {
-		return -1, err
+		return "", nil
 	}
 
-	return int(*value), nil
+	return *value, nil
 }
 
-func GetExpectedRevisions() (int, error) {
-	value, err := utils.GetFromEnvInt(ExpectedReviewsEnv)
+func GetExpectedNodes() (uint32, error) {
+	value, err := utils.GetFromEnvUint(ExpectedNodes)
 	if err != nil {
-		return -1, err
+		return 0, err
 	}
 
-	return int(*value), nil
+	return uint32(*value), nil
 }
 
 func GetOutputType() (client.OutputType, error) {

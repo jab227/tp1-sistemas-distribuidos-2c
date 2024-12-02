@@ -2,6 +2,7 @@ package end
 
 import (
 	"fmt"
+	"log/slog"
 
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/env"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/rabbitmq"
@@ -15,6 +16,7 @@ type Service struct {
 	fanoutSub   *rabbitmq.FanoutSubscriber
 	coordinator *rabbitmq.WorkerQueue
 	notify      chan protocol.Message
+	NodeId      uint32
 }
 
 type ServiceOptions struct {
@@ -22,6 +24,7 @@ type ServiceOptions struct {
 	SubscriberQueue  string
 	CoordinatorQueue string
 	Timeout          uint8
+	NodeId           uint32
 }
 
 func GetServiceOptionsFromEnv() (*ServiceOptions, error) {
@@ -40,6 +43,12 @@ func GetServiceOptionsFromEnv() (*ServiceOptions, error) {
 		return nil, err
 	}
 
+	nodeId, err := utils.GetFromEnvUint("END_SERVICE_NODE_ID")
+	if err != nil {
+		return nil, err
+	}
+	slog.Info("Initializing with Node ID", "nodeId", uint32(*nodeId))
+
 	timeout, err := utils.GetFromEnvUint("END_SERVICE_TIMEOUT")
 	if err != nil {
 		return nil, err
@@ -57,6 +66,7 @@ func GetServiceOptionsFromEnv() (*ServiceOptions, error) {
 		SubscriberQueue:  *subQueue,
 		CoordinatorQueue: *coordinator,
 		Timeout:          uint8(*timeout),
+		NodeId:           uint32(*nodeId),
 	}, nil
 }
 
@@ -96,6 +106,7 @@ func NewService(opts *ServiceOptions) (*Service, error) {
 		fanoutSub:   fanoutSub,
 		coordinator: coordinator,
 		notify:      make(chan protocol.Message),
+		NodeId:      opts.NodeId,
 	}, nil
 }
 
@@ -147,12 +158,39 @@ func (s *Service) MergeConsumers(consumer <-chan amqp091.Delivery) <-chan Delive
 func (s *Service) NotifyCoordinator(endMessage protocol.Message) {
 	utils.Assert(endMessage.ExpectKind(protocol.End), "must be an END message")
 	utils.Assert(endMessage.HasGameData() || endMessage.HasReviewData(), "unreachable")
-	s.coordinator.Write(endMessage.Marshal(), "")
+
+	var dataType protocol.DataType
+	if endMessage.HasReviewData() {
+		dataType = protocol.Reviews
+	} else {
+		dataType = protocol.Games
+	}
+
+	msgToSend := protocol.NewEndMessage(dataType, protocol.MessageOptions{
+		ClientID:  endMessage.GetClientID(),
+		MessageID: s.NodeId,
+		RequestID: endMessage.GetRequestID(),
+	})
+
+	s.coordinator.Write(msgToSend.Marshal(), "")
 }
 
 func (s *Service) NotifyNeighbours(endMessage protocol.Message) {
 	utils.Assert(endMessage.ExpectKind(protocol.End), "must be an END message")
 	utils.Assert(endMessage.HasGameData() || endMessage.HasReviewData(), "unreachable")
-	marshaledMsg := endMessage.Marshal()
-	s.fanoutPub.Write(marshaledMsg, "")
+
+	var dataType protocol.DataType
+	if endMessage.HasReviewData() {
+		dataType = protocol.Reviews
+	} else {
+		dataType = protocol.Games
+	}
+
+	msgToSend := protocol.NewEndMessage(dataType, protocol.MessageOptions{
+		ClientID:  endMessage.GetClientID(),
+		MessageID: s.NodeId,
+		RequestID: endMessage.GetRequestID(),
+	})
+
+	s.fanoutPub.Write(msgToSend.Marshal(), "")
 }
