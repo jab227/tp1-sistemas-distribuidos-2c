@@ -45,23 +45,80 @@ services:
       rabbitmq:
         condition: service_healthy
 
-#  healthcheck:
-#    container_name: healthcheck
-#    build:
-#      context: ./
-#      dockerfile: cmd/Dockerfile
-#    entrypoint: /cmd/healthcheck
-#    environment:
-#      - LOGGER_LEVEL=info
-#      - HEALTH_EXCLUDED_NODES=healthcheck,rabbitmq
-#      - HEALTH_NETWORK=rabbitmq_go_net
-#    volumes:
-#      - /var/run/docker.sock:/var/run/docker.sock
-#    networks:
-#      - rabbitmq_go_net
-#    depends_on:
-#      rabbitmq:
-#        condition: service_healthy
+  healthcheck_1:
+    container_name: healthcheck_1
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/healthcheck
+    environment:
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - LOGGER_LEVEL=debug
+      - HEALTH_EXCLUDED_NODES=healthcheck_1,rabbitmq
+      - HEALTH_NETWORK=rabbitmq_go_net
+      - HEALTHCHECK_NODE_ID=1
+      - HEALTHCHECK_NEIGHBOURS=2,3
+      - LOGGER_LEVEL=debug
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  healthcheck_2:
+    container_name: healthcheck_2
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/healthcheck
+    environment:
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - LOGGER_LEVEL=debug
+      - HEALTH_EXCLUDED_NODES=healthcheck_2,rabbitmq
+      - HEALTH_NETWORK=rabbitmq_go_net
+      - HEALTHCHECK_NODE_ID=2
+      - HEALTHCHECK_NEIGHBOURS=1,3
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  healthcheck_3:
+    container_name: healthcheck_3
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/healthcheck
+    environment:
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - LOGGER_LEVEL=debug
+      - HEALTH_EXCLUDED_NODES=healthcheck_3,rabbitmq
+      - HEALTH_NETWORK=rabbitmq_go_net
+      - HEALTHCHECK_NODE_ID=3
+      - HEALTHCHECK_NEIGHBOURS=1,2
+      - LOGGER_LEVEL=debug
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
 
   # Projection controllers
   projection0:
