@@ -51,7 +51,6 @@ func NewLeaderMiddleware(id int, options *Options) (*LeaderMiddleware, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer ch.Close()
 
 	err = ch.ExchangeDeclare(
 		exchangeName, // name
@@ -91,6 +90,7 @@ func NewLeaderMiddleware(id int, options *Options) (*LeaderMiddleware, error) {
 }
 
 func (l *LeaderMiddleware) Close() {
+	l.ch.Close()	
 	l.conn.Close()
 }
 

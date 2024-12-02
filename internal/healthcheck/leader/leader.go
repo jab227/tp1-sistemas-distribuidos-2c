@@ -1,10 +1,5 @@
 package leader
 
-import (
-	"net"
-	"sync"
-)
-
 type State uint8
 
 const (
@@ -13,11 +8,4 @@ const (
 	StateMonitoring
 )
 
-type ElectionServiceConfig struct {
-	NeighboursIDs       []int
-	NeighboursEndpoints []string
-	ID                  int
-}
 
-type ElectionService struct {
-}

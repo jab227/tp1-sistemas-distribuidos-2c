@@ -2,9 +2,11 @@ package healthcheck
 
 import (
 	"fmt"
-	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/utils"
 	"log/slog"
+	"strconv"
 	"strings"
+
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/utils"
 )
 
 const PortEnvVariable = "HEALTHCHECK_PORT"
@@ -13,6 +15,7 @@ const CheckIntervalEnvVariable = "HEALTHCHECK_INTERVAL"
 const CheckTimeoutEnvVariable = "HEALTHCHECK_TIMEOUT"
 const MaxCheckRetriesEnvVariable = "HEALTHCHECK_MAX_RETRIES"
 const NodeIDEnvVariable = "HEALTHCHECK_NODE_ID"
+const NeighboursEnvVariable = "HEALTHCHECK_NEIGHBOURS"
 
 const PortDefaultValue = 1516
 const CheckIntervalDefaultValue = 2
@@ -20,7 +23,7 @@ const TimeoutDefaultValue = 2
 const MaxCheckRetriesDefaultValue = 3
 
 type ControllerConfig struct {
-	ID            int
+	ID int
 	// Add env
 	NeighboursIDs []int
 	Port          int
@@ -80,6 +83,21 @@ func NewHealthConfigFromEnv(nodes []string) (*ControllerConfig, error) {
 	if err != nil {
 		return nil, fmt.Errorf("couldn't set node id: %w", err)
 	}
+	c.ID = int(*value)
+	neighboursStr, err := utils.GetFromEnv(NeighboursEnvVariable)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't set neighbours: %w", err)
+	}
+	neighboursSplit := strings.Split(*neighboursStr, ",")
+	var neighbours []int
+	for _, n := range neighboursSplit {
+		id, err := strconv.Atoi(n)
+		if err != nil {
+			return nil, fmt.Errorf("couldn't parse neighbour id: %w", err)
+		}
+		neighbours = append(neighbours, id)
+	}
+	c.NeighboursIDs = neighbours
 	return &c, nil
 }
 
