@@ -45,16 +45,17 @@ services:
       rabbitmq:
         condition: service_healthy
 
-  healthcheck:
-    container_name: healthcheck
+  healthcheck_1:
+    container_name: healthcheck_1
     build:
       context: ./
       dockerfile: cmd/Dockerfile
     entrypoint: /cmd/healthcheck
     environment:
       - LOGGER_LEVEL=info
-      - HEALTH_EXCLUDED_NODES=healthcheck,rabbitmq
+      - HEALTH_EXCLUDED_NODES=healthcheck_1,rabbitmq
       - HEALTH_NETWORK=rabbitmq_go_net
+      - HEALTHCHECK_NODE_ID=1
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
