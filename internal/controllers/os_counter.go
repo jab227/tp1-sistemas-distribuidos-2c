@@ -132,16 +132,16 @@ func (o *OSCounter) Run(ctx context.Context) error {
 			}
 			currentBatch := batcher.Batch()
 			log.Append(batch.MarshalBatch(currentBatch), uint32(TXNBatch))
-			slog.Debug("processing batch")
+
 			err := o.processBatchOsCounter(currentBatch, osStateStore)
 			if err != nil {
 				return err
 			}
-			slog.Debug("commit")
+
 			if err := log.Commit(); err != nil {
 				return fmt.Errorf("couldn't commit to disk: %w", err)
 			}
-			slog.Debug("acknowledge")
+
 			batcher.Acknowledge()
 		case <-time.After(10 * time.Second):
 			if batcher.IsEmpty() {
@@ -149,16 +149,16 @@ func (o *OSCounter) Run(ctx context.Context) error {
 			}
 			currentBatch := batcher.Batch()
 			log.Append(batch.MarshalBatch(currentBatch), uint32(TXNBatch))
-			slog.Debug("processing batch")
+
 			err := o.processBatchOsCounter(currentBatch, osStateStore)
 			if err != nil {
 				return err
 			}
-			slog.Debug("commit")
+
 			if err := log.Commit(); err != nil {
 				return fmt.Errorf("couldn't commit to disk: %w", err)
 			}
-			slog.Debug("acknowledge")
+
 			batcher.Acknowledge()
 		case <-ctx.Done():
 			return ctx.Err()

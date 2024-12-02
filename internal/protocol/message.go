@@ -8,9 +8,10 @@ import (
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/utils"
 )
 
-type MessageType byte
+type MessageType uint32
 type DataType byte
 type QueryNumber byte
+type EndType uint32
 
 func (m MessageType) String() string {
 	switch m {
@@ -50,6 +51,12 @@ const (
 )
 
 const (
+	DefaultEnd   EndType = (1 << 8)  // The default end propagated to the nodes
+	SyncEnd      EndType = (1 << 9)  // End used for sync with the coordinator
+	PropagateEnd EndType = (1 << 10) // End signalizing the node to propagate a DefaultEnd
+)
+
+const (
 	Query1 QueryNumber = (1 << 3)
 	Query2 QueryNumber = (1 << 4)
 	Query3 QueryNumber = (1 << 5)
@@ -77,6 +84,8 @@ func NewEndMessage(d DataType, opts MessageOptions) Message {
 	if d == Games {
 		messageType |= 0x04
 	}
+
+	messageType |= MessageType(DefaultEnd)
 
 	return Message{
 		messageType: messageType,
@@ -142,12 +151,12 @@ func (m Message) GetRequestID() uint32 {
 
 func (m Message) HasGameData() bool {
 	utils.Assert(m.ExpectKind(Data) || m.ExpectKind(End), "the payload must be data")
-	return m.messageType>>2 == 1
+	return (m.messageType&0b100)>>2 == 1
 }
 
 func (m Message) HasReviewData() bool {
 	utils.Assert(m.ExpectKind(Data) || m.ExpectKind(End), "the payload must be  data")
-	return m.messageType>>2 == 0
+	return (m.messageType&0b100)>>2 == 0
 }
 
 func (m Message) GetQueryNumber() int {
@@ -175,7 +184,8 @@ func (m Message) Marshal() []byte {
 	var buf bytes.Buffer
 	buf4 := make([]byte, 4)
 
-	buf.WriteByte(byte(m.messageType))
+	binary.LittleEndian.PutUint32(buf4, uint32(m.messageType))
+	buf.Write(buf4)
 
 	binary.LittleEndian.PutUint32(buf4, m.messageID)
 	buf.Write(buf4)
@@ -198,16 +208,12 @@ func (m *Message) Unmarshal(p []byte) error {
 		return fmt.Errorf("invalid message: empty")
 	}
 
-	maskedMessageType := MessageType(p[0] & 0x3)
-	if maskedMessageType != Data && maskedMessageType != Results && maskedMessageType != End {
-		return fmt.Errorf("invalid message: unknown message type")
-	}
-	m.messageType = MessageType(p[0])
-	m.messageID = binary.LittleEndian.Uint32(p[1:5])
-	m.clientID = binary.LittleEndian.Uint32(p[5:9])
-	m.requestID = binary.LittleEndian.Uint32(p[9:13])
-	m.payloadSize = binary.LittleEndian.Uint32(p[13:17])
-	m.payload = p[17:]
+	m.messageType = MessageType(binary.LittleEndian.Uint32(p[0:4]))
+	m.messageID = binary.LittleEndian.Uint32(p[4:8])
+	m.clientID = binary.LittleEndian.Uint32(p[8:12])
+	m.requestID = binary.LittleEndian.Uint32(p[12:16])
+	m.payloadSize = binary.LittleEndian.Uint32(p[16:20])
+	m.payload = p[20:]
 	utils.Assertf(len(m.payload) == int(m.payloadSize), "the payload size should be equal to the len of the payload: %d != %d", len(m.payload), int(m.payloadSize))
 	return nil
 }
