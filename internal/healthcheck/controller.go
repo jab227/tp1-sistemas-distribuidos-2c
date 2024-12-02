@@ -8,6 +8,9 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/healthcheck/leader"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/healthcheck/leader/middleware"
 )
 
 type NodeInfo struct {
@@ -70,12 +73,12 @@ func (s *State) ToggleRecoveryMode(node string, mode bool) {
 }
 
 type HealthController struct {
-	Config ControllerConfig
+	Config *ControllerConfig
 	State  *State
 	done   chan struct{}
 }
 
-func NewHealthController(config ControllerConfig) *HealthController {
+func NewHealthController(config *ControllerConfig) *HealthController {
 	return &HealthController{Config: config, State: NewState(config.ListOfNodes)}
 }
 
@@ -90,21 +93,83 @@ func (h *HealthController) Run(ctx context.Context) error {
 
 	var wg sync.WaitGroup
 	reviveCh := make(chan string)
-
+	state := leader.StateElecting
+	id := h.Config.ID
+	options, err := middleware.GetOptionsFromEnv()
+	if err != nil {
+		return err
+	}
+	m, err := middleware.NewLeaderMiddleware(id, &options)
 	go h.RunReviver(ctx, reviveCh)
 
 	for {
-		select {
-		case <-time.After(time.Second * time.Duration(h.Config.HealthCheckInterval)):
-			for node, info := range h.State.GetAllNodes() {
-				wg.Add(1)
-				go h.CheckNode(node, info, reviveCh, &wg)
+		switch state {
+		case leader.StateElecting:
+			// Check if Im the leader -> I shouldn't have any neighbours bigger than me
+			if err := startElection(ctx, m, id, h.Config.NeighboursIDs); err != nil {
+				return err
 			}
-			wg.Wait()
-		case <-ctx.Done():
-			return ctx.Err()
+			reader, err := m.Reader()
+			if err != nil {
+				return err
+			}
+			var receivedAlive bool
+			for {
+				select {
+				case <-time.After(20 * time.Second):
+					// assume that im the leader
+					if receivedAlive {
+						continue
+					}
+				case msg := <-reader:
+					body := msg.GetBody()
+					var electionMessage leader.ElectionMessage
+					electionMessage.Unmarshal(body)
+					switch electionMessage.Type {
+					case leader.ElectionMessageTypeAnnounceElection:
+					case leader.ElectionMessageTypeAlive:
+						receivedAlive = true
+					case leader.ElectionMessageTypeCoordinator:
+					}
+
+				}
+			}
+		case leader.StateMonitoring:
+		case leader.StateLeading:
+			for range time.After(time.Second * time.Duration(h.Config.HealthCheckInterval)) {
+				for node, info := range h.State.GetAllNodes() {
+					wg.Add(1)
+					go h.CheckNode(node, info, reviveCh, &wg)
+				}
+				wg.Wait()
+			}
 		}
 	}
+}
+
+func startElection(ctx context.Context, m *middleware.LeaderMiddleware, id int, ids []int) error {
+	for _, neighbourID := range ids {
+		if neighbourID < id {
+			continue
+		}
+		msg := leader.ElectionMessage{
+			ID:   uint32(neighbourID),
+			Type: leader.ElectionMessageTypeAnnounceElection,
+		}
+		err := func() error {
+			timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+			defer cancel()
+			if err := m.Write(timeoutCtx, msg.Marshal(), neighbourID); err != nil {
+				return err
+
+			}
+			return nil
+		}()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (h *HealthController) RunReviver(ctx context.Context, reviveCh <-chan string) {

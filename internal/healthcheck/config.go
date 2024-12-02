@@ -12,6 +12,7 @@ const NodesPortEnvVariable = "HEALTHCHECK_NODES_PORT"
 const CheckIntervalEnvVariable = "HEALTHCHECK_INTERVAL"
 const CheckTimeoutEnvVariable = "HEALTHCHECK_TIMEOUT"
 const MaxCheckRetriesEnvVariable = "HEALTHCHECK_MAX_RETRIES"
+const NodeIDEnvVariable = "HEALTHCHECK_NODE_ID"
 
 const PortDefaultValue = 1516
 const CheckIntervalDefaultValue = 2
@@ -19,9 +20,12 @@ const TimeoutDefaultValue = 2
 const MaxCheckRetriesDefaultValue = 3
 
 type ControllerConfig struct {
-	Port        int
-	NodesPort   int
-	ListOfNodes []string
+	ID            int
+	// Add env
+	NeighboursIDs []int
+	Port          int
+	NodesPort     int
+	ListOfNodes   []string
 
 	HealthCheckInterval int
 	MaxTimeout          int
@@ -29,7 +33,7 @@ type ControllerConfig struct {
 	MaxRetries int
 }
 
-func NewHealthConfigFromEnv(nodes []string) *ControllerConfig {
+func NewHealthConfigFromEnv(nodes []string) (*ControllerConfig, error) {
 	c := ControllerConfig{ListOfNodes: nodes}
 
 	value, err := utils.GetFromEnvInt(PortEnvVariable)
@@ -72,7 +76,11 @@ func NewHealthConfigFromEnv(nodes []string) *ControllerConfig {
 		c.MaxRetries = int(*value)
 	}
 
-	return &c
+	value, err = utils.GetFromEnvInt(NodeIDEnvVariable)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't set node id: %w", err)
+	}
+	return &c, nil
 }
 
 const ServicePortEnvVariable = "HEALTH_SERVICE_PORT"
