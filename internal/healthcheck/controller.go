@@ -11,7 +11,6 @@ import (
 
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/healthcheck/leader"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/healthcheck/leader/middleware"
-	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/utils"
 )
 
 type NodeInfo struct {
@@ -148,7 +147,7 @@ func (e *electionState) handleElection(ctx context.Context, m *middleware.Leader
 	Exit:
 		for {
 			select {
-			case <-time.After(20 * time.Second):
+			case <-time.After(8 * time.Second):
 				if receivedAlive {
 					// received alive, so im expected to wait for a coordinator
 					// reset variable, so the next time it triggers I will assume that im the leader
@@ -166,6 +165,7 @@ func (e *electionState) handleElection(ctx context.Context, m *middleware.Leader
 				break Exit
 			case msg := <-reader:
 				body := msg.GetBody()
+				slog.Debug("electing", "body", body)
 				var electionMessage leader.ElectionMessage
 				electionMessage.Unmarshal(body)
 				switch electionMessage.Type {
@@ -173,14 +173,20 @@ func (e *electionState) handleElection(ctx context.Context, m *middleware.Leader
 					slog.Debug("received announce election message", "from", electionMessage.ID)
 					// Send alive message
 					sendAliveTo(ctx, m, e.NodeID, int(electionMessage.ID))
+					msg.Acknowledge()
 				case leader.ElectionMessageTypeAlive:
 					slog.Debug("received alive message", "from", electionMessage.ID)
 					receivedAlive = true
+					msg.Acknowledge()
 				case leader.ElectionMessageTypeCoordinator:
 					slog.Debug("received coordinator message", "leader", electionMessage.ID)
 					e.State = leader.StateMonitoring
 					e.LeaderID = int(electionMessage.ID)
+					msg.Acknowledge()
 					break Exit
+				default:
+					slog.Debug("default case shouldn't run", "msg", electionMessage)
+					panic("here")
 				}
 			case <-ctx.Done():
 				return ctx.Err()
@@ -214,6 +220,7 @@ Exit:
 			slog.Debug("monitoring ", "retries", retries)
 		case msg := <-reader:
 			body := msg.GetBody()
+			slog.Debug("monitoring", "body", body)
 			var electionMessage leader.ElectionMessage
 			electionMessage.Unmarshal(body)
 			switch electionMessage.Type {
@@ -222,9 +229,15 @@ Exit:
 				// Send alive message
 				sendAliveTo(ctx, m, e.NodeID, int(electionMessage.ID))
 				e.State = leader.StateElecting
+				msg.Acknowledge()
 				break Exit
-			default:
-				utils.Assert(false, "shouldnt happen")
+			case leader.ElectionMessageTypeAlive:
+				msg.Acknowledge()
+				break Exit
+			case leader.ElectionMessageTypeCoordinator:
+				slog.Debug("received coordinator message", "leader", electionMessage.ID)
+				e.LeaderID = int(electionMessage.ID)
+				msg.Acknowledge()
 			}
 		case <-ctx.Done():
 			return ctx.Err()
@@ -253,6 +266,7 @@ Exit:
 			wg.Wait()
 		case msg := <-reader:
 			body := msg.GetBody()
+			slog.Debug("leading", "body", body)
 			var electionMessage leader.ElectionMessage
 			electionMessage.Unmarshal(body)
 			switch electionMessage.Type {
@@ -261,14 +275,23 @@ Exit:
 				// Send alive message
 				sendAliveTo(ctx, m, e.NodeID, int(electionMessage.ID))
 				e.State = leader.StateElecting
+				msg.Acknowledge()
 				break Exit
 			case leader.ElectionMessageTypeAlive:
-				utils.Assert(false, "shouldn't happen")
+				slog.Debug("shouldn't happen")
+				msg.Acknowledge()
 			case leader.ElectionMessageTypeCoordinator:
-				slog.Debug("received coordinator message", "leader", electionMessage.ID)
-				e.State = leader.StateMonitoring
-				e.LeaderID = int(electionMessage.ID)
-				break Exit
+				if electionMessage.ID > uint32(e.NodeID) {
+					slog.Debug("received coordinator message", "leader", electionMessage.ID)
+					e.State = leader.StateMonitoring
+					e.LeaderID = int(electionMessage.ID)
+					msg.Acknowledge()
+					break Exit
+				}
+				msg.Acknowledge()
+			default:
+				slog.Debug("default case shouldn't run", "msg", electionMessage)
+				panic("here")
 			}
 		case <-ctx.Done():
 			return ctx.Err()
