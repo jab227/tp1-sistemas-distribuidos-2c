@@ -29,5 +29,6 @@ while True:
     subprocess.run(
         ["docker", "container", "kill", container_to_kill], stdout=subprocess.DEVNULL
     )
+    print(f"killed container: {container_to_kill}")
     time.sleep(waiting_time)
     waiting_time = gen_random_time()
