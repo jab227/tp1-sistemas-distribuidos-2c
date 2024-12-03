@@ -6,6 +6,7 @@ import (
 )
 
 type Value struct {
+	AppId string
 	Name  string
 	Count int
 }

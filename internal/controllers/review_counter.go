@@ -6,7 +6,7 @@ import (
 	"log/slog"
 
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/client"
-	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/model"
+	models "github.com/jab227/tp1-sistemas-distribuidos-2c/internal/model"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/protocol"
 )
 
@@ -60,7 +60,8 @@ func (r *ReviewCounter) Run(ctx context.Context) error {
 
 					builder := protocol.NewPayloadBuffer(1)
 					builder.BeginPayloadElement()
-					builder.WriteBytes([]byte(game.Name))
+					data := fmt.Sprintf("%s,%s", game.AppID, game.Name)
+					builder.WriteBytes([]byte(data))
 					builder.EndPayloadElement()
 					res := protocol.NewResultsMessage(protocol.Query4, builder.Bytes(), protocol.MessageOptions{
 						MessageID: msg.GetMessageID(),
@@ -70,7 +71,7 @@ func (r *ReviewCounter) Run(ctx context.Context) error {
 					if err := r.io.Write(res.Marshal(), ""); err != nil {
 						return fmt.Errorf("couldn't write query 4 output: %w", err)
 					}
-					slog.Debug("query 4 results", "result", game.Name)
+					slog.Debug("query 4 results", "result", data)
 
 				}
 			} else if msg.ExpectKind(protocol.End) {

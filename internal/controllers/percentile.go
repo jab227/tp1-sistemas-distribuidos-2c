@@ -13,7 +13,7 @@ import (
 
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/batch"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/client"
-	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/model"
+	models "github.com/jab227/tp1-sistemas-distribuidos-2c/internal/model"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/persistence"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/protocol"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/store"
@@ -21,6 +21,7 @@ import (
 )
 
 type innerPercentile struct {
+	appId   string
 	name    string
 	counter uint
 }
@@ -30,7 +31,7 @@ type percentileState map[string]innerPercentile
 func (p percentileState) insertOrUpdate(game models.Game) {
 	v, ok := p[game.AppID]
 	if !ok {
-		p[game.AppID] = innerPercentile{game.Name, uint(game.ReviewsCount)}
+		p[game.AppID] = innerPercentile{game.AppID, game.Name, uint(game.ReviewsCount)}
 		return
 	}
 	v.counter = uint(game.ReviewsCount)
@@ -233,8 +234,9 @@ func marshalAndSendPercentileResults(results []innerPercentile, msg protocol.Mes
 	slog.Debug("message result", "clientID", msg.GetClientID())
 	for _, result := range results {
 		builder := protocol.NewPayloadBuffer(1)
+		data := fmt.Sprintf("%s,%s", result.appId, result.name)
 		builder.BeginPayloadElement()
-		builder.WriteBytes([]byte(result.name))
+		builder.WriteBytes([]byte(data))
 		builder.EndPayloadElement()
 		res := protocol.NewResultsMessage(protocol.Query5, builder.Bytes(), protocol.MessageOptions{
 			MessageID: msg.GetMessageID(),
