@@ -20,6 +20,9 @@ import (
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/utils"
 )
 
+// TODO - Fede delete now
+var endPercentileSupervisor = make(map[uint32]bool)
+
 type innerPercentile struct {
 	appId   string
 	name    string
@@ -172,6 +175,11 @@ func processPercentileBatch(
 			if !msg.HasGameData() {
 				return fmt.Errorf("couldn't wrong type: expected game data")
 			}
+
+			if value, ok := endPercentileSupervisor[msg.GetClientID()]; ok && value {
+				slog.Debug("MSG AFTER END")
+			}
+
 			clientID := msg.GetClientID()
 			elements := msg.Elements()
 			state, ok := percentileStateStore.Get(clientID)
@@ -197,6 +205,7 @@ func processPercentileBatch(
 				return err
 			}
 			percentileStateStore.Delete(clientID)
+			endPercentileSupervisor[msg.GetClientID()] = true
 		} else {
 			return fmt.Errorf("unexpected message type: %s", msg.GetMessageType())
 		}

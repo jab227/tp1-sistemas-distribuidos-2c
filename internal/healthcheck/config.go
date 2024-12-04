@@ -20,7 +20,7 @@ const NeighboursEnvVariable = "HEALTHCHECK_NEIGHBOURS"
 const PortDefaultValue = 1516
 const CheckIntervalDefaultValue = 2
 const TimeoutDefaultValue = 2
-const MaxCheckRetriesDefaultValue = 3
+const MaxCheckRetriesDefaultValue = 2
 
 type ControllerConfig struct {
 	ID int
