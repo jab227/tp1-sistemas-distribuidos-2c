@@ -15,6 +15,8 @@ import (
 	"github.com/pemistahl/lingua-go"
 )
 
+var endFilterSupervisor map[uint32]bool
+
 const MaxBatchingSize = 5000
 const MaxBatcherTimeout = 10 * time.Second
 
@@ -144,6 +146,10 @@ func (f *Filter) Run(ctx context.Context) error {
 func (f *Filter) processBatch(batch *batch.Batcher, endService *end.Service) error {
 	currentBatch := batch.Batch()
 	for _, msg := range currentBatch {
+		if value, ok := endFilterSupervisor[msg.GetClientID()]; ok && value {
+			slog.Debug("MSG AFTER END")
+		}
+
 		// Detect type
 		if msg.ExpectKind(protocol.Data) {
 			// Handle filter
@@ -158,6 +164,7 @@ func (f *Filter) processBatch(batch *batch.Batcher, endService *end.Service) err
 			}
 		} else if msg.ExpectKind(protocol.End) {
 			endService.NotifyNeighbours(msg)
+			endFilterSupervisor[msg.GetClientID()] = true
 		}
 	}
 

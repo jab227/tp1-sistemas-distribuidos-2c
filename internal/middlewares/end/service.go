@@ -166,6 +166,7 @@ func (s *Service) NotifyCoordinator(endMessage protocol.Message) {
 		dataType = protocol.Games
 	}
 
+	slog.Debug("Notifyng to coordinator", "clientId", endMessage.GetClientID(), "nodeId", s.NodeId)
 	msgToSend := protocol.NewEndMessage(dataType, protocol.MessageOptions{
 		ClientID:  endMessage.GetClientID(),
 		MessageID: s.NodeId,

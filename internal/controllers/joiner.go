@@ -22,6 +22,9 @@ import (
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/utils"
 )
 
+// TODO - Fede delete now
+var endJoinerSupervisor = make(map[uint32]bool)
+
 type EndSet byte
 type EndType byte
 
@@ -202,6 +205,7 @@ func (j *Joiner) Run(ctx context.Context) error {
 				}
 				batcher.Acknowledge()
 			} else if delivery.SenderType == end.SenderNeighbour {
+				slog.Debug("got from neighbour", "clientId", msg.GetClientID())
 				clientID := msg.GetClientID()
 				log.Append(msg.Marshal(), uint32(TXNEnd))
 				state, ok := joinerStateStore.Get(clientID)
@@ -265,6 +269,10 @@ func (j *Joiner) Run(ctx context.Context) error {
 
 func processBatch(batch []protocol.Message, joinerStateStore store.Store[joinerState], service *end.Service) error {
 	for _, m := range batch {
+		//TODO FEDE - Delete
+		if value, ok := endJoinerSupervisor[m.GetClientID()]; ok && value {
+			slog.Debug("MSG AFTER END")
+		}
 		clientID := m.GetClientID()
 		if m.ExpectKind(protocol.Data) {
 			elements := m.Elements()
@@ -301,6 +309,8 @@ func joinAndSend(j *Joiner, s *joinerState, opts protocol.MessageOptions) error 
 			return fmt.Errorf("couldn't write query 1 output: %w", err)
 		}
 	}
+
+	endJoinerSupervisor[opts.ClientID] = true
 	return nil
 }
 
