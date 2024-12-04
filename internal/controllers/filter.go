@@ -15,7 +15,7 @@ import (
 	"github.com/pemistahl/lingua-go"
 )
 
-var endFilterSupervisor map[uint32]bool
+var endFilterSupervisor = make(map[uint32]bool)
 
 const MaxBatchingSize = 5000
 const MaxBatcherTimeout = 10 * time.Second
