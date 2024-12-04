@@ -163,8 +163,30 @@ func (f *Filter) processBatch(batch *batch.Batcher, endService *end.Service) err
 				}
 			}
 		} else if msg.ExpectKind(protocol.End) {
-			endService.NotifyNeighbours(msg)
-			endFilterSupervisor[msg.GetClientID()] = true
+			if msg.GetRequestID() == utils.MagicNumber {
+				slog.Debug("End Msg with propagate number obtained", "clientId", msg.GetClientID(), "requestId", msg.GetRequestID())
+				dataType := protocol.Reviews
+				routerTag := "review"
+				if msg.HasGameData() {
+					dataType = protocol.Games
+					routerTag = "game"
+				}
+
+				endMsg := protocol.NewEndMessage(dataType, protocol.MessageOptions{
+					ClientID:  msg.GetClientID(),
+					MessageID: msg.GetMessageID(),
+					RequestID: 1,
+				})
+
+				slog.Debug("End Msg with propagate number sending", "router", routerTag, "clientId", msg.GetClientID(), "requestId", msg.GetRequestID())
+				if err := f.io.Write(endMsg.Marshal(), routerTag); err != nil {
+					return fmt.Errorf("couldn't write end message: %w", err)
+				}
+				endFilterSupervisor[msg.GetClientID()] = true
+			} else {
+				slog.Debug("received end", "game", msg.HasGameData(), "reviews", msg.HasReviewData())
+				endService.NotifyNeighbours(msg)
+			}
 		}
 	}
 

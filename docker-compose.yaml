@@ -318,16 +318,15 @@ services:
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
       - EXPECTED_NODES=6
+      - PROPAGATE_TAGS=1
       - TRANSACTION_LOG_FILE=coordinator-projection.log
       - OUTPUT_TYPE=direct
       - INPUT_WORKER_QUEUE=projection-control
       - INPUT_WORKER_QUEUE_TIMEOUT=5
       - INPUT_WORKER_QUEUE_COUNT=1
-      - DIRECT_PUBLISHER_EXCHANGE=projection-output-exchange
+      - DIRECT_PUBLISHER_EXCHANGE=boundary-exchange
       - DIRECT_PUBLISHER_TIMEOUT=5
-      - OUTPUT_ROUTER_TAGS=game,review            
       - LOGGER_LEVEL=debug
-      - ROUTER_TYPE=game-review 
     networks:
       - rabbitmq_go_net
     volumes:
@@ -383,7 +382,7 @@ services:
       - OUTPUT_ROUTER_TAGS=1,2,3,4,5,6,7,8 # Affects filter_decade and JoinnerQuery3      
       - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
       - DIRECT_SUBSCRIBER_QUEUE=indie-genre-filter-input-queue
-      - DIRECT_SUBSCRIBER_KEYS=game
+      - DIRECT_SUBSCRIBER_KEYS=game,EndIndie
       - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
       - END_SERVICE_COORDINATOR_QUEUE=indie-filter-control
       - END_SERVICE_EXCHANGE=indie-exchange-control
@@ -414,7 +413,7 @@ services:
       - OUTPUT_ROUTER_TAGS=1,2,3,4,5,6,7,8 # Affects filter_decade and JoinnerQuery3      
       - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
       - DIRECT_SUBSCRIBER_QUEUE=indie-genre-filter-input-queue
-      - DIRECT_SUBSCRIBER_KEYS=game
+      - DIRECT_SUBSCRIBER_KEYS=game,EndIndie
       - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
       - END_SERVICE_COORDINATOR_QUEUE=indie-filter-control
       - END_SERVICE_EXCHANGE=indie-exchange-control
@@ -440,14 +439,14 @@ services:
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
       - EXPECTED_NODES=2
+      - PROPAGATE_TAGS=EndIndie
       - TRANSACTION_LOG_FILE=coordinator-indie.log
       - OUTPUT_TYPE=direct
       - INPUT_WORKER_QUEUE=indie-filter-control
       - INPUT_WORKER_QUEUE_TIMEOUT=5
       - INPUT_WORKER_QUEUE_COUNT=1
-      - DIRECT_PUBLISHER_EXCHANGE=indie-filter-exchange
+      - DIRECT_PUBLISHER_EXCHANGE=projection-output-exchange
       - DIRECT_PUBLISHER_TIMEOUT=5
-      - OUTPUT_ROUTER_TAGS=1,2,3,4,5,6,7,8 # Affects filter_decade and JoinnerQuery3
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
@@ -475,7 +474,7 @@ services:
       - OUTPUT_WORKER_QUEUE_COUNT=1
       - DIRECT_SUBSCRIBER_EXCHANGES=indie-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=decade-filter-input-queue
-      - DIRECT_SUBSCRIBER_KEYS=1,2,3,4,5,6,7,8 # Affects Top10      
+      - DIRECT_SUBSCRIBER_KEYS=1,2,3,4,5,6,7,8,EndDecade      # Affects Top10
       - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
       - END_SERVICE_COORDINATOR_QUEUE=decade-filter-control
       - END_SERVICE_EXCHANGE=decade-exchange-control
@@ -506,7 +505,7 @@ services:
       - OUTPUT_WORKER_QUEUE_COUNT=1
       - DIRECT_SUBSCRIBER_EXCHANGES=indie-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=decade-filter-input-queue
-      - DIRECT_SUBSCRIBER_KEYS=1,2,3,4,5,6,7,8 # Affects Top10
+      - DIRECT_SUBSCRIBER_KEYS=1,2,3,4,5,6,7,8,EndDecade      # Affects Top10
       - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
       - END_SERVICE_COORDINATOR_QUEUE=decade-filter-control
       - END_SERVICE_EXCHANGE=decade-exchange-control
@@ -532,14 +531,14 @@ services:
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
       - EXPECTED_NODES=2
+      - PROPAGATE_TAGS=EndDecade
       - TRANSACTION_LOG_FILE=coordinator-decade.log
-      - OUTPUT_TYPE=worker
+      - OUTPUT_TYPE=direct
       - INPUT_WORKER_QUEUE=decade-filter-control
       - INPUT_WORKER_QUEUE_TIMEOUT=5
       - INPUT_WORKER_QUEUE_COUNT=1
-      - OUTPUT_WORKER_QUEUE=decade-filter-output-queue
-      - OUTPUT_WORKER_QUEUE_TIMEOUT=5
-      - OUTPUT_WORKER_QUEUE_COUNT=1
+      - DIRECT_PUBLISHER_EXCHANGE=indie-filter-exchange
+      - DIRECT_PUBLISHER_TIMEOUT=5
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
@@ -596,7 +595,7 @@ services:
       - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
       - DIRECT_SUBSCRIBER_QUEUE=positive-filter-input-queue
       - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
-      - DIRECT_SUBSCRIBER_KEYS=review
+      - DIRECT_SUBSCRIBER_KEYS=review,EndPositive
       - END_SERVICE_COORDINATOR_QUEUE=positive-filter-control
       - END_SERVICE_EXCHANGE=positive-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=positive-peer-queue-1
@@ -626,7 +625,7 @@ services:
       - OUTPUT_ROUTER_TAGS=1,2,3,4,5,6,7,8 # Affects Joinner Query 3      
       - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
       - DIRECT_SUBSCRIBER_QUEUE=positive-filter-input-queue
-      - DIRECT_SUBSCRIBER_KEYS=review
+      - DIRECT_SUBSCRIBER_KEYS=review,EndPositive
       - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
       - END_SERVICE_COORDINATOR_QUEUE=positive-filter-control
       - END_SERVICE_EXCHANGE=positive-exchange-control
@@ -657,7 +656,7 @@ services:
       - OUTPUT_ROUTER_TAGS=1,2,3,4,5,6,7,8 # Affects Joinner Query 3      
       - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
       - DIRECT_SUBSCRIBER_QUEUE=positive-filter-input-queue
-      - DIRECT_SUBSCRIBER_KEYS=review
+      - DIRECT_SUBSCRIBER_KEYS=review,EndPositive
       - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
       - END_SERVICE_COORDINATOR_QUEUE=positive-filter-control
       - END_SERVICE_EXCHANGE=positive-exchange-control
@@ -688,7 +687,7 @@ services:
       - OUTPUT_ROUTER_TAGS=1,2,3,4,5,6,7,8 # Affects Joinner Query 3
       - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
       - DIRECT_SUBSCRIBER_QUEUE=positive-filter-input-queue
-      - DIRECT_SUBSCRIBER_KEYS=review
+      - DIRECT_SUBSCRIBER_KEYS=review,EndPositive
       - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
       - END_SERVICE_COORDINATOR_QUEUE=positive-filter-control
       - END_SERVICE_EXCHANGE=positive-exchange-control
@@ -714,14 +713,14 @@ services:
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
       - EXPECTED_NODES=4
+      - PROPAGATE_TAGS=EndPositive
       - TRANSACTION_LOG_FILE=coordinator-positive.log
       - OUTPUT_TYPE=direct
       - INPUT_WORKER_QUEUE=positive-filter-control
       - INPUT_WORKER_QUEUE_TIMEOUT=5
       - INPUT_WORKER_QUEUE_COUNT=1
-      - DIRECT_PUBLISHER_EXCHANGE=positive-filter-exchange
+      - DIRECT_PUBLISHER_EXCHANGE=projection-output-exchange
       - DIRECT_PUBLISHER_TIMEOUT=5
-      - OUTPUT_ROUTER_TAGS=1,2,3,4,5,6,7,8 # Affects Joinner Query 3
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
@@ -749,7 +748,7 @@ services:
       - OUTPUT_ROUTER_TAGS=1 # Affects Top5
       - DIRECT_SUBSCRIBER_EXCHANGES=indie-filter-exchange,positive-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=q3-joiner-input-queue-1
-      - DIRECT_SUBSCRIBER_KEYS=1
+      - DIRECT_SUBSCRIBER_KEYS=1,EndQuery3
       - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
       - END_SERVICE_COORDINATOR_QUEUE=joiner-query3-control
       - END_SERVICE_EXCHANGE=joiner-query3-exchange-control
@@ -781,7 +780,7 @@ services:
       - OUTPUT_ROUTER_TAGS=1 # Affects Top5
       - DIRECT_SUBSCRIBER_EXCHANGES=indie-filter-exchange,positive-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=q3-joiner-input-queue-2
-      - DIRECT_SUBSCRIBER_KEYS=2
+      - DIRECT_SUBSCRIBER_KEYS=2,EndQuery3
       - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
       - END_SERVICE_COORDINATOR_QUEUE=joiner-query3-control
       - END_SERVICE_EXCHANGE=joiner-query3-exchange-control
@@ -814,7 +813,7 @@ services:
       - OUTPUT_ROUTER_TAGS=1 # Affects Top5
       - DIRECT_SUBSCRIBER_EXCHANGES=indie-filter-exchange,positive-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=q3-joiner-input-queue-3
-      - DIRECT_SUBSCRIBER_KEYS=3
+      - DIRECT_SUBSCRIBER_KEYS=3,EndQuery3
       - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
       - END_SERVICE_COORDINATOR_QUEUE=joiner-query3-control
       - END_SERVICE_EXCHANGE=joiner-query3-exchange-control
@@ -847,7 +846,7 @@ services:
       - OUTPUT_ROUTER_TAGS=1 # Affects Top5
       - DIRECT_SUBSCRIBER_EXCHANGES=indie-filter-exchange,positive-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=q3-joiner-input-queue-4
-      - DIRECT_SUBSCRIBER_KEYS=4
+      - DIRECT_SUBSCRIBER_KEYS=4,EndQuery3
       - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
       - END_SERVICE_COORDINATOR_QUEUE=joiner-query3-control
       - END_SERVICE_EXCHANGE=joiner-query3-exchange-control
@@ -879,7 +878,7 @@ services:
       - OUTPUT_ROUTER_TAGS=1 # Affects Top5
       - DIRECT_SUBSCRIBER_EXCHANGES=indie-filter-exchange,positive-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=q3-joiner-input-queue-5
-      - DIRECT_SUBSCRIBER_KEYS=5
+      - DIRECT_SUBSCRIBER_KEYS=5,EndQuery3
       - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
       - END_SERVICE_COORDINATOR_QUEUE=joiner-query3-control
       - END_SERVICE_EXCHANGE=joiner-query3-exchange-control
@@ -912,7 +911,7 @@ services:
       - OUTPUT_ROUTER_TAGS=1 # Affects Top5
       - DIRECT_SUBSCRIBER_EXCHANGES=indie-filter-exchange,positive-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=q3-joiner-input-queue-6
-      - DIRECT_SUBSCRIBER_KEYS=6
+      - DIRECT_SUBSCRIBER_KEYS=6,EndQuery3
       - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
       - END_SERVICE_COORDINATOR_QUEUE=joiner-query3-control
       - END_SERVICE_EXCHANGE=joiner-query3-exchange-control
@@ -945,7 +944,7 @@ services:
       - OUTPUT_ROUTER_TAGS=1 # Affects Top5
       - DIRECT_SUBSCRIBER_EXCHANGES=indie-filter-exchange,positive-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=q3-joiner-input-queue-7
-      - DIRECT_SUBSCRIBER_KEYS=7
+      - DIRECT_SUBSCRIBER_KEYS=7,EndQuery3
       - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
       - END_SERVICE_COORDINATOR_QUEUE=joiner-query3-control
       - END_SERVICE_EXCHANGE=joiner-query3-exchange-control
@@ -978,7 +977,7 @@ services:
       - OUTPUT_ROUTER_TAGS=1 # Affects Top5
       - DIRECT_SUBSCRIBER_EXCHANGES=indie-filter-exchange,positive-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=q3-joiner-input-queue-8
-      - DIRECT_SUBSCRIBER_KEYS=8
+      - DIRECT_SUBSCRIBER_KEYS=8,EndQuery3
       - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
       - END_SERVICE_COORDINATOR_QUEUE=joiner-query3-control
       - END_SERVICE_EXCHANGE=joiner-query3-exchange-control
@@ -999,21 +998,21 @@ services:
     build:
       context: ./
       dockerfile: cmd/Dockerfile
-    entrypoint: /cmd/coordinator
+    entrypoint: /cmd/joinercoordinator
     environment:
       - RABBITMQ_HOSTNAME=rabbitmq
       - RABBITMQ_PORT=5672
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
       - EXPECTED_NODES=8
+      - PROPAGATE_TAGS=EndQuery3
       - TRANSACTION_LOG_FILE=coordinator-joiner-query3.log
       - OUTPUT_TYPE=direct
       - INPUT_WORKER_QUEUE=joiner-query3-control
       - INPUT_WORKER_QUEUE_TIMEOUT=5
       - INPUT_WORKER_QUEUE_COUNT=1
-      - DIRECT_PUBLISHER_EXCHANGE=top-5-exchange
+      - DIRECT_PUBLISHER_EXCHANGE=positive-filter-exchange
       - DIRECT_PUBLISHER_TIMEOUT=5
-      - OUTPUT_ROUTER_TAGS=1 # Affects Joinner Query 3
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
@@ -1070,7 +1069,7 @@ services:
       - OUTPUT_ROUTER_TAGS=1,2,3 # Affects JoinnerQuery 4 and Joinner Query 5
       - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
       - DIRECT_SUBSCRIBER_QUEUE=action-genre-filter-input-queue
-      - DIRECT_SUBSCRIBER_KEYS=game
+      - DIRECT_SUBSCRIBER_KEYS=game,EndAction
       - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
       - END_SERVICE_COORDINATOR_QUEUE=action-filter-control
       - END_SERVICE_EXCHANGE=action-exchange-control
@@ -1101,7 +1100,7 @@ services:
       - OUTPUT_ROUTER_TAGS=1,2,3 # Affects JoinnerQuery 4 and Joinner Query 5
       - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
       - DIRECT_SUBSCRIBER_QUEUE=action-genre-filter-input-queue
-      - DIRECT_SUBSCRIBER_KEYS=game
+      - DIRECT_SUBSCRIBER_KEYS=game,EndAction
       - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
       - END_SERVICE_COORDINATOR_QUEUE=action-filter-control
       - END_SERVICE_EXCHANGE=action-exchange-control
@@ -1127,14 +1126,14 @@ services:
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
       - EXPECTED_NODES=2
+      - PROPAGATE_TAGS=EndAction
       - TRANSACTION_LOG_FILE=coordinator-action.log
       - OUTPUT_TYPE=direct
       - INPUT_WORKER_QUEUE=action-filter-control
       - INPUT_WORKER_QUEUE_TIMEOUT=5
       - INPUT_WORKER_QUEUE_COUNT=1
-      - DIRECT_PUBLISHER_EXCHANGE=action-filter-exchange
+      - DIRECT_PUBLISHER_EXCHANGE=projection-output-exchange
       - DIRECT_PUBLISHER_TIMEOUT=5
-      - OUTPUT_ROUTER_TAGS=1,2,3
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
@@ -1162,7 +1161,7 @@ services:
       - OUTPUT_ROUTER_TAGS=1,2,3 # Affect filter_english and JoinnerQuery5
       - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
       - DIRECT_SUBSCRIBER_QUEUE=negative-filter-input-queue
-      - DIRECT_SUBSCRIBER_KEYS=review
+      - DIRECT_SUBSCRIBER_KEYS=review,EndNegative
       - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
       - END_SERVICE_COORDINATOR_QUEUE=negative-filter-control
       - END_SERVICE_EXCHANGE=negative-exchange-control
@@ -1193,7 +1192,7 @@ services:
       - OUTPUT_ROUTER_TAGS=1,2,3 # Affect filter_english and JoinnerQuery5
       - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
       - DIRECT_SUBSCRIBER_QUEUE=negative-filter-input-queue
-      - DIRECT_SUBSCRIBER_KEYS=review
+      - DIRECT_SUBSCRIBER_KEYS=review,EndNegative
       - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
       - END_SERVICE_COORDINATOR_QUEUE=negative-filter-control
       - END_SERVICE_EXCHANGE=negative-exchange-control
@@ -1224,7 +1223,7 @@ services:
       - OUTPUT_ROUTER_TAGS=1,2,3 # Affect filter_english and JoinnerQuery5
       - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
       - DIRECT_SUBSCRIBER_QUEUE=negative-filter-input-queue
-      - DIRECT_SUBSCRIBER_KEYS=review
+      - DIRECT_SUBSCRIBER_KEYS=review,EndNegative
       - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
       - END_SERVICE_COORDINATOR_QUEUE=negative-filter-control
       - END_SERVICE_EXCHANGE=negative-exchange-control
@@ -1256,7 +1255,7 @@ services:
       - OUTPUT_ROUTER_TAGS=1,2,3 # Affect filter_english and JoinnerQuery5
       - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
       - DIRECT_SUBSCRIBER_QUEUE=negative-filter-input-queue
-      - DIRECT_SUBSCRIBER_KEYS=review
+      - DIRECT_SUBSCRIBER_KEYS=review,EndNegative
       - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
       - END_SERVICE_COORDINATOR_QUEUE=negative-filter-control
       - END_SERVICE_EXCHANGE=negative-exchange-control
@@ -1282,14 +1281,14 @@ services:
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
       - EXPECTED_NODES=4
+      - PROPAGATE_TAGS=EndNegative
       - TRANSACTION_LOG_FILE=coordinator-negative.log
       - OUTPUT_TYPE=direct
       - INPUT_WORKER_QUEUE=negative-filter-control
       - INPUT_WORKER_QUEUE_TIMEOUT=5
       - INPUT_WORKER_QUEUE_COUNT=1
-      - DIRECT_PUBLISHER_EXCHANGE=negative-filter-exchange
+      - DIRECT_PUBLISHER_EXCHANGE=projection-output-exchange
       - DIRECT_PUBLISHER_TIMEOUT=5
-      - OUTPUT_ROUTER_TAGS=1,2,3 # Affects Joinner Query 3
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
@@ -1317,7 +1316,7 @@ services:
       - OUTPUT_ROUTER_TAGS=1,2,3 # Affects JoinnerQuery4
       - DIRECT_SUBSCRIBER_EXCHANGES=negative-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=english-filter-input-queue
-      - DIRECT_SUBSCRIBER_KEYS=1,2,3
+      - DIRECT_SUBSCRIBER_KEYS=1,2,3,EndEnglish
       - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
       - END_SERVICE_COORDINATOR_QUEUE=english-filter-control
       - END_SERVICE_EXCHANGE=english-exchange-control
@@ -1348,7 +1347,7 @@ services:
       - OUTPUT_ROUTER_TAGS=1,2,3 # Affects JoinnerQuery4
       - DIRECT_SUBSCRIBER_EXCHANGES=negative-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=english-filter-input-queue
-      - DIRECT_SUBSCRIBER_KEYS=1,2,3
+      - DIRECT_SUBSCRIBER_KEYS=1,2,3,EndEnglish
       - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
       - END_SERVICE_COORDINATOR_QUEUE=english-filter-control
       - END_SERVICE_EXCHANGE=english-exchange-control
@@ -1379,7 +1378,7 @@ services:
       - OUTPUT_ROUTER_TAGS=1,2,3 # Affects JoinnerQuery4
       - DIRECT_SUBSCRIBER_EXCHANGES=negative-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=english-filter-input-queue
-      - DIRECT_SUBSCRIBER_KEYS=1,2,3
+      - DIRECT_SUBSCRIBER_KEYS=1,2,3,EndEnglish
       - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
       - END_SERVICE_COORDINATOR_QUEUE=english-filter-control
       - END_SERVICE_EXCHANGE=english-exchange-control
@@ -1410,7 +1409,7 @@ services:
       - OUTPUT_ROUTER_TAGS=1,2,3 # Affects JoinnerQuery4
       - DIRECT_SUBSCRIBER_EXCHANGES=negative-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=english-filter-input-queue
-      - DIRECT_SUBSCRIBER_KEYS=1,2,3
+      - DIRECT_SUBSCRIBER_KEYS=1,2,3,EndEnglish
       - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
       - END_SERVICE_COORDINATOR_QUEUE=english-filter-control
       - END_SERVICE_EXCHANGE=english-exchange-control
@@ -1441,7 +1440,7 @@ services:
       - OUTPUT_ROUTER_TAGS=1,2,3 # Affects JoinnerQuery4
       - DIRECT_SUBSCRIBER_EXCHANGES=negative-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=english-filter-input-queue
-      - DIRECT_SUBSCRIBER_KEYS=1,2,3
+      - DIRECT_SUBSCRIBER_KEYS=1,2,3,EndEnglish
       - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
       - END_SERVICE_COORDINATOR_QUEUE=english-filter-control
       - END_SERVICE_EXCHANGE=english-exchange-control
@@ -1472,7 +1471,7 @@ services:
       - OUTPUT_ROUTER_TAGS=1,2,3 # Affects JoinnerQuery4
       - DIRECT_SUBSCRIBER_EXCHANGES=negative-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=english-filter-input-queue
-      - DIRECT_SUBSCRIBER_KEYS=1,2,3
+      - DIRECT_SUBSCRIBER_KEYS=1,2,3,EndEnglish
       - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
       - END_SERVICE_COORDINATOR_QUEUE=english-filter-control
       - END_SERVICE_EXCHANGE=english-exchange-control
@@ -1503,7 +1502,7 @@ services:
       - OUTPUT_ROUTER_TAGS=1,2,3 # Affects JoinnerQuery4
       - DIRECT_SUBSCRIBER_EXCHANGES=negative-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=english-filter-input-queue
-      - DIRECT_SUBSCRIBER_KEYS=1,2,3
+      - DIRECT_SUBSCRIBER_KEYS=1,2,3,EndEnglish
       - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
       - END_SERVICE_COORDINATOR_QUEUE=english-filter-control
       - END_SERVICE_EXCHANGE=english-exchange-control
@@ -1534,7 +1533,7 @@ services:
       - OUTPUT_ROUTER_TAGS=1,2,3 # Affects JoinnerQuery4
       - DIRECT_SUBSCRIBER_EXCHANGES=negative-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=english-filter-input-queue
-      - DIRECT_SUBSCRIBER_KEYS=1,2,3
+      - DIRECT_SUBSCRIBER_KEYS=1,2,3,EndEnglish
       - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
       - END_SERVICE_COORDINATOR_QUEUE=english-filter-control
       - END_SERVICE_EXCHANGE=english-exchange-control
@@ -1560,14 +1559,14 @@ services:
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
       - EXPECTED_NODES=8
+      - PROPAGATE_TAGS=EndEnglish
       - TRANSACTION_LOG_FILE=coordinator-english.log
       - OUTPUT_TYPE=direct
       - INPUT_WORKER_QUEUE=english-filter-control
       - INPUT_WORKER_QUEUE_TIMEOUT=5
       - INPUT_WORKER_QUEUE_COUNT=1
-      - DIRECT_PUBLISHER_EXCHANGE=english-filter-exchange
+      - DIRECT_PUBLISHER_EXCHANGE=negative-filter-exchange
       - DIRECT_PUBLISHER_TIMEOUT=5
-      - OUTPUT_ROUTER_TAGS=1,2,3
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
@@ -1595,7 +1594,7 @@ services:
       - OUTPUT_ROUTER_TAGS=1 
       - DIRECT_SUBSCRIBER_EXCHANGES=action-filter-exchange,english-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=q4-joiner-input-queue-1
-      - DIRECT_SUBSCRIBER_KEYS=1
+      - DIRECT_SUBSCRIBER_KEYS=1,EndQuery4
       - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
       - END_SERVICE_COORDINATOR_QUEUE=joiner-query4-control
       - END_SERVICE_EXCHANGE=joiner-query4-exchange-control
@@ -1628,7 +1627,7 @@ services:
       - OUTPUT_ROUTER_TAGS=1 
       - DIRECT_SUBSCRIBER_EXCHANGES=action-filter-exchange,english-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=q4-joiner-input-queue-2
-      - DIRECT_SUBSCRIBER_KEYS=2
+      - DIRECT_SUBSCRIBER_KEYS=2,EndQuery4
       - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
       - END_SERVICE_COORDINATOR_QUEUE=joiner-query4-control
       - END_SERVICE_EXCHANGE=joiner-query4-exchange-control
@@ -1661,7 +1660,7 @@ services:
       - OUTPUT_ROUTER_TAGS=1 
       - DIRECT_SUBSCRIBER_EXCHANGES=action-filter-exchange,english-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=q4-joiner-input-queue-3
-      - DIRECT_SUBSCRIBER_KEYS=3
+      - DIRECT_SUBSCRIBER_KEYS=3,EndQuery4
       - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
       - END_SERVICE_COORDINATOR_QUEUE=joiner-query4-control
       - END_SERVICE_EXCHANGE=joiner-query4-exchange-control
@@ -1682,21 +1681,21 @@ services:
     build:
       context: ./
       dockerfile: cmd/Dockerfile
-    entrypoint: /cmd/coordinator
+    entrypoint: /cmd/joinercoordinator
     environment:
       - RABBITMQ_HOSTNAME=rabbitmq
       - RABBITMQ_PORT=5672
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
       - EXPECTED_NODES=3
+      - PROPAGATE_TAGS=EndQuery4
       - TRANSACTION_LOG_FILE=coordinator-joiner-query4.log
       - OUTPUT_TYPE=direct
       - INPUT_WORKER_QUEUE=joiner-query4-control
       - INPUT_WORKER_QUEUE_TIMEOUT=5
       - INPUT_WORKER_QUEUE_COUNT=1
-      - DIRECT_PUBLISHER_EXCHANGE=counter-5000-exchange
+      - DIRECT_PUBLISHER_EXCHANGE=english-filter-exchange
       - DIRECT_PUBLISHER_TIMEOUT=5
-      - OUTPUT_ROUTER_TAGS=1 # Affects Joinner Query 4
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
@@ -1750,7 +1749,7 @@ services:
       - OUTPUT_ROUTER_TAGS=1 # Affects percentil
       - DIRECT_SUBSCRIBER_EXCHANGES=action-filter-exchange,negative-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=q5-joiner-input-queue-1
-      - DIRECT_SUBSCRIBER_KEYS=1
+      - DIRECT_SUBSCRIBER_KEYS=1,EndQuery5
       - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
       - END_SERVICE_COORDINATOR_QUEUE=joiner-query5-control
       - END_SERVICE_EXCHANGE=joiner-query5-exchange-control
@@ -1783,7 +1782,7 @@ services:
       - OUTPUT_ROUTER_TAGS=1 # Affects percentil
       - DIRECT_SUBSCRIBER_EXCHANGES=action-filter-exchange,negative-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=q5-joiner-input-queue-2
-      - DIRECT_SUBSCRIBER_KEYS=2
+      - DIRECT_SUBSCRIBER_KEYS=2,EndQuery5
       - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
       - END_SERVICE_COORDINATOR_QUEUE=joiner-query5-control
       - END_SERVICE_EXCHANGE=joiner-query5-exchange-control
@@ -1816,7 +1815,7 @@ services:
       - OUTPUT_ROUTER_TAGS=1 # Affects percentil
       - DIRECT_SUBSCRIBER_EXCHANGES=action-filter-exchange,negative-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=q5-joiner-input-queue-3
-      - DIRECT_SUBSCRIBER_KEYS=3
+      - DIRECT_SUBSCRIBER_KEYS=3,EndQuery5
       - DIRECT_SUBSCRIBER_PREFETCH_COUNT=5000
       - END_SERVICE_COORDINATOR_QUEUE=joiner-query5-control
       - END_SERVICE_EXCHANGE=joiner-query5-exchange-control
@@ -1837,21 +1836,21 @@ services:
     build:
       context: ./
       dockerfile: cmd/Dockerfile
-    entrypoint: /cmd/coordinator
+    entrypoint: /cmd/joinercoordinator
     environment:
       - RABBITMQ_HOSTNAME=rabbitmq
       - RABBITMQ_PORT=5672
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
       - EXPECTED_NODES=3
+      - PROPAGATE_TAGS=EndQuery5
       - TRANSACTION_LOG_FILE=coordinator-joiner-query5.log
       - OUTPUT_TYPE=direct
       - INPUT_WORKER_QUEUE=joiner-query5-control
       - INPUT_WORKER_QUEUE_TIMEOUT=5
       - INPUT_WORKER_QUEUE_COUNT=1
-      - DIRECT_PUBLISHER_EXCHANGE=counter-percentil-exchange
+      - DIRECT_PUBLISHER_EXCHANGE=negative-filter-exchange
       - DIRECT_PUBLISHER_TIMEOUT=5
-      - OUTPUT_ROUTER_TAGS=1 # Affects Joinner Query 5
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net

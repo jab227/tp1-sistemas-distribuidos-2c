@@ -217,10 +217,8 @@ Exit:
 				e.State = leader.StateElecting
 				break Exit
 			}
-			slog.Debug("monitoring ", "retries", retries)
 		case msg := <-reader:
 			body := msg.GetBody()
-			slog.Debug("monitoring", "body", body)
 			var electionMessage leader.ElectionMessage
 			electionMessage.Unmarshal(body)
 			switch electionMessage.Type {
@@ -517,10 +515,9 @@ func CheckLeader(node string, port int, timeout time.Duration) bool {
 	}
 
 	// Set Timeout for recv the node response and wait to recv
-	response, _, err := ReadOkMSG(conn, timeout)
+	_, _, err = ReadOkMSG(conn, timeout)
 	if err != nil {
 		return false
 	}
-	slog.Debug("received response from node", "node", node, "response", response)
 	return true
 }

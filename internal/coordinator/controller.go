@@ -6,8 +6,8 @@ import (
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/controllers"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/middlewares/client"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/protocol"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/utils"
 	"log/slog"
-	"time"
 )
 
 type EndCoordinatorController struct {
@@ -16,11 +16,12 @@ type EndCoordinatorController struct {
 
 	state         EndState
 	numberOfNodes uint32
+	propagateTags []string
 
 	done chan struct{}
 }
 
-func NewEndCoordinatorController(output client.OutputType, numberOfNodes uint32) (*EndCoordinatorController, error) {
+func NewEndCoordinatorController(output client.OutputType, numberOfNodes uint32, propagateTags []string) (*EndCoordinatorController, error) {
 	io := client.IOManager{}
 	if err := io.Connect(client.InputWorker, output); err != nil {
 		return nil, fmt.Errorf("error initializing IOManager %s", err)
@@ -31,6 +32,7 @@ func NewEndCoordinatorController(output client.OutputType, numberOfNodes uint32)
 		io:            io,
 		state:         *NewEndState(numberOfNodes),
 		numberOfNodes: numberOfNodes,
+		propagateTags: propagateTags,
 		done:          make(chan struct{}),
 	}, nil
 }
@@ -72,12 +74,15 @@ func (c *EndCoordinatorController) Run(ctx context.Context, logFile string) erro
 						endMsg := protocol.NewEndMessage(protocol.Games, protocol.MessageOptions{
 							MessageID: msg.GetMessageID(),
 							ClientID:  msg.GetClientID(),
-							RequestID: msg.GetRequestID(),
+							RequestID: utils.MagicNumber,
 						})
-						<-time.After(5 * time.Second)
-						slog.Info("Propagating END games", "counter", len(c.state.Games))
-						if err := c.io.Write(endMsg.Marshal(), "game"); err != nil {
-							return fmt.Errorf("couldn't write end message: %w", err)
+						// <-time.After(5 * time.Second)
+
+						for _, tag := range c.propagateTags {
+							slog.Info("Propagating END games", "counter", len(c.state.Games), "requestId", msg.GetRequestID(), "tag", tag)
+							if err := c.io.Write(endMsg.Marshal(), tag); err != nil {
+								return fmt.Errorf("couldn't write end message: %w", err)
+							}
 						}
 
 						// Reset state and add it to the sent clientIds
@@ -109,12 +114,15 @@ func (c *EndCoordinatorController) Run(ctx context.Context, logFile string) erro
 						endMsg := protocol.NewEndMessage(protocol.Reviews, protocol.MessageOptions{
 							MessageID: msg.GetMessageID(),
 							ClientID:  msg.GetClientID(),
-							RequestID: msg.GetRequestID(),
+							RequestID: utils.MagicNumber,
 						})
-						<-time.After(8 * time.Second)
-						slog.Info("Propagating END reviews", "counter", len(c.state.Reviews))
-						if err := c.io.Write(endMsg.Marshal(), "review"); err != nil {
-							return fmt.Errorf("couldn't write end message: %w", err)
+						// <-time.After(8 * time.Second)
+
+						for _, tag := range c.propagateTags {
+							slog.Info("Propagating END reviews", "counter", len(c.state.Reviews), "requestId", endMsg.GetRequestID(), "tag", tag)
+							if err := c.io.Write(endMsg.Marshal(), tag); err != nil {
+								return fmt.Errorf("couldn't write end message: %w", err)
+							}
 						}
 
 						// Reset state and add it to the sent clientIds

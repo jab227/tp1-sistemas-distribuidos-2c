@@ -25,19 +25,6 @@ import (
 // TODO - Fede delete now
 var endJoinerSupervisor = make(map[uint32]bool)
 
-// type EndSet byte
-// type EndType byte
-
-// const (
-// 	EndTypeGames   EndType = 0b01
-// 	EndTypeReviews EndType = 0b10
-// 	EndTypeAll     EndType = 0b11
-// )
-
-// func (e *EndSet) Set(t EndType) {
-// 	*e |= EndSet(t)
-// }
-
 func HasBoth(set map[protocol.DataType]struct{}) bool {
 	_, hasGamesEnd := set[protocol.Games]
 	_, hasReviewsEnd := set[protocol.Reviews]
@@ -182,7 +169,7 @@ func (j *Joiner) Run(ctx context.Context) error {
 				}
 				log.Append(storeData, uint32(TXNBatch))
 
-				if err := processBatch(currentBatch, joinerStateStore, service); err != nil {
+				if err := j.processBatch(currentBatch, joinerStateStore, service); err != nil {
 					return err
 				}
 				if err := log.Commit(); err != nil {
@@ -211,14 +198,6 @@ func (j *Joiner) Run(ctx context.Context) error {
 					delivery.RecvDelivery.Ack(false)
 					continue
 				}
-				slog.Debug("join and send data")
-				err = joinAndSend(j, &state, protocol.MessageOptions{
-					ClientID:  clientID,
-					RequestID: msg.GetRequestID(),
-				})
-				if err != nil {
-					return err
-				}
 				slog.Debug("notifying coordinator")
 				msg = protocol.NewEndMessage(protocol.Reviews, protocol.MessageOptions{
 					MessageID: msg.GetMessageID(),
@@ -226,7 +205,6 @@ func (j *Joiner) Run(ctx context.Context) error {
 					RequestID: msg.GetRequestID(),
 				})
 				service.NotifyCoordinator(msg)
-				joinerStateStore.Delete(clientID)
 				if err := log.Commit(); err != nil {
 					return fmt.Errorf("couldn't commit to disk: %w", err)
 				}
@@ -244,7 +222,7 @@ func (j *Joiner) Run(ctx context.Context) error {
 				return err
 			}
 			log.Append(storeData, uint32(TXNBatch))
-			if err := processBatch(currentBatch, joinerStateStore, service); err != nil {
+			if err := j.processBatch(currentBatch, joinerStateStore, service); err != nil {
 				return err
 			}
 			if err := log.Commit(); err != nil {
@@ -257,7 +235,7 @@ func (j *Joiner) Run(ctx context.Context) error {
 	}
 }
 
-func processBatch(batch []protocol.Message, joinerStateStore store.Store[joinerState], service *end.Service) error {
+func (j *Joiner) processBatch(batch []protocol.Message, joinerStateStore store.Store[joinerState], service *end.Service) error {
 	for _, m := range batch {
 		//TODO FEDE - Delete
 		if value, ok := endJoinerSupervisor[m.GetClientID()]; ok && value {
@@ -275,7 +253,41 @@ func processBatch(batch []protocol.Message, joinerStateStore store.Store[joinerS
 			}
 			joinerStateStore.Set(clientID, state)
 		} else if m.ExpectKind(protocol.End) {
-			service.NotifyNeighbours(m)
+			if m.GetRequestID() == utils.MagicNumber {
+				slog.Debug("End Msg with propagate number obtained", "clientId", m.GetClientID(), "requestId", m.GetRequestID())
+				slog.Debug("join and send data")
+				state, ok := joinerStateStore.Get(clientID)
+				if !ok {
+					state.Reset()
+				}
+				if err := joinAndSend(j, &state, protocol.MessageOptions{
+					ClientID:  clientID,
+					RequestID: m.GetRequestID(),
+				}); err != nil {
+					return err
+				}
+				service.NotifyCoordinator(m)
+			} else if m.GetRequestID() == utils.MagicNumber2 {
+				if service.NodeId == 1 {
+					routerTag := "review"
+					dataType := protocol.Reviews
+					if m.HasGameData() {
+						dataType = protocol.Games
+						routerTag = "game"
+					}
+					slog.Debug("End Msg with propagate number sending", "router", routerTag, "clientId", m.GetClientID(), "requestId", m.GetRequestID())
+					endMsg := protocol.NewEndMessage(dataType, protocol.MessageOptions{
+						ClientID:  m.GetClientID(),
+						MessageID: m.GetMessageID(),
+						RequestID: m.GetRequestID(),
+					})
+					if err := j.io.Write(endMsg.Marshal(), routerTag); err != nil {
+						return fmt.Errorf("couldn't write end message: %w", err)
+					}
+				}
+			} else {
+				service.NotifyNeighbours(m)
+			}
 		} else {
 			return fmt.Errorf("unexpected message type: %s", m.GetMessageType())
 		}
