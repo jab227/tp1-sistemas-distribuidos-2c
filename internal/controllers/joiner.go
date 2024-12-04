@@ -25,33 +25,36 @@ import (
 // TODO - Fede delete now
 var endJoinerSupervisor = make(map[uint32]bool)
 
-type EndSet byte
-type EndType byte
+// type EndSet byte
+// type EndType byte
 
-const (
-	EndTypeGames   EndType = 0b01
-	EndTypeReviews EndType = 0b10
-	EndTypeAll     EndType = 0b11
-)
+// const (
+// 	EndTypeGames   EndType = 0b01
+// 	EndTypeReviews EndType = 0b10
+// 	EndTypeAll     EndType = 0b11
+// )
 
-func (e *EndSet) Set(t EndType) {
-	*e |= EndSet(t)
-}
+// func (e *EndSet) Set(t EndType) {
+// 	*e |= EndSet(t)
+// }
 
-func (e EndSet) HasBoth() bool {
-	return e == EndSet(EndTypeAll)
+func HasBoth(set map[protocol.DataType]struct{}) bool {
+	_, hasGamesEnd := set[protocol.Games]
+	_, hasReviewsEnd := set[protocol.Reviews]
+	return hasGamesEnd && hasReviewsEnd
 }
 
 type joinerState struct {
 	Games   map[string]models.Game
 	Reviews map[string]map[uint32]struct{}
-	Ends    EndSet
+	Ends    map[protocol.DataType]struct{}
 }
 
 func (j *joinerState) Reset() {
 	*j = joinerState{
 		Games:   make(map[string]models.Game),
 		Reviews: make(map[string]map[uint32]struct{}),
+		Ends:    make(map[protocol.DataType]struct{}),
 	}
 }
 
@@ -131,31 +134,13 @@ func reloadJoiner() (store.Store[joinerState], *persistence.TransactionLog, erro
 		err = fmt.Errorf("couldn't unmarshal log: %w", err)
 		return stateStore, log, err
 	}
-	for _, entry := range log.GetLog() {
-		switch TXN(entry.Kind) {
-		case TXNEnd:
-			var endMessage protocol.Message
-			if err := endMessage.Unmarshal(entry.Data); err != nil {
-				return stateStore, log, err
-			}
-			utils.Assert(endMessage.ExpectKind(protocol.End), "expected end message")
-			clientID := endMessage.GetClientID()
-			state, ok := stateStore.Get(clientID)
-			if !ok {
-				state.Reset()
-			}
-			state.Ends.Set(chooseEndType(endMessage))
-			// if the second end is already in disk it
-			// means that the data was already sent and we
-			// can delete the client from the store
-			if state.Ends.HasBoth() {
-				stateStore.Delete(endMessage.GetClientID())
-			}
-		case TXNBatch:
-			stateStore, err = UnmarshalStore(entry.Data)
-			if err != nil {
-				return stateStore, log, err
-			}
+	transactionLog := log.GetLog()
+	last := transactionLog[len(transactionLog)-1]
+	switch TXN(last.Kind) {
+	case TXNBatch:
+		stateStore, err = UnmarshalStore(last.Data)
+		if err != nil {
+			return stateStore, log, err
 		}
 	}
 	return stateStore, log, nil
@@ -207,13 +192,18 @@ func (j *Joiner) Run(ctx context.Context) error {
 			} else if delivery.SenderType == end.SenderNeighbour {
 				slog.Debug("got from neighbour", "clientId", msg.GetClientID())
 				clientID := msg.GetClientID()
-				log.Append(msg.Marshal(), uint32(TXNEnd))
 				state, ok := joinerStateStore.Get(clientID)
 				if !ok {
 					state.Reset()
 				}
-				state.Ends.Set(chooseEndType(msg))
-				if !state.Ends.HasBoth() {
+				//				state.Ends.Set(chooseEndType(msg))
+				state.Ends[chooseEndType(msg)] = struct{}{}
+				data, err := MarshalStore(joinerStateStore)
+				if err != nil {
+					return err
+				}
+				log.Append(data, uint32(TXNBatch))
+				if !HasBoth(state.Ends) {
 					if err := log.Commit(); err != nil {
 						return fmt.Errorf("couldn't commit to disk: %w", err)
 					}
@@ -222,7 +212,7 @@ func (j *Joiner) Run(ctx context.Context) error {
 					continue
 				}
 				slog.Debug("join and send data")
-				err := joinAndSend(j, &state, protocol.MessageOptions{
+				err = joinAndSend(j, &state, protocol.MessageOptions{
 					ClientID:  clientID,
 					RequestID: msg.GetRequestID(),
 				})
@@ -336,11 +326,11 @@ func handleDataMessage(msg protocol.Message, s *joinerState, elements *protocol.
 	return nil
 }
 
-func chooseEndType(msg protocol.Message) EndType {
+func chooseEndType(msg protocol.Message) protocol.DataType {
 	if msg.HasGameData() {
-		return EndTypeGames
+		return protocol.Games
 	} else if msg.HasReviewData() {
-		return EndTypeReviews
+		return protocol.Reviews
 	} else {
 		panic("shouldn't happen because there isn't another data type")
 	}

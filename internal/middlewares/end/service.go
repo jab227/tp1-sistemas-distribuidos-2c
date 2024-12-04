@@ -173,7 +173,9 @@ func (s *Service) NotifyCoordinator(endMessage protocol.Message) {
 		RequestID: endMessage.GetRequestID(),
 	})
 
-	s.coordinator.Write(msgToSend.Marshal(), "")
+	if err := s.coordinator.Write(msgToSend.Marshal(), ""); err != nil {
+		slog.Error("error sending notify coordinator", err)
+	}
 }
 
 func (s *Service) NotifyNeighbours(endMessage protocol.Message) {
@@ -193,5 +195,7 @@ func (s *Service) NotifyNeighbours(endMessage protocol.Message) {
 		RequestID: endMessage.GetRequestID(),
 	})
 
-	s.fanoutPub.Write(msgToSend.Marshal(), "")
+	if err := s.fanoutPub.Write(msgToSend.Marshal(), ""); err != nil {
+		slog.Error("error sending notify neighbours", err)
+	}
 }

@@ -199,7 +199,12 @@ func (c *Client) RecvResults() error {
 					continue
 				}
 				appIdsProcessed[appId] = struct{}{}
-				result := queryFields[1]
+				var result string
+				if len(queryFields) > 2 {
+					result = queryFields[1]
+				} else {
+					result = ""
+				}
 				fmt.Fprintf(os.Stdout, "%d: %s\n", i+1, result)
 			}
 			queriesReceived[cprotocol.Query4] = struct{}{}
