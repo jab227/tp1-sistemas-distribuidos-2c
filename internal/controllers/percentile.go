@@ -103,7 +103,7 @@ func (r *Percentile) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	batcher := batch.NewBatcher(50)
+	batcher := batch.NewBatcher(1000)
 	for {
 		select {
 		case delivery := <-consumerCh:

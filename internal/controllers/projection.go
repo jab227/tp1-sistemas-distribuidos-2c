@@ -54,7 +54,7 @@ func (p *Projection) Run(ctx context.Context) error {
 	}
 	ch := service.MergeConsumers(consumerChan)
 
-	batcher := batch.NewBatcher(10000)
+	batcher := batch.NewBatcher(8500)
 	for {
 		select {
 		case delivery := <-ch:

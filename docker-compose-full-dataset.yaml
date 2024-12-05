@@ -10,9 +10,9 @@ services:
       RABBITMQ_DEFAULT_PASS: password
     healthcheck:
       test: [ "CMD", "rabbitmqctl", "status" ]
-      interval: 15s
-      timeout: 10s
-      retries: 5
+      interval: 60s
+      timeout: 3600s
+      retries: 250
     networks:
       - rabbitmq_go_net
 
@@ -28,11 +28,11 @@ services:
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
       - DIRECT_PUBLISHER_EXCHANGE=boundary-exchange
-      - DIRECT_PUBLISHER_TIMEOUT=5
-      - OUTPUT_ROUTER_TAGS=0,1,2,3,4,5 #affects projection
+      - DIRECT_PUBLISHER_TIMEOUT=3600
+      - OUTPUT_ROUTER_TAGS=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23 #affects projection
       - ROUTER_TYPE=round-robin
       - INPUT_WORKER_QUEUE=output-queue
-      - INPUT_WORKER_QUEUE_TIMEOUT=5
+      - INPUT_WORKER_QUEUE_TIMEOUT=3600
       - INPUT_WORKER_QUEUE_COUNT=1
       - SERVER_PORT=7070
       - SERVER_HOST=0.0.0.0
@@ -137,13 +137,13 @@ services:
       - DIRECT_SUBSCRIBER_PREFETCH_COUNT=8500
       - DIRECT_SUBSCRIBER_KEYS=0
       - DIRECT_PUBLISHER_EXCHANGE=projection-output-exchange
-      - DIRECT_PUBLISHER_TIMEOUT=5
+      - DIRECT_PUBLISHER_TIMEOUT=3600
       - OUTPUT_ROUTER_TAGS=game,review      
       - LOGGER_LEVEL=debug
       - END_SERVICE_COORDINATOR_QUEUE=projection-control
       - END_SERVICE_EXCHANGE=projection-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=projection-peer-queue-0
-      - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_TIMEOUT=3600
       - END_SERVICE_NODE_ID=1
       - ROUTER_TYPE=game-review      
     networks:
@@ -167,13 +167,13 @@ services:
       - DIRECT_SUBSCRIBER_PREFETCH_COUNT=8500
       - DIRECT_SUBSCRIBER_KEYS=1
       - DIRECT_PUBLISHER_EXCHANGE=projection-output-exchange
-      - DIRECT_PUBLISHER_TIMEOUT=5
+      - DIRECT_PUBLISHER_TIMEOUT=3600
       - OUTPUT_ROUTER_TAGS=game,review      
       - LOGGER_LEVEL=debug
       - END_SERVICE_COORDINATOR_QUEUE=projection-control
       - END_SERVICE_EXCHANGE=projection-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=projection-peer-queue-1
-      - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_TIMEOUT=3600
       - END_SERVICE_NODE_ID=2
       - ROUTER_TYPE=game-review      
     networks:
@@ -198,13 +198,13 @@ services:
       - DIRECT_SUBSCRIBER_PREFETCH_COUNT=8500
       - DIRECT_SUBSCRIBER_KEYS=2
       - DIRECT_PUBLISHER_EXCHANGE=projection-output-exchange
-      - DIRECT_PUBLISHER_TIMEOUT=5
+      - DIRECT_PUBLISHER_TIMEOUT=3600
       - OUTPUT_ROUTER_TAGS=game,review      
       - LOGGER_LEVEL=debug
       - END_SERVICE_COORDINATOR_QUEUE=projection-control
       - END_SERVICE_EXCHANGE=projection-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=projection-peer-queue-2
-      - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_TIMEOUT=3600
       - END_SERVICE_NODE_ID=3
       - ROUTER_TYPE=game-review
     networks:
@@ -229,13 +229,13 @@ services:
       - DIRECT_SUBSCRIBER_PREFETCH_COUNT=8500
       - DIRECT_SUBSCRIBER_KEYS=3
       - DIRECT_PUBLISHER_EXCHANGE=projection-output-exchange
-      - DIRECT_PUBLISHER_TIMEOUT=5
+      - DIRECT_PUBLISHER_TIMEOUT=3600
       - OUTPUT_ROUTER_TAGS=game,review      
       - LOGGER_LEVEL=debug
       - END_SERVICE_COORDINATOR_QUEUE=projection-control
       - END_SERVICE_EXCHANGE=projection-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=projection-peer-queue-3
-      - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_TIMEOUT=3600
       - END_SERVICE_NODE_ID=4
       - ROUTER_TYPE=game-review
     networks:
@@ -260,14 +260,14 @@ services:
       - DIRECT_SUBSCRIBER_PREFETCH_COUNT=8500
       - DIRECT_SUBSCRIBER_KEYS=4
       - DIRECT_PUBLISHER_EXCHANGE=projection-output-exchange
-      - DIRECT_PUBLISHER_TIMEOUT=5
+      - DIRECT_PUBLISHER_TIMEOUT=3600
       - OUTPUT_ROUTER_TAGS=game,review      
       - LOGGER_LEVEL=debug
       - END_SERVICE_COORDINATOR_QUEUE=projection-control
       - END_SERVICE_EXCHANGE=projection-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=projection-peer-queue-4
       - END_SERVICE_NODE_ID=5
-      - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_TIMEOUT=3600
       - ROUTER_TYPE=game-review
     networks:
       - rabbitmq_go_net
@@ -291,15 +291,571 @@ services:
       - DIRECT_SUBSCRIBER_PREFETCH_COUNT=8500
       - DIRECT_SUBSCRIBER_KEYS=5
       - DIRECT_PUBLISHER_EXCHANGE=projection-output-exchange
-      - DIRECT_PUBLISHER_TIMEOUT=5
+      - DIRECT_PUBLISHER_TIMEOUT=3600
       - OUTPUT_ROUTER_TAGS=game,review
       - LOGGER_LEVEL=debug
       - END_SERVICE_COORDINATOR_QUEUE=projection-control
       - END_SERVICE_EXCHANGE=projection-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=projection-peer-queue-5
-      - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_TIMEOUT=3600
       - END_SERVICE_NODE_ID=6
       - ROUTER_TYPE=game-review
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+        
+  projection6:
+    container_name: projection6
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/projection
+    environment:
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - DIRECT_SUBSCRIBER_EXCHANGES=boundary-exchange
+      - DIRECT_SUBSCRIBER_QUEUE=projection-input-queue-6
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=8500
+      - DIRECT_SUBSCRIBER_KEYS=6
+      - DIRECT_PUBLISHER_EXCHANGE=projection-output-exchange
+      - DIRECT_PUBLISHER_TIMEOUT=3600
+      - OUTPUT_ROUTER_TAGS=game,review      
+      - LOGGER_LEVEL=debug
+      - END_SERVICE_COORDINATOR_QUEUE=projection-control
+      - END_SERVICE_EXCHANGE=projection-exchange-control
+      - END_SERVICE_SUBSCRIBER_QUEUE=projection-peer-queue-6
+      - END_SERVICE_TIMEOUT=3600
+      - END_SERVICE_NODE_ID=7
+      - ROUTER_TYPE=game-review      
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  projection7:
+    container_name: projection7
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/projection
+    environment:
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - DIRECT_SUBSCRIBER_EXCHANGES=boundary-exchange
+      - DIRECT_SUBSCRIBER_QUEUE=projection-input-queue-7
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=8500
+      - DIRECT_SUBSCRIBER_KEYS=7
+      - DIRECT_PUBLISHER_EXCHANGE=projection-output-exchange
+      - DIRECT_PUBLISHER_TIMEOUT=3600
+      - OUTPUT_ROUTER_TAGS=game,review      
+      - LOGGER_LEVEL=debug
+      - END_SERVICE_COORDINATOR_QUEUE=projection-control
+      - END_SERVICE_EXCHANGE=projection-exchange-control
+      - END_SERVICE_SUBSCRIBER_QUEUE=projection-peer-queue-7
+      - END_SERVICE_TIMEOUT=3600
+      - END_SERVICE_NODE_ID=8
+      - ROUTER_TYPE=game-review      
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy        
+
+  projection8:
+    container_name: projection8
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/projection
+    environment:
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - DIRECT_SUBSCRIBER_EXCHANGES=boundary-exchange
+      - DIRECT_SUBSCRIBER_QUEUE=projection-input-queue-8
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=8500
+      - DIRECT_SUBSCRIBER_KEYS=8
+      - DIRECT_PUBLISHER_EXCHANGE=projection-output-exchange
+      - DIRECT_PUBLISHER_TIMEOUT=3600
+      - OUTPUT_ROUTER_TAGS=game,review      
+      - LOGGER_LEVEL=debug
+      - END_SERVICE_COORDINATOR_QUEUE=projection-control
+      - END_SERVICE_EXCHANGE=projection-exchange-control
+      - END_SERVICE_SUBSCRIBER_QUEUE=projection-peer-queue-8
+      - END_SERVICE_TIMEOUT=3600
+      - END_SERVICE_NODE_ID=9
+      - ROUTER_TYPE=game-review      
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+        
+  projection9:
+    container_name: projection9
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/projection
+    environment:
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - DIRECT_SUBSCRIBER_EXCHANGES=boundary-exchange
+      - DIRECT_SUBSCRIBER_QUEUE=projection-input-queue-9
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=8500
+      - DIRECT_SUBSCRIBER_KEYS=9
+      - DIRECT_PUBLISHER_EXCHANGE=projection-output-exchange
+      - DIRECT_PUBLISHER_TIMEOUT=3600
+      - OUTPUT_ROUTER_TAGS=game,review      
+      - LOGGER_LEVEL=debug
+      - END_SERVICE_COORDINATOR_QUEUE=projection-control
+      - END_SERVICE_EXCHANGE=projection-exchange-control
+      - END_SERVICE_SUBSCRIBER_QUEUE=projection-peer-queue-9
+      - END_SERVICE_TIMEOUT=3600
+      - END_SERVICE_NODE_ID=10
+      - ROUTER_TYPE=game-review      
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+        
+  projection10:
+    container_name: projection10
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/projection
+    environment:
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - DIRECT_SUBSCRIBER_EXCHANGES=boundary-exchange
+      - DIRECT_SUBSCRIBER_QUEUE=projection-input-queue-10
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=8500
+      - DIRECT_SUBSCRIBER_KEYS=10
+      - DIRECT_PUBLISHER_EXCHANGE=projection-output-exchange
+      - DIRECT_PUBLISHER_TIMEOUT=3600
+      - OUTPUT_ROUTER_TAGS=game,review      
+      - LOGGER_LEVEL=debug
+      - END_SERVICE_COORDINATOR_QUEUE=projection-control
+      - END_SERVICE_EXCHANGE=projection-exchange-control
+      - END_SERVICE_SUBSCRIBER_QUEUE=projection-peer-queue-10
+      - END_SERVICE_TIMEOUT=3600
+      - END_SERVICE_NODE_ID=11
+      - ROUTER_TYPE=game-review      
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+  projection11:
+    container_name: projection11
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/projection
+    environment:
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - DIRECT_SUBSCRIBER_EXCHANGES=boundary-exchange
+      - DIRECT_SUBSCRIBER_QUEUE=projection-input-queue-11
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=8500
+      - DIRECT_SUBSCRIBER_KEYS=11
+      - DIRECT_PUBLISHER_EXCHANGE=projection-output-exchange
+      - DIRECT_PUBLISHER_TIMEOUT=3600
+      - OUTPUT_ROUTER_TAGS=game,review      
+      - LOGGER_LEVEL=debug
+      - END_SERVICE_COORDINATOR_QUEUE=projection-control
+      - END_SERVICE_EXCHANGE=projection-exchange-control
+      - END_SERVICE_SUBSCRIBER_QUEUE=projection-peer-queue-11
+      - END_SERVICE_TIMEOUT=3600
+      - END_SERVICE_NODE_ID=12
+      - ROUTER_TYPE=game-review      
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy        
+
+  projection12:
+    container_name: projection12
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/projection
+    environment:
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - DIRECT_SUBSCRIBER_EXCHANGES=boundary-exchange
+      - DIRECT_SUBSCRIBER_QUEUE=projection-input-queue-12
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=8500
+      - DIRECT_SUBSCRIBER_KEYS=13
+      - DIRECT_PUBLISHER_EXCHANGE=projection-output-exchange
+      - DIRECT_PUBLISHER_TIMEOUT=3600
+      - OUTPUT_ROUTER_TAGS=game,review      
+      - LOGGER_LEVEL=debug
+      - END_SERVICE_COORDINATOR_QUEUE=projection-control
+      - END_SERVICE_EXCHANGE=projection-exchange-control
+      - END_SERVICE_SUBSCRIBER_QUEUE=projection-peer-queue-12
+      - END_SERVICE_TIMEOUT=3600
+      - END_SERVICE_NODE_ID=13
+      - ROUTER_TYPE=game-review      
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  projection13:
+    container_name: projection13
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/projection
+    environment:
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - DIRECT_SUBSCRIBER_EXCHANGES=boundary-exchange
+      - DIRECT_SUBSCRIBER_QUEUE=projection-input-queue-13
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=8500
+      - DIRECT_SUBSCRIBER_KEYS=13
+      - DIRECT_PUBLISHER_EXCHANGE=projection-output-exchange
+      - DIRECT_PUBLISHER_TIMEOUT=3600
+      - OUTPUT_ROUTER_TAGS=game,review      
+      - LOGGER_LEVEL=debug
+      - END_SERVICE_COORDINATOR_QUEUE=projection-control
+      - END_SERVICE_EXCHANGE=projection-exchange-control
+      - END_SERVICE_SUBSCRIBER_QUEUE=projection-peer-queue-13
+      - END_SERVICE_TIMEOUT=3600
+      - END_SERVICE_NODE_ID=14
+      - ROUTER_TYPE=game-review      
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  projection14:
+    container_name: projection14
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/projection
+    environment:
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - DIRECT_SUBSCRIBER_EXCHANGES=boundary-exchange
+      - DIRECT_SUBSCRIBER_QUEUE=projection-input-queue-14
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=8500
+      - DIRECT_SUBSCRIBER_KEYS=14
+      - DIRECT_PUBLISHER_EXCHANGE=projection-output-exchange
+      - DIRECT_PUBLISHER_TIMEOUT=3600
+      - OUTPUT_ROUTER_TAGS=game,review      
+      - LOGGER_LEVEL=debug
+      - END_SERVICE_COORDINATOR_QUEUE=projection-control
+      - END_SERVICE_EXCHANGE=projection-exchange-control
+      - END_SERVICE_SUBSCRIBER_QUEUE=projection-peer-queue-14
+      - END_SERVICE_TIMEOUT=3600
+      - END_SERVICE_NODE_ID=15
+      - ROUTER_TYPE=game-review      
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  projection15:
+    container_name: projection15
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/projection
+    environment:
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - DIRECT_SUBSCRIBER_EXCHANGES=boundary-exchange
+      - DIRECT_SUBSCRIBER_QUEUE=projection-input-queue-15
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=8500
+      - DIRECT_SUBSCRIBER_KEYS=15
+      - DIRECT_PUBLISHER_EXCHANGE=projection-output-exchange
+      - DIRECT_PUBLISHER_TIMEOUT=3600
+      - OUTPUT_ROUTER_TAGS=game,review      
+      - LOGGER_LEVEL=debug
+      - END_SERVICE_COORDINATOR_QUEUE=projection-control
+      - END_SERVICE_EXCHANGE=projection-exchange-control
+      - END_SERVICE_SUBSCRIBER_QUEUE=projection-peer-queue-15
+      - END_SERVICE_TIMEOUT=3600
+      - END_SERVICE_NODE_ID=16
+      - ROUTER_TYPE=game-review      
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+        
+  projection16:
+    container_name: projection16
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/projection
+    environment:
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - DIRECT_SUBSCRIBER_EXCHANGES=boundary-exchange
+      - DIRECT_SUBSCRIBER_QUEUE=projection-input-queue-16
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=8500
+      - DIRECT_SUBSCRIBER_KEYS=16
+      - DIRECT_PUBLISHER_EXCHANGE=projection-output-exchange
+      - DIRECT_PUBLISHER_TIMEOUT=3600
+      - OUTPUT_ROUTER_TAGS=game,review      
+      - LOGGER_LEVEL=debug
+      - END_SERVICE_COORDINATOR_QUEUE=projection-control
+      - END_SERVICE_EXCHANGE=projection-exchange-control
+      - END_SERVICE_SUBSCRIBER_QUEUE=projection-peer-queue-16
+      - END_SERVICE_TIMEOUT=3600
+      - END_SERVICE_NODE_ID=17
+      - ROUTER_TYPE=game-review      
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+        
+  projection17:
+    container_name: projection17
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/projection
+    environment:
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - DIRECT_SUBSCRIBER_EXCHANGES=boundary-exchange
+      - DIRECT_SUBSCRIBER_QUEUE=projection-input-queue-17
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=8500
+      - DIRECT_SUBSCRIBER_KEYS=17
+      - DIRECT_PUBLISHER_EXCHANGE=projection-output-exchange
+      - DIRECT_PUBLISHER_TIMEOUT=3600
+      - OUTPUT_ROUTER_TAGS=game,review      
+      - LOGGER_LEVEL=debug
+      - END_SERVICE_COORDINATOR_QUEUE=projection-control
+      - END_SERVICE_EXCHANGE=projection-exchange-control
+      - END_SERVICE_SUBSCRIBER_QUEUE=projection-peer-queue-17
+      - END_SERVICE_TIMEOUT=3600
+      - END_SERVICE_NODE_ID=18
+      - ROUTER_TYPE=game-review      
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  projection18:
+    container_name: projection18
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/projection
+    environment:
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - DIRECT_SUBSCRIBER_EXCHANGES=boundary-exchange
+      - DIRECT_SUBSCRIBER_QUEUE=projection-input-queue-18
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=8500
+      - DIRECT_SUBSCRIBER_KEYS=18
+      - DIRECT_PUBLISHER_EXCHANGE=projection-output-exchange
+      - DIRECT_PUBLISHER_TIMEOUT=3600
+      - OUTPUT_ROUTER_TAGS=game,review      
+      - LOGGER_LEVEL=debug
+      - END_SERVICE_COORDINATOR_QUEUE=projection-control
+      - END_SERVICE_EXCHANGE=projection-exchange-control
+      - END_SERVICE_SUBSCRIBER_QUEUE=projection-peer-queue-18
+      - END_SERVICE_TIMEOUT=3600
+      - END_SERVICE_NODE_ID=19
+      - ROUTER_TYPE=game-review      
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  projection19:
+    container_name: projection19
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/projection
+    environment:
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - DIRECT_SUBSCRIBER_EXCHANGES=boundary-exchange
+      - DIRECT_SUBSCRIBER_QUEUE=projection-input-queue-19
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=8500
+      - DIRECT_SUBSCRIBER_KEYS=19
+      - DIRECT_PUBLISHER_EXCHANGE=projection-output-exchange
+      - DIRECT_PUBLISHER_TIMEOUT=3600
+      - OUTPUT_ROUTER_TAGS=game,review      
+      - LOGGER_LEVEL=debug
+      - END_SERVICE_COORDINATOR_QUEUE=projection-control
+      - END_SERVICE_EXCHANGE=projection-exchange-control
+      - END_SERVICE_SUBSCRIBER_QUEUE=projection-peer-queue-19
+      - END_SERVICE_TIMEOUT=3600
+      - END_SERVICE_NODE_ID=20
+      - ROUTER_TYPE=game-review      
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+        
+  projection20:
+    container_name: projection20
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/projection
+    environment:
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - DIRECT_SUBSCRIBER_EXCHANGES=boundary-exchange
+      - DIRECT_SUBSCRIBER_QUEUE=projection-input-queue-20
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=8500
+      - DIRECT_SUBSCRIBER_KEYS=20
+      - DIRECT_PUBLISHER_EXCHANGE=projection-output-exchange
+      - DIRECT_PUBLISHER_TIMEOUT=3600
+      - OUTPUT_ROUTER_TAGS=game,review      
+      - LOGGER_LEVEL=debug
+      - END_SERVICE_COORDINATOR_QUEUE=projection-control
+      - END_SERVICE_EXCHANGE=projection-exchange-control
+      - END_SERVICE_SUBSCRIBER_QUEUE=projection-peer-queue-20
+      - END_SERVICE_TIMEOUT=3600
+      - END_SERVICE_NODE_ID=21
+      - ROUTER_TYPE=game-review      
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  projection21:
+    container_name: projection21
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/projection
+    environment:
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - DIRECT_SUBSCRIBER_EXCHANGES=boundary-exchange
+      - DIRECT_SUBSCRIBER_QUEUE=projection-input-queue-21
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=8500
+      - DIRECT_SUBSCRIBER_KEYS=21
+      - DIRECT_PUBLISHER_EXCHANGE=projection-output-exchange
+      - DIRECT_PUBLISHER_TIMEOUT=3600
+      - OUTPUT_ROUTER_TAGS=game,review      
+      - LOGGER_LEVEL=debug
+      - END_SERVICE_COORDINATOR_QUEUE=projection-control
+      - END_SERVICE_EXCHANGE=projection-exchange-control
+      - END_SERVICE_SUBSCRIBER_QUEUE=projection-peer-queue-21
+      - END_SERVICE_TIMEOUT=3600
+      - END_SERVICE_NODE_ID=22
+      - ROUTER_TYPE=game-review      
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+  projection22:
+    container_name: projection22
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/projection
+    environment:
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - DIRECT_SUBSCRIBER_EXCHANGES=boundary-exchange
+      - DIRECT_SUBSCRIBER_QUEUE=projection-input-queue-22
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=8500
+      - DIRECT_SUBSCRIBER_KEYS=22
+      - DIRECT_PUBLISHER_EXCHANGE=projection-output-exchange
+      - DIRECT_PUBLISHER_TIMEOUT=3600
+      - OUTPUT_ROUTER_TAGS=game,review      
+      - LOGGER_LEVEL=debug
+      - END_SERVICE_COORDINATOR_QUEUE=projection-control
+      - END_SERVICE_EXCHANGE=projection-exchange-control
+      - END_SERVICE_SUBSCRIBER_QUEUE=projection-peer-queue-22
+      - END_SERVICE_TIMEOUT=3600
+      - END_SERVICE_NODE_ID=23
+      - ROUTER_TYPE=game-review      
+    networks:
+      - rabbitmq_go_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+        
+  projection23:
+    container_name: projection23
+    build:
+      context: ./
+      dockerfile: cmd/Dockerfile
+    entrypoint: /cmd/projection
+    environment:
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=user
+      - RABBITMQ_PASSWORD=password
+      - DIRECT_SUBSCRIBER_EXCHANGES=boundary-exchange
+      - DIRECT_SUBSCRIBER_QUEUE=projection-input-queue-23
+      - DIRECT_SUBSCRIBER_PREFETCH_COUNT=8500
+      - DIRECT_SUBSCRIBER_KEYS=23
+      - DIRECT_PUBLISHER_EXCHANGE=projection-output-exchange
+      - DIRECT_PUBLISHER_TIMEOUT=3600
+      - OUTPUT_ROUTER_TAGS=game,review      
+      - LOGGER_LEVEL=debug
+      - END_SERVICE_COORDINATOR_QUEUE=projection-control
+      - END_SERVICE_EXCHANGE=projection-exchange-control
+      - END_SERVICE_SUBSCRIBER_QUEUE=projection-peer-queue-23
+      - END_SERVICE_TIMEOUT=3600
+      - END_SERVICE_NODE_ID=24
+      - ROUTER_TYPE=game-review      
     networks:
       - rabbitmq_go_net
     depends_on:
@@ -317,15 +873,15 @@ services:
       - RABBITMQ_PORT=5672
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
-      - EXPECTED_NODES=6
+      - EXPECTED_NODES=24
       - PROPAGATE_TAGS=1
       - TRANSACTION_LOG_FILE=coordinator-projection.log
       - OUTPUT_TYPE=direct
       - INPUT_WORKER_QUEUE=projection-control
-      - INPUT_WORKER_QUEUE_TIMEOUT=5
+      - INPUT_WORKER_QUEUE_TIMEOUT=3600
       - INPUT_WORKER_QUEUE_COUNT=1
       - DIRECT_PUBLISHER_EXCHANGE=boundary-exchange
-      - DIRECT_PUBLISHER_TIMEOUT=5
+      - DIRECT_PUBLISHER_TIMEOUT=3600
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
@@ -349,7 +905,7 @@ services:
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
       - OUTPUT_WORKER_QUEUE=output-queue
-      - OUTPUT_WORKER_QUEUE_TIMEOUT=5
+      - OUTPUT_WORKER_QUEUE_TIMEOUT=3600
       - OUTPUT_WORKER_QUEUE_COUNT=1
       - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
       - DIRECT_SUBSCRIBER_QUEUE=os-counter-input-queue
@@ -378,7 +934,7 @@ services:
       - RABBITMQ_PASSWORD=password
       - FILTER_NAME=indieFilter
       - DIRECT_PUBLISHER_EXCHANGE=indie-filter-exchange
-      - DIRECT_PUBLISHER_TIMEOUT=5
+      - DIRECT_PUBLISHER_TIMEOUT=3600
       - OUTPUT_ROUTER_TAGS=1,2,3,4,5,6,7,8 # Affects filter_decade and JoinnerQuery3      
       - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
       - DIRECT_SUBSCRIBER_QUEUE=indie-genre-filter-input-queue
@@ -387,7 +943,7 @@ services:
       - END_SERVICE_COORDINATOR_QUEUE=indie-filter-control
       - END_SERVICE_EXCHANGE=indie-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=indie-peer-queue-1
-      - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_TIMEOUT=3600
       - END_SERVICE_NODE_ID=1
       - LOGGER_LEVEL=debug
     networks:
@@ -409,7 +965,7 @@ services:
       - RABBITMQ_PASSWORD=password
       - FILTER_NAME=indieFilter
       - DIRECT_PUBLISHER_EXCHANGE=indie-filter-exchange
-      - DIRECT_PUBLISHER_TIMEOUT=5
+      - DIRECT_PUBLISHER_TIMEOUT=3600
       - OUTPUT_ROUTER_TAGS=1,2,3,4,5,6,7,8 # Affects filter_decade and JoinnerQuery3      
       - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
       - DIRECT_SUBSCRIBER_QUEUE=indie-genre-filter-input-queue
@@ -418,7 +974,7 @@ services:
       - END_SERVICE_COORDINATOR_QUEUE=indie-filter-control
       - END_SERVICE_EXCHANGE=indie-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=indie-peer-queue-2
-      - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_TIMEOUT=3600
       - END_SERVICE_NODE_ID=2
       - LOGGER_LEVEL=debug
     networks:
@@ -443,10 +999,10 @@ services:
       - TRANSACTION_LOG_FILE=coordinator-indie.log
       - OUTPUT_TYPE=direct
       - INPUT_WORKER_QUEUE=indie-filter-control
-      - INPUT_WORKER_QUEUE_TIMEOUT=5
+      - INPUT_WORKER_QUEUE_TIMEOUT=3600
       - INPUT_WORKER_QUEUE_COUNT=1
       - DIRECT_PUBLISHER_EXCHANGE=projection-output-exchange
-      - DIRECT_PUBLISHER_TIMEOUT=5
+      - DIRECT_PUBLISHER_TIMEOUT=3600
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
@@ -470,7 +1026,7 @@ services:
       - RABBITMQ_PASSWORD=password
       - FILTER_NAME=decadeFilter
       - OUTPUT_WORKER_QUEUE=decade-filter-output-queue
-      - OUTPUT_WORKER_QUEUE_TIMEOUT=5
+      - OUTPUT_WORKER_QUEUE_TIMEOUT=3600
       - OUTPUT_WORKER_QUEUE_COUNT=1
       - DIRECT_SUBSCRIBER_EXCHANGES=indie-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=decade-filter-input-queue
@@ -479,7 +1035,7 @@ services:
       - END_SERVICE_COORDINATOR_QUEUE=decade-filter-control
       - END_SERVICE_EXCHANGE=decade-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=decade-peer-queue-1
-      - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_TIMEOUT=3600
       - END_SERVICE_NODE_ID=1
       - LOGGER_LEVEL=debug
     networks:
@@ -501,7 +1057,7 @@ services:
       - RABBITMQ_PASSWORD=password
       - FILTER_NAME=decadeFilter
       - OUTPUT_WORKER_QUEUE=decade-filter-output-queue
-      - OUTPUT_WORKER_QUEUE_TIMEOUT=5
+      - OUTPUT_WORKER_QUEUE_TIMEOUT=3600
       - OUTPUT_WORKER_QUEUE_COUNT=1
       - DIRECT_SUBSCRIBER_EXCHANGES=indie-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=decade-filter-input-queue
@@ -510,7 +1066,7 @@ services:
       - END_SERVICE_COORDINATOR_QUEUE=decade-filter-control
       - END_SERVICE_EXCHANGE=decade-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=decade-peer-queue-2
-      - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_TIMEOUT=3600
       - END_SERVICE_NODE_ID=2
       - LOGGER_LEVEL=debug
     networks:
@@ -535,10 +1091,10 @@ services:
       - TRANSACTION_LOG_FILE=coordinator-decade.log
       - OUTPUT_TYPE=direct
       - INPUT_WORKER_QUEUE=decade-filter-control
-      - INPUT_WORKER_QUEUE_TIMEOUT=5
+      - INPUT_WORKER_QUEUE_TIMEOUT=3600
       - INPUT_WORKER_QUEUE_COUNT=1
       - DIRECT_PUBLISHER_EXCHANGE=indie-filter-exchange
-      - DIRECT_PUBLISHER_TIMEOUT=5
+      - DIRECT_PUBLISHER_TIMEOUT=3600
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
@@ -561,10 +1117,10 @@ services:
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
       - OUTPUT_WORKER_QUEUE=output-queue
-      - OUTPUT_WORKER_QUEUE_TIMEOUT=5
+      - OUTPUT_WORKER_QUEUE_TIMEOUT=3600
       - OUTPUT_WORKER_QUEUE_COUNT=1
       - INPUT_WORKER_QUEUE=decade-filter-output-queue
-      - INPUT_WORKER_QUEUE_TIMEOUT=5
+      - INPUT_WORKER_QUEUE_TIMEOUT=3600
       - INPUT_WORKER_QUEUE_COUNT=3000
       - LOGGER_LEVEL=debug
       - N_VALUE=10
@@ -590,7 +1146,7 @@ services:
       - RABBITMQ_PASSWORD=password
       - FILTER_NAME=positiveFilter
       - DIRECT_PUBLISHER_EXCHANGE=positive-filter-exchange
-      - DIRECT_PUBLISHER_TIMEOUT=5
+      - DIRECT_PUBLISHER_TIMEOUT=3600
       - OUTPUT_ROUTER_TAGS=1,2,3,4,5,6,7,8 # Affects Joinner Query 3      
       - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
       - DIRECT_SUBSCRIBER_QUEUE=positive-filter-input-queue
@@ -599,7 +1155,7 @@ services:
       - END_SERVICE_COORDINATOR_QUEUE=positive-filter-control
       - END_SERVICE_EXCHANGE=positive-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=positive-peer-queue-1
-      - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_TIMEOUT=3600
       - END_SERVICE_NODE_ID=1
       - LOGGER_LEVEL=debug
     networks:
@@ -621,7 +1177,7 @@ services:
       - RABBITMQ_PASSWORD=password
       - FILTER_NAME=positiveFilter
       - DIRECT_PUBLISHER_EXCHANGE=positive-filter-exchange
-      - DIRECT_PUBLISHER_TIMEOUT=5
+      - DIRECT_PUBLISHER_TIMEOUT=3600
       - OUTPUT_ROUTER_TAGS=1,2,3,4,5,6,7,8 # Affects Joinner Query 3      
       - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
       - DIRECT_SUBSCRIBER_QUEUE=positive-filter-input-queue
@@ -630,7 +1186,7 @@ services:
       - END_SERVICE_COORDINATOR_QUEUE=positive-filter-control
       - END_SERVICE_EXCHANGE=positive-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=positive-peer-queue-2
-      - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_TIMEOUT=3600
       - END_SERVICE_NODE_ID=2
       - LOGGER_LEVEL=debug
     networks:
@@ -652,7 +1208,7 @@ services:
       - RABBITMQ_PASSWORD=password
       - FILTER_NAME=positiveFilter
       - DIRECT_PUBLISHER_EXCHANGE=positive-filter-exchange
-      - DIRECT_PUBLISHER_TIMEOUT=5
+      - DIRECT_PUBLISHER_TIMEOUT=3600
       - OUTPUT_ROUTER_TAGS=1,2,3,4,5,6,7,8 # Affects Joinner Query 3      
       - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
       - DIRECT_SUBSCRIBER_QUEUE=positive-filter-input-queue
@@ -661,7 +1217,7 @@ services:
       - END_SERVICE_COORDINATOR_QUEUE=positive-filter-control
       - END_SERVICE_EXCHANGE=positive-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=positive-peer-queue-3
-      - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_TIMEOUT=3600
       - END_SERVICE_NODE_ID=3
       - LOGGER_LEVEL=debug
     networks:
@@ -683,7 +1239,7 @@ services:
       - RABBITMQ_PASSWORD=password
       - FILTER_NAME=positiveFilter
       - DIRECT_PUBLISHER_EXCHANGE=positive-filter-exchange
-      - DIRECT_PUBLISHER_TIMEOUT=5
+      - DIRECT_PUBLISHER_TIMEOUT=3600
       - OUTPUT_ROUTER_TAGS=1,2,3,4,5,6,7,8 # Affects Joinner Query 3
       - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
       - DIRECT_SUBSCRIBER_QUEUE=positive-filter-input-queue
@@ -692,7 +1248,7 @@ services:
       - END_SERVICE_COORDINATOR_QUEUE=positive-filter-control
       - END_SERVICE_EXCHANGE=positive-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=positive-peer-queue-4
-      - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_TIMEOUT=3600
       - END_SERVICE_NODE_ID=4
       - LOGGER_LEVEL=debug
     networks:
@@ -717,10 +1273,10 @@ services:
       - TRANSACTION_LOG_FILE=coordinator-positive.log
       - OUTPUT_TYPE=direct
       - INPUT_WORKER_QUEUE=positive-filter-control
-      - INPUT_WORKER_QUEUE_TIMEOUT=5
+      - INPUT_WORKER_QUEUE_TIMEOUT=3600
       - INPUT_WORKER_QUEUE_COUNT=1
       - DIRECT_PUBLISHER_EXCHANGE=projection-output-exchange
-      - DIRECT_PUBLISHER_TIMEOUT=5
+      - DIRECT_PUBLISHER_TIMEOUT=3600
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
@@ -744,7 +1300,7 @@ services:
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
       - DIRECT_PUBLISHER_EXCHANGE=top-5-exchange
-      - DIRECT_PUBLISHER_TIMEOUT=5
+      - DIRECT_PUBLISHER_TIMEOUT=3600
       - OUTPUT_ROUTER_TAGS=1 # Affects Top5
       - DIRECT_SUBSCRIBER_EXCHANGES=indie-filter-exchange,positive-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=q3-joiner-input-queue-1
@@ -753,7 +1309,7 @@ services:
       - END_SERVICE_COORDINATOR_QUEUE=joiner-query3-control
       - END_SERVICE_EXCHANGE=joiner-query3-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=joiner-query3-peer-queue-1
-      - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_TIMEOUT=3600
       - END_SERVICE_NODE_ID=1
       - LOGGER_LEVEL=debug
     networks:
@@ -776,7 +1332,7 @@ services:
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
       - DIRECT_PUBLISHER_EXCHANGE=top-5-exchange
-      - DIRECT_PUBLISHER_TIMEOUT=5
+      - DIRECT_PUBLISHER_TIMEOUT=3600
       - OUTPUT_ROUTER_TAGS=1 # Affects Top5
       - DIRECT_SUBSCRIBER_EXCHANGES=indie-filter-exchange,positive-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=q3-joiner-input-queue-2
@@ -785,7 +1341,7 @@ services:
       - END_SERVICE_COORDINATOR_QUEUE=joiner-query3-control
       - END_SERVICE_EXCHANGE=joiner-query3-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=joiner-query3-peer-queue-2
-      - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_TIMEOUT=3600
       - END_SERVICE_NODE_ID=2
       - LOGGER_LEVEL=debug
     networks:
@@ -809,7 +1365,7 @@ services:
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
       - DIRECT_PUBLISHER_EXCHANGE=top-5-exchange
-      - DIRECT_PUBLISHER_TIMEOUT=5
+      - DIRECT_PUBLISHER_TIMEOUT=3600
       - OUTPUT_ROUTER_TAGS=1 # Affects Top5
       - DIRECT_SUBSCRIBER_EXCHANGES=indie-filter-exchange,positive-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=q3-joiner-input-queue-3
@@ -818,7 +1374,7 @@ services:
       - END_SERVICE_COORDINATOR_QUEUE=joiner-query3-control
       - END_SERVICE_EXCHANGE=joiner-query3-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=joiner-query3-peer-queue-3
-      - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_TIMEOUT=3600
       - END_SERVICE_NODE_ID=3
       - LOGGER_LEVEL=debug
     networks:
@@ -842,7 +1398,7 @@ services:
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
       - DIRECT_PUBLISHER_EXCHANGE=top-5-exchange
-      - DIRECT_PUBLISHER_TIMEOUT=5
+      - DIRECT_PUBLISHER_TIMEOUT=3600
       - OUTPUT_ROUTER_TAGS=1 # Affects Top5
       - DIRECT_SUBSCRIBER_EXCHANGES=indie-filter-exchange,positive-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=q3-joiner-input-queue-4
@@ -851,7 +1407,7 @@ services:
       - END_SERVICE_COORDINATOR_QUEUE=joiner-query3-control
       - END_SERVICE_EXCHANGE=joiner-query3-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=joiner-query3-peer-queue-4
-      - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_TIMEOUT=3600
       - END_SERVICE_NODE_ID=4
       - LOGGER_LEVEL=info
     networks:
@@ -874,7 +1430,7 @@ services:
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
       - DIRECT_PUBLISHER_EXCHANGE=top-5-exchange
-      - DIRECT_PUBLISHER_TIMEOUT=5
+      - DIRECT_PUBLISHER_TIMEOUT=3600
       - OUTPUT_ROUTER_TAGS=1 # Affects Top5
       - DIRECT_SUBSCRIBER_EXCHANGES=indie-filter-exchange,positive-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=q3-joiner-input-queue-5
@@ -883,7 +1439,7 @@ services:
       - END_SERVICE_COORDINATOR_QUEUE=joiner-query3-control
       - END_SERVICE_EXCHANGE=joiner-query3-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=joiner-query3-peer-queue-5
-      - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_TIMEOUT=3600
       - END_SERVICE_NODE_ID=5
       - LOGGER_LEVEL=info
     networks:
@@ -907,7 +1463,7 @@ services:
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
       - DIRECT_PUBLISHER_EXCHANGE=top-5-exchange
-      - DIRECT_PUBLISHER_TIMEOUT=5
+      - DIRECT_PUBLISHER_TIMEOUT=3600
       - OUTPUT_ROUTER_TAGS=1 # Affects Top5
       - DIRECT_SUBSCRIBER_EXCHANGES=indie-filter-exchange,positive-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=q3-joiner-input-queue-6
@@ -916,7 +1472,7 @@ services:
       - END_SERVICE_COORDINATOR_QUEUE=joiner-query3-control
       - END_SERVICE_EXCHANGE=joiner-query3-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=joiner-query3-peer-queue-6
-      - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_TIMEOUT=3600
       - END_SERVICE_NODE_ID=6
       - LOGGER_LEVEL=info
     networks:
@@ -940,7 +1496,7 @@ services:
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
       - DIRECT_PUBLISHER_EXCHANGE=top-5-exchange
-      - DIRECT_PUBLISHER_TIMEOUT=5
+      - DIRECT_PUBLISHER_TIMEOUT=3600
       - OUTPUT_ROUTER_TAGS=1 # Affects Top5
       - DIRECT_SUBSCRIBER_EXCHANGES=indie-filter-exchange,positive-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=q3-joiner-input-queue-7
@@ -949,7 +1505,7 @@ services:
       - END_SERVICE_COORDINATOR_QUEUE=joiner-query3-control
       - END_SERVICE_EXCHANGE=joiner-query3-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=joiner-query3-peer-queue-7
-      - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_TIMEOUT=3600
       - END_SERVICE_NODE_ID=7
       - LOGGER_LEVEL=info
     networks:
@@ -973,7 +1529,7 @@ services:
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
       - DIRECT_PUBLISHER_EXCHANGE=top-5-exchange
-      - DIRECT_PUBLISHER_TIMEOUT=5
+      - DIRECT_PUBLISHER_TIMEOUT=3600
       - OUTPUT_ROUTER_TAGS=1 # Affects Top5
       - DIRECT_SUBSCRIBER_EXCHANGES=indie-filter-exchange,positive-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=q3-joiner-input-queue-8
@@ -982,7 +1538,7 @@ services:
       - END_SERVICE_COORDINATOR_QUEUE=joiner-query3-control
       - END_SERVICE_EXCHANGE=joiner-query3-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=joiner-query3-peer-queue-8
-      - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_TIMEOUT=3600
       - END_SERVICE_NODE_ID=8
       - LOGGER_LEVEL=info
     networks:
@@ -1009,10 +1565,10 @@ services:
       - TRANSACTION_LOG_FILE=coordinator-joiner-query3.log
       - OUTPUT_TYPE=direct
       - INPUT_WORKER_QUEUE=joiner-query3-control
-      - INPUT_WORKER_QUEUE_TIMEOUT=5
+      - INPUT_WORKER_QUEUE_TIMEOUT=3600
       - INPUT_WORKER_QUEUE_COUNT=1
       - DIRECT_PUBLISHER_EXCHANGE=positive-filter-exchange
-      - DIRECT_PUBLISHER_TIMEOUT=5
+      - DIRECT_PUBLISHER_TIMEOUT=3600
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
@@ -1035,7 +1591,7 @@ services:
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
       - OUTPUT_WORKER_QUEUE=output-queue
-      - OUTPUT_WORKER_QUEUE_TIMEOUT=5
+      - OUTPUT_WORKER_QUEUE_TIMEOUT=3600
       - OUTPUT_WORKER_QUEUE_COUNT=3000
       - DIRECT_SUBSCRIBER_EXCHANGES=top-5-exchange
       - DIRECT_SUBSCRIBER_QUEUE=top5-input-queue-1
@@ -1065,7 +1621,7 @@ services:
       - RABBITMQ_PASSWORD=password
       - FILTER_NAME=actionFilter
       - DIRECT_PUBLISHER_EXCHANGE=action-filter-exchange
-      - DIRECT_PUBLISHER_TIMEOUT=5
+      - DIRECT_PUBLISHER_TIMEOUT=3600
       - OUTPUT_ROUTER_TAGS=1,2,3 # Affects JoinnerQuery 4 and Joinner Query 5
       - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
       - DIRECT_SUBSCRIBER_QUEUE=action-genre-filter-input-queue
@@ -1074,7 +1630,7 @@ services:
       - END_SERVICE_COORDINATOR_QUEUE=action-filter-control
       - END_SERVICE_EXCHANGE=action-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=action-peer-queue-1
-      - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_TIMEOUT=3600
       - END_SERVICE_NODE_ID=1
       - LOGGER_LEVEL=debug
     networks:
@@ -1096,7 +1652,7 @@ services:
       - RABBITMQ_PASSWORD=password
       - FILTER_NAME=actionFilter
       - DIRECT_PUBLISHER_EXCHANGE=action-filter-exchange
-      - DIRECT_PUBLISHER_TIMEOUT=5
+      - DIRECT_PUBLISHER_TIMEOUT=3600
       - OUTPUT_ROUTER_TAGS=1,2,3 # Affects JoinnerQuery 4 and Joinner Query 5
       - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
       - DIRECT_SUBSCRIBER_QUEUE=action-genre-filter-input-queue
@@ -1105,7 +1661,7 @@ services:
       - END_SERVICE_COORDINATOR_QUEUE=action-filter-control
       - END_SERVICE_EXCHANGE=action-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=action-peer-queue-2
-      - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_TIMEOUT=3600
       - END_SERVICE_NODE_ID=2
       - LOGGER_LEVEL=debug
     networks:
@@ -1130,10 +1686,10 @@ services:
       - TRANSACTION_LOG_FILE=coordinator-action.log
       - OUTPUT_TYPE=direct
       - INPUT_WORKER_QUEUE=action-filter-control
-      - INPUT_WORKER_QUEUE_TIMEOUT=5
+      - INPUT_WORKER_QUEUE_TIMEOUT=3600
       - INPUT_WORKER_QUEUE_COUNT=1
       - DIRECT_PUBLISHER_EXCHANGE=projection-output-exchange
-      - DIRECT_PUBLISHER_TIMEOUT=5
+      - DIRECT_PUBLISHER_TIMEOUT=3600
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
@@ -1157,7 +1713,7 @@ services:
       - RABBITMQ_PASSWORD=password
       - FILTER_NAME=negativeFilter
       - DIRECT_PUBLISHER_EXCHANGE=negative-filter-exchange
-      - DIRECT_PUBLISHER_TIMEOUT=5
+      - DIRECT_PUBLISHER_TIMEOUT=3600
       - OUTPUT_ROUTER_TAGS=1,2,3 # Affect filter_english and JoinnerQuery5
       - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
       - DIRECT_SUBSCRIBER_QUEUE=negative-filter-input-queue
@@ -1166,7 +1722,7 @@ services:
       - END_SERVICE_COORDINATOR_QUEUE=negative-filter-control
       - END_SERVICE_EXCHANGE=negative-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=negative-peer-queue-1
-      - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_TIMEOUT=3600
       - END_SERVICE_NODE_ID=1
       - LOGGER_LEVEL=debug
     networks:
@@ -1188,7 +1744,7 @@ services:
       - RABBITMQ_PASSWORD=password
       - FILTER_NAME=negativeFilter
       - DIRECT_PUBLISHER_EXCHANGE=negative-filter-exchange
-      - DIRECT_PUBLISHER_TIMEOUT=5
+      - DIRECT_PUBLISHER_TIMEOUT=3600
       - OUTPUT_ROUTER_TAGS=1,2,3 # Affect filter_english and JoinnerQuery5
       - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
       - DIRECT_SUBSCRIBER_QUEUE=negative-filter-input-queue
@@ -1197,7 +1753,7 @@ services:
       - END_SERVICE_COORDINATOR_QUEUE=negative-filter-control
       - END_SERVICE_EXCHANGE=negative-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=negative-peer-queue-2
-      - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_TIMEOUT=3600
       - END_SERVICE_NODE_ID=2
       - LOGGER_LEVEL=debug
     networks:
@@ -1219,7 +1775,7 @@ services:
       - RABBITMQ_PASSWORD=password
       - FILTER_NAME=negativeFilter
       - DIRECT_PUBLISHER_EXCHANGE=negative-filter-exchange
-      - DIRECT_PUBLISHER_TIMEOUT=5
+      - DIRECT_PUBLISHER_TIMEOUT=3600
       - OUTPUT_ROUTER_TAGS=1,2,3 # Affect filter_english and JoinnerQuery5
       - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
       - DIRECT_SUBSCRIBER_QUEUE=negative-filter-input-queue
@@ -1228,7 +1784,7 @@ services:
       - END_SERVICE_COORDINATOR_QUEUE=negative-filter-control
       - END_SERVICE_EXCHANGE=negative-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=negative-peer-queue-3
-      - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_TIMEOUT=3600
       - END_SERVICE_NODE_ID=3
       - LOGGER_LEVEL=debug
     networks:
@@ -1251,7 +1807,7 @@ services:
       - RABBITMQ_PASSWORD=password
       - FILTER_NAME=negativeFilter
       - DIRECT_PUBLISHER_EXCHANGE=negative-filter-exchange
-      - DIRECT_PUBLISHER_TIMEOUT=5
+      - DIRECT_PUBLISHER_TIMEOUT=3600
       - OUTPUT_ROUTER_TAGS=1,2,3 # Affect filter_english and JoinnerQuery5
       - DIRECT_SUBSCRIBER_EXCHANGES=projection-output-exchange
       - DIRECT_SUBSCRIBER_QUEUE=negative-filter-input-queue
@@ -1260,7 +1816,7 @@ services:
       - END_SERVICE_COORDINATOR_QUEUE=negative-filter-control
       - END_SERVICE_EXCHANGE=negative-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=negative-peer-queue-4
-      - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_TIMEOUT=3600
       - END_SERVICE_NODE_ID=4
       - LOGGER_LEVEL=debug
     networks:
@@ -1285,10 +1841,10 @@ services:
       - TRANSACTION_LOG_FILE=coordinator-negative.log
       - OUTPUT_TYPE=direct
       - INPUT_WORKER_QUEUE=negative-filter-control
-      - INPUT_WORKER_QUEUE_TIMEOUT=5
+      - INPUT_WORKER_QUEUE_TIMEOUT=3600
       - INPUT_WORKER_QUEUE_COUNT=1
       - DIRECT_PUBLISHER_EXCHANGE=projection-output-exchange
-      - DIRECT_PUBLISHER_TIMEOUT=5
+      - DIRECT_PUBLISHER_TIMEOUT=3600
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
@@ -1312,7 +1868,7 @@ services:
       - RABBITMQ_PASSWORD=password
       - FILTER_NAME=englishFilter
       - DIRECT_PUBLISHER_EXCHANGE=english-filter-exchange
-      - DIRECT_PUBLISHER_TIMEOUT=5
+      - DIRECT_PUBLISHER_TIMEOUT=3600
       - OUTPUT_ROUTER_TAGS=1,2,3 # Affects JoinnerQuery4
       - DIRECT_SUBSCRIBER_EXCHANGES=negative-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=english-filter-input-queue
@@ -1321,7 +1877,7 @@ services:
       - END_SERVICE_COORDINATOR_QUEUE=english-filter-control
       - END_SERVICE_EXCHANGE=english-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=english-peer-queue-1
-      - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_TIMEOUT=3600
       - END_SERVICE_NODE_ID=1
       - LOGGER_LEVEL=debug
     networks:
@@ -1343,7 +1899,7 @@ services:
       - RABBITMQ_PASSWORD=password
       - FILTER_NAME=englishFilter
       - DIRECT_PUBLISHER_EXCHANGE=english-filter-exchange
-      - DIRECT_PUBLISHER_TIMEOUT=5
+      - DIRECT_PUBLISHER_TIMEOUT=3600
       - OUTPUT_ROUTER_TAGS=1,2,3 # Affects JoinnerQuery4
       - DIRECT_SUBSCRIBER_EXCHANGES=negative-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=english-filter-input-queue
@@ -1352,7 +1908,7 @@ services:
       - END_SERVICE_COORDINATOR_QUEUE=english-filter-control
       - END_SERVICE_EXCHANGE=english-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=english-peer-queue-2
-      - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_TIMEOUT=3600
       - END_SERVICE_NODE_ID=2
       - LOGGER_LEVEL=debug
     networks:
@@ -1374,7 +1930,7 @@ services:
       - RABBITMQ_PASSWORD=password
       - FILTER_NAME=englishFilter
       - DIRECT_PUBLISHER_EXCHANGE=english-filter-exchange
-      - DIRECT_PUBLISHER_TIMEOUT=5
+      - DIRECT_PUBLISHER_TIMEOUT=3600
       - OUTPUT_ROUTER_TAGS=1,2,3 # Affects JoinnerQuery4
       - DIRECT_SUBSCRIBER_EXCHANGES=negative-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=english-filter-input-queue
@@ -1383,7 +1939,7 @@ services:
       - END_SERVICE_COORDINATOR_QUEUE=english-filter-control
       - END_SERVICE_EXCHANGE=english-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=english-peer-queue-3
-      - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_TIMEOUT=3600
       - END_SERVICE_NODE_ID=3
       - LOGGER_LEVEL=debug
     networks:
@@ -1405,7 +1961,7 @@ services:
       - RABBITMQ_PASSWORD=password
       - FILTER_NAME=englishFilter
       - DIRECT_PUBLISHER_EXCHANGE=english-filter-exchange
-      - DIRECT_PUBLISHER_TIMEOUT=5
+      - DIRECT_PUBLISHER_TIMEOUT=3600
       - OUTPUT_ROUTER_TAGS=1,2,3 # Affects JoinnerQuery4
       - DIRECT_SUBSCRIBER_EXCHANGES=negative-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=english-filter-input-queue
@@ -1414,7 +1970,7 @@ services:
       - END_SERVICE_COORDINATOR_QUEUE=english-filter-control
       - END_SERVICE_EXCHANGE=english-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=english-peer-queue-4
-      - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_TIMEOUT=3600
       - END_SERVICE_NODE_ID=4
       - LOGGER_LEVEL=debug
     networks:
@@ -1436,7 +1992,7 @@ services:
       - RABBITMQ_PASSWORD=password
       - FILTER_NAME=englishFilter
       - DIRECT_PUBLISHER_EXCHANGE=english-filter-exchange
-      - DIRECT_PUBLISHER_TIMEOUT=5
+      - DIRECT_PUBLISHER_TIMEOUT=3600
       - OUTPUT_ROUTER_TAGS=1,2,3 # Affects JoinnerQuery4
       - DIRECT_SUBSCRIBER_EXCHANGES=negative-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=english-filter-input-queue
@@ -1445,7 +2001,7 @@ services:
       - END_SERVICE_COORDINATOR_QUEUE=english-filter-control
       - END_SERVICE_EXCHANGE=english-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=english-peer-queue-5
-      - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_TIMEOUT=3600
       - END_SERVICE_NODE_ID=5
       - LOGGER_LEVEL=debug
     networks:
@@ -1467,7 +2023,7 @@ services:
       - RABBITMQ_PASSWORD=password
       - FILTER_NAME=englishFilter
       - DIRECT_PUBLISHER_EXCHANGE=english-filter-exchange
-      - DIRECT_PUBLISHER_TIMEOUT=5
+      - DIRECT_PUBLISHER_TIMEOUT=3600
       - OUTPUT_ROUTER_TAGS=1,2,3 # Affects JoinnerQuery4
       - DIRECT_SUBSCRIBER_EXCHANGES=negative-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=english-filter-input-queue
@@ -1476,7 +2032,7 @@ services:
       - END_SERVICE_COORDINATOR_QUEUE=english-filter-control
       - END_SERVICE_EXCHANGE=english-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=english-peer-queue-6
-      - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_TIMEOUT=3600
       - END_SERVICE_NODE_ID=6
       - LOGGER_LEVEL=debug
     networks:
@@ -1498,7 +2054,7 @@ services:
       - RABBITMQ_PASSWORD=password
       - FILTER_NAME=englishFilter
       - DIRECT_PUBLISHER_EXCHANGE=english-filter-exchange
-      - DIRECT_PUBLISHER_TIMEOUT=5
+      - DIRECT_PUBLISHER_TIMEOUT=3600
       - OUTPUT_ROUTER_TAGS=1,2,3 # Affects JoinnerQuery4
       - DIRECT_SUBSCRIBER_EXCHANGES=negative-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=english-filter-input-queue
@@ -1507,7 +2063,7 @@ services:
       - END_SERVICE_COORDINATOR_QUEUE=english-filter-control
       - END_SERVICE_EXCHANGE=english-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=english-peer-queue-7
-      - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_TIMEOUT=3600
       - END_SERVICE_NODE_ID=7
       - LOGGER_LEVEL=debug
     networks:
@@ -1529,7 +2085,7 @@ services:
       - RABBITMQ_PASSWORD=password
       - FILTER_NAME=englishFilter
       - DIRECT_PUBLISHER_EXCHANGE=english-filter-exchange
-      - DIRECT_PUBLISHER_TIMEOUT=5
+      - DIRECT_PUBLISHER_TIMEOUT=3600
       - OUTPUT_ROUTER_TAGS=1,2,3 # Affects JoinnerQuery4
       - DIRECT_SUBSCRIBER_EXCHANGES=negative-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=english-filter-input-queue
@@ -1538,7 +2094,7 @@ services:
       - END_SERVICE_COORDINATOR_QUEUE=english-filter-control
       - END_SERVICE_EXCHANGE=english-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=english-peer-queue-8
-      - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_TIMEOUT=3600
       - END_SERVICE_NODE_ID=8
       - LOGGER_LEVEL=debug
     networks:
@@ -1563,10 +2119,10 @@ services:
       - TRANSACTION_LOG_FILE=coordinator-english.log
       - OUTPUT_TYPE=direct
       - INPUT_WORKER_QUEUE=english-filter-control
-      - INPUT_WORKER_QUEUE_TIMEOUT=5
+      - INPUT_WORKER_QUEUE_TIMEOUT=3600
       - INPUT_WORKER_QUEUE_COUNT=1
       - DIRECT_PUBLISHER_EXCHANGE=negative-filter-exchange
-      - DIRECT_PUBLISHER_TIMEOUT=5
+      - DIRECT_PUBLISHER_TIMEOUT=3600
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
@@ -1590,7 +2146,7 @@ services:
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
       - DIRECT_PUBLISHER_EXCHANGE=counter-5000-exchange
-      - DIRECT_PUBLISHER_TIMEOUT=5
+      - DIRECT_PUBLISHER_TIMEOUT=3600
       - OUTPUT_ROUTER_TAGS=1 
       - DIRECT_SUBSCRIBER_EXCHANGES=action-filter-exchange,english-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=q4-joiner-input-queue-1
@@ -1599,7 +2155,7 @@ services:
       - END_SERVICE_COORDINATOR_QUEUE=joiner-query4-control
       - END_SERVICE_EXCHANGE=joiner-query4-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=joiner-query4-peer-queue-1
-      - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_TIMEOUT=3600
       - END_SERVICE_NODE_ID=1
       - LOGGER_LEVEL=debug
     networks:
@@ -1623,7 +2179,7 @@ services:
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
       - DIRECT_PUBLISHER_EXCHANGE=counter-5000-exchange
-      - DIRECT_PUBLISHER_TIMEOUT=5
+      - DIRECT_PUBLISHER_TIMEOUT=3600
       - OUTPUT_ROUTER_TAGS=1 
       - DIRECT_SUBSCRIBER_EXCHANGES=action-filter-exchange,english-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=q4-joiner-input-queue-2
@@ -1632,7 +2188,7 @@ services:
       - END_SERVICE_COORDINATOR_QUEUE=joiner-query4-control
       - END_SERVICE_EXCHANGE=joiner-query4-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=joiner-query4-peer-queue-2
-      - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_TIMEOUT=3600
       - END_SERVICE_NODE_ID=2
       - LOGGER_LEVEL=debug
     networks:
@@ -1656,7 +2212,7 @@ services:
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
       - DIRECT_PUBLISHER_EXCHANGE=counter-5000-exchange
-      - DIRECT_PUBLISHER_TIMEOUT=5
+      - DIRECT_PUBLISHER_TIMEOUT=3600
       - OUTPUT_ROUTER_TAGS=1 
       - DIRECT_SUBSCRIBER_EXCHANGES=action-filter-exchange,english-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=q4-joiner-input-queue-3
@@ -1665,7 +2221,7 @@ services:
       - END_SERVICE_COORDINATOR_QUEUE=joiner-query4-control
       - END_SERVICE_EXCHANGE=joiner-query4-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=joiner-query4-peer-queue-3
-      - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_TIMEOUT=3600
       - END_SERVICE_NODE_ID=3
       - LOGGER_LEVEL=debug
     networks:
@@ -1692,10 +2248,10 @@ services:
       - TRANSACTION_LOG_FILE=coordinator-joiner-query4.log
       - OUTPUT_TYPE=direct
       - INPUT_WORKER_QUEUE=joiner-query4-control
-      - INPUT_WORKER_QUEUE_TIMEOUT=5
+      - INPUT_WORKER_QUEUE_TIMEOUT=3600
       - INPUT_WORKER_QUEUE_COUNT=1
       - DIRECT_PUBLISHER_EXCHANGE=english-filter-exchange
-      - DIRECT_PUBLISHER_TIMEOUT=5
+      - DIRECT_PUBLISHER_TIMEOUT=3600
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
@@ -1718,7 +2274,7 @@ services:
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
       - OUTPUT_WORKER_QUEUE=output-queue
-      - OUTPUT_WORKER_QUEUE_TIMEOUT=5
+      - OUTPUT_WORKER_QUEUE_TIMEOUT=3600
       - OUTPUT_WORKER_QUEUE_COUNT=1
       - DIRECT_SUBSCRIBER_EXCHANGES=counter-5000-exchange
       - DIRECT_SUBSCRIBER_QUEUE=q4-joiner-output_queue
@@ -1745,7 +2301,7 @@ services:
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
       - DIRECT_PUBLISHER_EXCHANGE=counter-percentil-exchange
-      - DIRECT_PUBLISHER_TIMEOUT=5
+      - DIRECT_PUBLISHER_TIMEOUT=3600
       - OUTPUT_ROUTER_TAGS=1 # Affects percentil
       - DIRECT_SUBSCRIBER_EXCHANGES=action-filter-exchange,negative-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=q5-joiner-input-queue-1
@@ -1754,7 +2310,7 @@ services:
       - END_SERVICE_COORDINATOR_QUEUE=joiner-query5-control
       - END_SERVICE_EXCHANGE=joiner-query5-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=joiner-query5-peer-queue-1
-      - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_TIMEOUT=3600
       - END_SERVICE_NODE_ID=1
       - LOGGER_LEVEL=debug
     networks:
@@ -1778,7 +2334,7 @@ services:
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
       - DIRECT_PUBLISHER_EXCHANGE=counter-percentil-exchange
-      - DIRECT_PUBLISHER_TIMEOUT=5
+      - DIRECT_PUBLISHER_TIMEOUT=3600
       - OUTPUT_ROUTER_TAGS=1 # Affects percentil
       - DIRECT_SUBSCRIBER_EXCHANGES=action-filter-exchange,negative-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=q5-joiner-input-queue-2
@@ -1787,7 +2343,7 @@ services:
       - END_SERVICE_COORDINATOR_QUEUE=joiner-query5-control
       - END_SERVICE_EXCHANGE=joiner-query5-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=joiner-query5-peer-queue-2
-      - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_TIMEOUT=3600
       - END_SERVICE_NODE_ID=2
       - LOGGER_LEVEL=debug
     networks:
@@ -1811,7 +2367,7 @@ services:
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
       - DIRECT_PUBLISHER_EXCHANGE=counter-percentil-exchange
-      - DIRECT_PUBLISHER_TIMEOUT=5
+      - DIRECT_PUBLISHER_TIMEOUT=3600
       - OUTPUT_ROUTER_TAGS=1 # Affects percentil
       - DIRECT_SUBSCRIBER_EXCHANGES=action-filter-exchange,negative-filter-exchange
       - DIRECT_SUBSCRIBER_QUEUE=q5-joiner-input-queue-3
@@ -1820,7 +2376,7 @@ services:
       - END_SERVICE_COORDINATOR_QUEUE=joiner-query5-control
       - END_SERVICE_EXCHANGE=joiner-query5-exchange-control
       - END_SERVICE_SUBSCRIBER_QUEUE=joiner-query5-peer-queue-3
-      - END_SERVICE_TIMEOUT=5
+      - END_SERVICE_TIMEOUT=3600
       - END_SERVICE_NODE_ID=3
       - LOGGER_LEVEL=debug
     networks:
@@ -1847,10 +2403,10 @@ services:
       - TRANSACTION_LOG_FILE=coordinator-joiner-query5.log
       - OUTPUT_TYPE=direct
       - INPUT_WORKER_QUEUE=joiner-query5-control
-      - INPUT_WORKER_QUEUE_TIMEOUT=5
+      - INPUT_WORKER_QUEUE_TIMEOUT=3600
       - INPUT_WORKER_QUEUE_COUNT=1
       - DIRECT_PUBLISHER_EXCHANGE=negative-filter-exchange
-      - DIRECT_PUBLISHER_TIMEOUT=5
+      - DIRECT_PUBLISHER_TIMEOUT=3600
       - LOGGER_LEVEL=debug
     networks:
       - rabbitmq_go_net
@@ -1873,7 +2429,7 @@ services:
       - RABBITMQ_USERNAME=user
       - RABBITMQ_PASSWORD=password
       - OUTPUT_WORKER_QUEUE=output-queue
-      - OUTPUT_WORKER_QUEUE_TIMEOUT=5
+      - OUTPUT_WORKER_QUEUE_TIMEOUT=3600
       - OUTPUT_WORKER_QUEUE_COUNT=1
       - DIRECT_SUBSCRIBER_EXCHANGES=counter-percentil-exchange
       - DIRECT_SUBSCRIBER_QUEUE=percentil-input-queue

@@ -9,7 +9,7 @@ import (
 
 type DirectPublisherConfig struct {
 	Exchange string
-	Timeout  uint8
+	Timeout  uint32
 }
 
 type DirectPublisher struct {

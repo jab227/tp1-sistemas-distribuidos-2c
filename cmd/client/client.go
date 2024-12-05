@@ -1,13 +1,16 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
-	internalClient "github.com/jab227/tp1-sistemas-distribuidos-2c/internal/client"
-	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/logging"
 	"io"
 	"log/slog"
 	"os"
+
+	internalClient "github.com/jab227/tp1-sistemas-distribuidos-2c/internal/client"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/logging"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/utils"
 )
 
 func loadConfig(path string) (*internalClient.Config, error) {
@@ -47,9 +50,26 @@ func main() {
 		slog.Error(err.Error())
 		return
 	}
-
-	if err := client.Run(); err != nil {
-		panic(err)
-	}
-
+	ctx, cancel := context.WithCancel(context.Background())
+	signal := utils.MakeSignalHandler()
+	done := make(chan struct{}, 1)
+	go func() {
+		clientDone := make(chan struct{}, 1)
+		go func() {
+			if err := client.Run(); err != nil {
+				slog.Error("stopping client")
+			}
+			clientDone <- struct{}{}
+		}()
+		select {
+		case <-ctx.Done():
+			slog.Error("context error", "error", ctx.Err())
+			done <- struct{}{}			
+			return
+		case <-clientDone:
+			done <- struct{}{}
+			return
+		}
+	}()
+	utils.BlockUntilSignal(signal, done, cancel)
 }

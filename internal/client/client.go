@@ -200,7 +200,7 @@ func (c *Client) RecvResults() error {
 				}
 				appIdsProcessed[appId] = struct{}{}
 				var result string
-				if len(queryFields) > 2 {
+				if len(queryFields) > 1 {
 					result = queryFields[1]
 				} else {
 					result = ""

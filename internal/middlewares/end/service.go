@@ -23,7 +23,7 @@ type ServiceOptions struct {
 	Exchange         string
 	SubscriberQueue  string
 	CoordinatorQueue string
-	Timeout          uint8
+	Timeout          uint32
 	NodeId           uint32
 }
 
@@ -65,7 +65,7 @@ func GetServiceOptionsFromEnv() (*ServiceOptions, error) {
 		Exchange:         *exchange,
 		SubscriberQueue:  *subQueue,
 		CoordinatorQueue: *coordinator,
-		Timeout:          uint8(*timeout),
+		Timeout:          uint32(*timeout),
 		NodeId:           uint32(*nodeId),
 	}, nil
 }

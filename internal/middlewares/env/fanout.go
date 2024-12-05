@@ -30,7 +30,7 @@ func GetFanoutPublisherConfig() (*rabbitmq.FanoutPublisherConfig, error) {
 
 	return &rabbitmq.FanoutPublisherConfig{
 		Exchange: *exchange,
-		Timeout:  uint8(*timeout),
+		Timeout:  uint32(*timeout),
 	}, nil
 }
 

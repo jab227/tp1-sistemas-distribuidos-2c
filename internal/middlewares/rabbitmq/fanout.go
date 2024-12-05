@@ -9,7 +9,7 @@ import (
 
 type FanoutPublisherConfig struct {
 	Exchange string
-	Timeout  uint8
+	Timeout  uint32
 }
 
 type FanoutPublisher struct {
