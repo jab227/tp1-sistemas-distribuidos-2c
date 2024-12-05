@@ -81,7 +81,6 @@ func (tr *TopReviews) Run(ctx context.Context) error {
 			if err := log.Commit(); err != nil {
 				return fmt.Errorf("couldn't commit to disk: %w", err)
 			}
-			time.Sleep(5 * time.Second)
 
 			batcher.Acknowledge()
 		case <-time.After(10 * time.Second):
@@ -98,7 +97,6 @@ func (tr *TopReviews) Run(ctx context.Context) error {
 			if err := log.Commit(); err != nil {
 				return fmt.Errorf("couldn't commit to disk: %w", err)
 			}
-			time.Sleep(5 * time.Second)
 
 			batcher.Acknowledge()
 		case <-ctx.Done():
