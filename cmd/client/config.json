@@ -4,14 +4,14 @@
   "LoggerLevel": "debug",
   "GamesConfig": {
     "FileType": 1,
-    "Path": "/Users/framos/Desktop/tp1-sistemas-distribuidos-2c/.data/gamesQuarter.csv",
+    "Path": "/Users/framos/Desktop/tp1-sistemas-distribuidos-2c/.data/gamesOneEight.csv",
     "NlinesFromDisk": 100,
     "MaxElements": 50,
     "MaxBytes": 8192
   },
   "ReviewsConfig": {
     "FileType": 2,
-    "Path": "/Users/framos/Desktop/tp1-sistemas-distribuidos-2c/.data/reviewsQuarter.csv",
+    "Path": "/Users/framos/Desktop/tp1-sistemas-distribuidos-2c/.data/reviewsOneEight.csv",
     "NlinesFromDisk": 100,
     "MaxElements": 100,
     "MaxBytes": 8192

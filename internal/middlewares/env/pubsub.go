@@ -32,7 +32,7 @@ func GetDirectPublisherConfig() (*rabbitmq.DirectPublisherConfig, error) {
 
 	return &rabbitmq.DirectPublisherConfig{
 		Exchange: *exchange,
-		Timeout:  uint8(*timeout),
+		Timeout:  uint32(*timeout),
 	}, nil
 }
 

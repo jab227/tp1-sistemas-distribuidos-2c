@@ -9,7 +9,7 @@ import (
 
 type WorkerQueueConfig struct {
 	Name          string
-	Timeout       uint8
+	Timeout       uint32
 	PrefetchCount int
 }
 

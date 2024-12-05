@@ -2,8 +2,8 @@ package main
 
 import (
 	"context"
-	coordinator2 "github.com/jab227/tp1-sistemas-distribuidos-2c/internal/coordinator"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/healthcheck"
+	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/joinercoordinator"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/logging"
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/utils"
 	"log/slog"
@@ -18,26 +18,26 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	signal := utils.MakeSignalHandler()
 
-	propagateTags, err := coordinator2.GetPropagateTags()
+	propagateTags, err := joinercoordinator.GetPropagateTags()
 	if err != nil {
 		slog.Error("error getting propagate tags", "error", err.Error())
 		return
 	}
 	slog.Debug("propagating tags", "tags", propagateTags)
 
-	outputType, err := coordinator2.GetOutputType()
+	outputType, err := joinercoordinator.GetOutputType()
 	if err != nil {
 		slog.Error("error getting output type", "error", err.Error())
 		return
 	}
 
-	expectedNodes, err := coordinator2.GetExpectedNodes()
+	expectedNodes, err := joinercoordinator.GetExpectedNodes()
 	if err != nil {
 		slog.Error("error getting expected nodes", "error", err.Error())
 		return
 	}
 
-	transactionLogFile, err := coordinator2.GetTransactionLogFile()
+	transactionLogFile, err := joinercoordinator.GetTransactionLogFile()
 	if err != nil {
 		slog.Error("error getting transaction log file", "error", err.Error())
 		return
@@ -49,7 +49,7 @@ func main() {
 
 	go service.Run(ctx)
 
-	coordinator, err := coordinator2.NewEndCoordinatorController(
+	coordinator, err := joinercoordinator.NewEndJoinerCoordinatorController(
 		outputType,
 		expectedNodes,
 		propagateTags)

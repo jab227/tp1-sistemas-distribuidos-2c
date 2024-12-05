@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strconv"
 
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -21,8 +22,14 @@ func (r rabbitMessage) GetBody() []byte {
 	return amqp.Delivery(r).Body
 }
 
+var ackCounter int = 0
+
 func (r rabbitMessage) Acknowledge() {
-	amqp.Delivery(r).Ack(false)
+	ackCounter++
+	slog.Debug("ack counter", "count", ackCounter)
+	if err := amqp.Delivery(r).Ack(false); err != nil {
+		panic("ack error shouldn't happen")
+	}
 }
 
 type LeaderMiddleware struct {
@@ -51,7 +58,10 @@ func NewLeaderMiddleware(id int, options *Options) (*LeaderMiddleware, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	err = ch.Qos(1, 0, false)
+	if err != nil {
+		return nil, fmt.Errorf("failed to set QoS: %w", err)
+	}
 	err = ch.ExchangeDeclare(
 		exchangeName, // name
 		"direct",     // type
@@ -62,11 +72,12 @@ func NewLeaderMiddleware(id int, options *Options) (*LeaderMiddleware, error) {
 		nil,          // arguments
 	)
 	name := fmt.Sprintf("leader-queue-%d", id)
+	slog.Debug("created queue", "name", name)
 	q, err := ch.QueueDeclare(
 		name,  // name
 		false, // durable
 		false, // delete when unused
-		true,  // exclusive
+		false, // exclusive
 		false, // no-wait
 		nil,   // arguments
 	)
@@ -90,7 +101,7 @@ func NewLeaderMiddleware(id int, options *Options) (*LeaderMiddleware, error) {
 }
 
 func (l *LeaderMiddleware) Close() {
-	l.ch.Close()	
+	l.ch.Close()
 	l.conn.Close()
 }
 
@@ -102,7 +113,7 @@ func (l *LeaderMiddleware) Write(ctx context.Context, p []byte, key int) error {
 		false,        // mandatory
 		false,        // immediate
 		amqp.Publishing{
-			ContentType: "text/plain",
+			ContentType: "application/octet-stream",
 			Body:        p,
 		})
 }

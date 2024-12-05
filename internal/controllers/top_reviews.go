@@ -81,7 +81,6 @@ func (tr *TopReviews) Run(ctx context.Context) error {
 			if err := log.Commit(); err != nil {
 				return fmt.Errorf("couldn't commit to disk: %w", err)
 			}
-			time.Sleep(5 * time.Second)
 
 			batcher.Acknowledge()
 		case <-time.After(10 * time.Second):
@@ -98,7 +97,6 @@ func (tr *TopReviews) Run(ctx context.Context) error {
 			if err := log.Commit(); err != nil {
 				return fmt.Errorf("couldn't commit to disk: %w", err)
 			}
-			time.Sleep(5 * time.Second)
 
 			batcher.Acknowledge()
 		case <-ctx.Done():
@@ -131,6 +129,8 @@ func reloadTopReviews(tr *TopReviews) (store.Store[*topReviewsState], *persisten
 			applyTopReviewsBatch(currentBatch, stateStore, tr)
 		}
 	}
+
+	slog.Debug("Initialization state", stateStore)
 	return stateStore, log, nil
 }
 
@@ -171,6 +171,7 @@ func processTopReviewsBatch(batch []protocol.Message, topReviewsStateStore store
 				return fmt.Errorf("wrong type: expected game data")
 			}
 			tr.processReviewsData(state, msg)
+			slog.Debug("State after processing", state)
 		} else if msg.ExpectKind(protocol.End) {
 			slog.Debug("received end", "game", msg.HasGameData())
 			if err := tr.writeResult(state, msg); err != nil {

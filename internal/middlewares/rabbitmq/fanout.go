@@ -9,7 +9,7 @@ import (
 
 type FanoutPublisherConfig struct {
 	Exchange string
-	Timeout  uint8
+	Timeout  uint32
 }
 
 type FanoutPublisher struct {
@@ -90,6 +90,10 @@ func (s *FanoutSubscriber) Connect(conn *Connection) error {
 		return fmt.Errorf("failed to create channel: %w", err)
 	}
 
+	if err := ch.Qos(1, 0, false); err != nil {
+		return fmt.Errorf("failed to set QoS: %w", err)
+	}
+
 	err = ch.ExchangeDeclare(
 		s.Config.Exchange,
 		"fanout",
@@ -107,7 +111,7 @@ func (s *FanoutSubscriber) Connect(conn *Connection) error {
 		s.Config.Queue,
 		true,
 		false,
-		true,
+		false,
 		false,
 		nil,
 	)

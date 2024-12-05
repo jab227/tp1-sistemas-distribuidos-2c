@@ -2,6 +2,7 @@ import subprocess
 import random
 import time
 import argparse
+from datetime import datetime
 
 
 parser = argparse.ArgumentParser(prog="kill_containers", description="randomly kill containers in random intervals")
@@ -9,8 +10,8 @@ parser.add_argument("--min", default=5)
 parser.add_argument("--max", default=10)
 args = parser.parse_args()
 # Config parameters
-min_time = args.min
-max_time = args.max
+min_time = int(args.min)
+max_time = int(args.max)
 
 non_killable_containers = ["healthcheck_1", "boundary", "rabbitmq"]
 
@@ -29,6 +30,6 @@ while True:
     subprocess.run(
         ["docker", "container", "kill", container_to_kill], stdout=subprocess.DEVNULL
     )
-    print(f"killed container: {container_to_kill}")
+    print(f"{datetime.now():%Y-%m-%d %H:%M:%S} - killed container: {container_to_kill}")
     time.sleep(waiting_time)
     waiting_time = gen_random_time()

@@ -44,7 +44,7 @@ func GetInputWorkerQueueConfig() (*rabbitmq.WorkerQueueConfig, error) {
 
 	return &rabbitmq.WorkerQueueConfig{
 		Name:          *name,
-		Timeout:       uint8(*timeout),
+		Timeout:       uint32(*timeout),
 		PrefetchCount: int(*count),
 	}, nil
 }
@@ -85,7 +85,7 @@ func GetOutputWorkerQueueConfig() (*rabbitmq.WorkerQueueConfig, error) {
 
 	return &rabbitmq.WorkerQueueConfig{
 		Name:          *name,
-		Timeout:       uint8(*timeout),
+		Timeout:       uint32(*timeout),
 		PrefetchCount: int(*count),
 	}, nil
 }

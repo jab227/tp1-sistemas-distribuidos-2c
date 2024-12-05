@@ -103,7 +103,7 @@ func (r *Percentile) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	batcher := batch.NewBatcher(50)
+	batcher := batch.NewBatcher(1000)
 	for {
 		select {
 		case delivery := <-consumerCh:
@@ -172,6 +172,7 @@ func processPercentileBatch(
 			if !msg.HasGameData() {
 				return fmt.Errorf("couldn't wrong type: expected game data")
 			}
+
 			clientID := msg.GetClientID()
 			elements := msg.Elements()
 			state, ok := percentileStateStore.Get(clientID)

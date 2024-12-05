@@ -23,7 +23,7 @@ type ServiceOptions struct {
 	Exchange         string
 	SubscriberQueue  string
 	CoordinatorQueue string
-	Timeout          uint8
+	Timeout          uint32
 	NodeId           uint32
 }
 
@@ -65,7 +65,7 @@ func GetServiceOptionsFromEnv() (*ServiceOptions, error) {
 		Exchange:         *exchange,
 		SubscriberQueue:  *subQueue,
 		CoordinatorQueue: *coordinator,
-		Timeout:          uint8(*timeout),
+		Timeout:          uint32(*timeout),
 		NodeId:           uint32(*nodeId),
 	}, nil
 }
@@ -166,13 +166,16 @@ func (s *Service) NotifyCoordinator(endMessage protocol.Message) {
 		dataType = protocol.Games
 	}
 
+	slog.Debug("Notifyng to coordinator", "clientId", endMessage.GetClientID(), "nodeId", s.NodeId)
 	msgToSend := protocol.NewEndMessage(dataType, protocol.MessageOptions{
 		ClientID:  endMessage.GetClientID(),
 		MessageID: s.NodeId,
 		RequestID: endMessage.GetRequestID(),
 	})
 
-	s.coordinator.Write(msgToSend.Marshal(), "")
+	if err := s.coordinator.Write(msgToSend.Marshal(), ""); err != nil {
+		slog.Error("error sending notify coordinator", err)
+	}
 }
 
 func (s *Service) NotifyNeighbours(endMessage protocol.Message) {
@@ -192,5 +195,7 @@ func (s *Service) NotifyNeighbours(endMessage protocol.Message) {
 		RequestID: endMessage.GetRequestID(),
 	})
 
-	s.fanoutPub.Write(msgToSend.Marshal(), "")
+	if err := s.fanoutPub.Write(msgToSend.Marshal(), ""); err != nil {
+		slog.Error("error sending notify neighbours", err)
+	}
 }
