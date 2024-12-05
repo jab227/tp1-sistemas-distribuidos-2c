@@ -138,7 +138,6 @@ func (b *Boundary) handleClient(conn net.Conn) {
 			slog.Info("received end message",
 				"clientId", msg.Header.ClientId,
 				"requestId", msg.Header.RequestId,
-				"messageId", b.state.GetClientNewMessageId(clientId),
 			)
 
 			if err := b.handleRecvEnd(msg); err != nil {

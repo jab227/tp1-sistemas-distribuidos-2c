@@ -8,15 +8,15 @@ import (
 
 type ClientState struct {
 	RequestIdCounter uint64
-	MessageIdCounter uint32
-	senderCh         chan cprotocol.Message
+
+	senderCh chan cprotocol.Message
 }
 
 type State struct {
-	mu sync.Mutex
-
-	clientIdCounter uint64
-	clientsState    map[uint64]ClientState
+	mu               sync.Mutex
+	MessageIdCounter uint32
+	clientIdCounter  uint64
+	clientsState     map[uint64]ClientState
 }
 
 func NewState() *State {
@@ -38,7 +38,6 @@ func (s *State) GetNewClientId() uint64 {
 func (s *State) setNewClientId(clientId uint64) {
 	s.clientsState[clientId] = ClientState{
 		RequestIdCounter: 0,
-		MessageIdCounter: 0,
 		senderCh:         make(chan cprotocol.Message, 1),
 	}
 }
@@ -56,11 +55,8 @@ func (s *State) GetClientNewRequestId(clientId uint64) uint64 {
 func (s *State) GetClientNewMessageId(clientId uint64) uint32 {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-
-	clientState := s.clientsState[clientId]
-	clientState.MessageIdCounter += 1
-	s.clientsState[clientId] = clientState
-	return clientState.MessageIdCounter
+	s.MessageIdCounter += 1
+	return s.MessageIdCounter
 }
 
 func (s *State) GetClientCh(clientId uint64) chan cprotocol.Message {

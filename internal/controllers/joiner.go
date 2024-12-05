@@ -22,30 +22,27 @@ import (
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/utils"
 )
 
-// TODO - Fede delete now
-var endJoinerSupervisor = make(map[uint32]bool)
-
 func HasBoth(set map[protocol.DataType]struct{}) bool {
 	_, hasGamesEnd := set[protocol.Games]
 	_, hasReviewsEnd := set[protocol.Reviews]
 	return hasGamesEnd && hasReviewsEnd
 }
 
-type joinerState struct {
+type JoinerState struct {
 	Games   map[string]models.Game
 	Reviews map[string]map[uint32]struct{}
 	Ends    map[protocol.DataType]struct{}
 }
 
-func (j *joinerState) Reset() {
-	*j = joinerState{
+func (j *JoinerState) Reset() {
+	*j = JoinerState{
 		Games:   make(map[string]models.Game),
 		Reviews: make(map[string]map[uint32]struct{}),
 		Ends:    make(map[protocol.DataType]struct{}),
 	}
 }
 
-func MarshalStore(s store.Store[joinerState]) ([]byte, error) {
+func MarshalStore(s store.Store[JoinerState]) ([]byte, error) {
 	var buf bytes.Buffer
 	encoder := gob.NewEncoder(&buf)
 	if err := encoder.Encode(s); err != nil {
@@ -62,7 +59,7 @@ func MarshalStore(s store.Store[joinerState]) ([]byte, error) {
 	return compressedBuffer.Bytes(), nil
 }
 
-func UnmarshalStore(p []byte) (store.Store[joinerState], error) {
+func UnmarshalStore(p []byte) (store.Store[JoinerState], error) {
 	buf := bytes.NewBuffer(p)
 	r, err := gzip.NewReader(buf)
 	if err != nil {
@@ -70,7 +67,7 @@ func UnmarshalStore(p []byte) (store.Store[joinerState], error) {
 	}
 	defer r.Close()
 	decoder := gob.NewDecoder(r)
-	s := store.NewStore[joinerState]()
+	s := store.NewStore[JoinerState]()
 	if err := decoder.Decode(&s); err != nil {
 		return nil, err
 	}
@@ -101,8 +98,8 @@ func (j *Joiner) Done() <-chan struct{} {
 	return j.done
 }
 
-func reloadJoiner() (store.Store[joinerState], *persistence.TransactionLog, error) {
-	stateStore := store.NewStore[joinerState]()
+func reloadJoiner() (store.Store[JoinerState], *persistence.TransactionLog, error) {
+	stateStore := store.NewStore[JoinerState]()
 	idptr, err := utils.GetFromEnv("NODE_ID")
 	if err != nil {
 		panic("NODE_ID should be set")
@@ -163,15 +160,14 @@ func (j *Joiner) Run(ctx context.Context) error {
 					continue
 				}
 				currentBatch := batcher.Batch()
+				if err := j.processBatch(currentBatch, joinerStateStore, service); err != nil {
+					return err
+				}
 				storeData, err := MarshalStore(joinerStateStore)
 				if err != nil {
 					return err
 				}
 				log.Append(storeData, uint32(TXNBatch))
-
-				if err := j.processBatch(currentBatch, joinerStateStore, service); err != nil {
-					return err
-				}
 				if err := log.Commit(); err != nil {
 					return fmt.Errorf("couldn't commit to disk: %w", err)
 				}
@@ -183,8 +179,8 @@ func (j *Joiner) Run(ctx context.Context) error {
 				if !ok {
 					state.Reset()
 				}
-				//				state.Ends.Set(chooseEndType(msg))
 				state.Ends[chooseEndType(msg)] = struct{}{}
+				joinerStateStore.Set(clientID, state)
 				data, err := MarshalStore(joinerStateStore)
 				if err != nil {
 					return err
@@ -194,7 +190,6 @@ func (j *Joiner) Run(ctx context.Context) error {
 					if err := log.Commit(); err != nil {
 						return fmt.Errorf("couldn't commit to disk: %w", err)
 					}
-					joinerStateStore.Set(clientID, state)
 					delivery.RecvDelivery.Ack(false)
 					continue
 				}
@@ -217,14 +212,15 @@ func (j *Joiner) Run(ctx context.Context) error {
 				continue
 			}
 			currentBatch := batcher.Batch()
+
+			if err := j.processBatch(currentBatch, joinerStateStore, service); err != nil {
+				return err
+			}
 			storeData, err := MarshalStore(joinerStateStore)
 			if err != nil {
 				return err
 			}
 			log.Append(storeData, uint32(TXNBatch))
-			if err := j.processBatch(currentBatch, joinerStateStore, service); err != nil {
-				return err
-			}
 			if err := log.Commit(); err != nil {
 				return fmt.Errorf("couldn't commit to disk: %w", err)
 			}
@@ -235,12 +231,9 @@ func (j *Joiner) Run(ctx context.Context) error {
 	}
 }
 
-func (j *Joiner) processBatch(batch []protocol.Message, joinerStateStore store.Store[joinerState], service *end.Service) error {
+func (j *Joiner) processBatch(batch []protocol.Message, joinerStateStore store.Store[JoinerState], service *end.Service) error {
 	for _, m := range batch {
 		//TODO FEDE - Delete
-		if value, ok := endJoinerSupervisor[m.GetClientID()]; ok && value {
-			slog.Debug("MSG AFTER END")
-		}
 		clientID := m.GetClientID()
 		if m.ExpectKind(protocol.Data) {
 			elements := m.Elements()
@@ -295,7 +288,7 @@ func (j *Joiner) processBatch(batch []protocol.Message, joinerStateStore store.S
 	return nil
 }
 
-func joinAndSend(j *Joiner, s *joinerState, opts protocol.MessageOptions) error {
+func joinAndSend(j *Joiner, s *JoinerState, opts protocol.MessageOptions) error {
 	for appid, set := range s.Reviews {
 		game := s.Games[appid]
 		if game.Name == "" {
@@ -311,12 +304,10 @@ func joinAndSend(j *Joiner, s *joinerState, opts protocol.MessageOptions) error 
 			return fmt.Errorf("couldn't write query 1 output: %w", err)
 		}
 	}
-
-	endJoinerSupervisor[opts.ClientID] = true
 	return nil
 }
 
-func handleDataMessage(msg protocol.Message, s *joinerState, elements *protocol.PayloadElements) error {
+func handleDataMessage(msg protocol.Message, s *JoinerState, elements *protocol.PayloadElements) error {
 	if msg.HasGameData() {
 		for _, element := range elements.Iter() {
 			game := models.ReadGame(&element)
