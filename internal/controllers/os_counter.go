@@ -17,9 +17,6 @@ import (
 	"github.com/jab227/tp1-sistemas-distribuidos-2c/internal/utils"
 )
 
-// TODO - Fede delete now
-var endSupervisor = make(map[uint32]bool)
-
 type newOSState map[string]models.OS
 
 type osState struct {
@@ -176,9 +173,6 @@ func (o *OSCounter) processBatchOsCounter(
 				return fmt.Errorf("couldn't wrong type: expected game data")
 			}
 
-			if value, ok := endSupervisor[msg.GetClientID()]; ok && value {
-				slog.Debug("MSG AFTER END")
-			}
 			elements := msg.Elements()
 			clientID := msg.GetClientID()
 			state, ok := osStateStore.Get(clientID)
@@ -214,7 +208,6 @@ func (o *OSCounter) processBatchOsCounter(
 			if err := o.io.Write(res.Marshal(), ""); err != nil {
 				return fmt.Errorf("couldn't write query 1 output: %w", err)
 			}
-			endSupervisor[msg.GetClientID()] = true
 			//slog.Debug("query 1 results", "result", res, "state", osStateStore[clientID])
 			osStateStore.Delete(clientID)
 		} else {

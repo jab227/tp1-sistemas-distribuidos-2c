@@ -15,8 +15,6 @@ import (
 	"github.com/pemistahl/lingua-go"
 )
 
-var endFilterSupervisor = make(map[uint32]bool)
-
 const MaxBatchingSize = 5000
 const MaxBatcherTimeout = 10 * time.Second
 
@@ -146,10 +144,6 @@ func (f *Filter) Run(ctx context.Context) error {
 func (f *Filter) processBatch(batch *batch.Batcher, endService *end.Service) error {
 	currentBatch := batch.Batch()
 	for _, msg := range currentBatch {
-		if value, ok := endFilterSupervisor[msg.GetClientID()]; ok && value {
-			slog.Debug("MSG AFTER END")
-		}
-
 		// Detect type
 		if msg.ExpectKind(protocol.Data) {
 			// Handle filter
@@ -182,7 +176,6 @@ func (f *Filter) processBatch(batch *batch.Batcher, endService *end.Service) err
 				if err := f.io.Write(endMsg.Marshal(), routerTag); err != nil {
 					return fmt.Errorf("couldn't write end message: %w", err)
 				}
-				endFilterSupervisor[msg.GetClientID()] = true
 			} else {
 				slog.Debug("received end", "game", msg.HasGameData(), "reviews", msg.HasReviewData())
 				endService.NotifyNeighbours(msg)
