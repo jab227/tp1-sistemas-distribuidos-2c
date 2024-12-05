@@ -10,10 +10,10 @@ parser.add_argument("--min", default=5)
 parser.add_argument("--max", default=10)
 args = parser.parse_args()
 # Config parameters
-min_time = args.min
-max_time = args.max
+min_time = int(args.min)
+max_time = int(args.max)
 
-non_killable_containers = ["healthcheck_1", "boundary", "rabbitmq", "healthcheck_3", "healthcheck_2"]
+non_killable_containers = ["healthcheck_1", "boundary", "rabbitmq"]
 
 output = subprocess.run(
     ["docker", "container", "ls", "--format", "{{.Names}}"], capture_output=True
